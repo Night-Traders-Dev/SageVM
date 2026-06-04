@@ -68,11 +68,11 @@ class MetalVM:
         self.halted = false
 
     proc push(self, val):
-        self.stack.push(val)
+        push(self.stack, val)
 
     proc pop(self):
         if len(self.stack) == 0: return nil
-        return self.stack.pop()
+        return pop(self.stack)
 
     proc peek(self, dist):
         if len(self.stack) <= dist: return nil
@@ -104,18 +104,22 @@ class MetalVM:
             elif op == OP_GET_GLOBAL:
                 let name = self.constants[self.read_u16()]
                 # Search scopes from top to bottom
-                let found = false
-                for i in range(len(self.scopes)):
+                var found = false
+                var i = 0
+                while i < len(self.scopes):
                     let s = self.scopes[len(self.scopes) - 1 - i]
-                    if s.has(name):
+                    if dict_has(s, name):
                         self.push(s[name])
                         found = true
-                        break
+                        i = len(self.scopes) # break
+                    else:
+                        i = i + 1
                 if not found:
-                    if self.globals.has(name):
+                    if dict_has(self.globals, name):
                         self.push(self.globals[name])
                     else:
-                        print "Runtime Error: Undefined variable " + name
+                        print "Runtime Error: Undefined variable"
+                        print name
                         self.halted = true
             elif op == OP_DEFINE_GLOBAL:
                 let name = self.constants[self.read_u16()]
@@ -124,13 +128,16 @@ class MetalVM:
             elif op == OP_SET_GLOBAL:
                 let name = self.constants[self.read_u16()]
                 let val = self.peek(0)
-                let found = false
-                for i in range(len(self.scopes)):
+                var found = false
+                var i = 0
+                while i < len(self.scopes):
                     let s = self.scopes[len(self.scopes) - 1 - i]
-                    if s.has(name):
+                    if dict_has(s, name):
                         s[name] = val
                         found = true
-                        break
+                        i = len(self.scopes) # break
+                    else:
+                        i = i + 1
                 if not found:
                     self.globals[name] = val
             elif op == OP_ADD:
@@ -218,9 +225,9 @@ class MetalVM:
             elif op == OP_LOOP_BACK:
                 self.ip = self.ip - self.read_u16()
             elif op == OP_PUSH_ENV:
-                self.scopes.push({})
+                push(self.scopes, {})
             elif op == OP_POP_ENV:
-                self.scopes.pop()
+                pop(self.scopes)
             elif op == OP_DUP:
                 let dist = self.read_u8()
                 self.push(self.peek(dist))
@@ -231,7 +238,8 @@ class MetalVM:
             elif op == 0xFF:
                 self.halted = true
             else:
-                print "Unknown opcode: " + str(op)
+                print "Unknown opcode"
+                print op
                 self.halted = true
 
 proc read_be16(bs, off):
@@ -240,59 +248,91 @@ proc read_be16(bs, off):
 proc read_be32(bs, off):
     return (bs[off] << 24) | (bs[off+1] << 16) | (bs[off+2] << 8) | bs[off+3]
 
+proc my_readbytes(p):
+    let s = io.readfile(p)
+    if s == nil: return nil
+    let res = []
+    var i = 0
+    while i < len(s):
+        push(res, ord(s[i]))
+        i = i + 1
+    return res
+
 proc main():
     let args = sys.args()
-    if len(args) < 2:
+    var input_file = ""
+    var i = 0
+    while i < len(args):
+        if endswith(args[i], ".sgvm"):
+            input_file = args[i]
+            i = len(args) # break
+        else:
+            i = i + 1
+    
+    if input_file == "":
         print "Usage: sgvm <file.sgvm>"
         return
 
-    let data = io.readbytes(args[1])
+    let data = my_readbytes(input_file)
     if data == nil:
-        print "Error: Could not read " + args[1]
+        print "Error: Could not read file"
         return
 
-    if len(data) < 4 or chr(data[0]) != "S" or chr(data[1]) != "G" or chr(data[2]) != "V" or chr(data[3]) != "M":
+    var off = 0
+    # Skip shebang if present
+    if len(data) > 2 and chr(data[0]) == "#" and chr(data[1]) == "!":
+        while off < len(data) and chr(data[off]) != "\n":
+            off = off + 1
+        if off < len(data):
+            off = off + 1 # Skip newline
+
+    if len(data) - off < 4 or chr(data[off]) != "S" or chr(data[off+1]) != "G" or chr(data[off+2]) != "V" or chr(data[off+3]) != "M":
         print "Error: Invalid SGVM header"
         return
 
     let vm = MetalVM()
-    let off = 6
+    off = off + 6 # Skip SGVM and version
     let const_count = read_be16(data, off)
     off = off + 2
 
-    for i in range(const_count):
+    var j = 0
+    while j < const_count:
         let type = data[off]
         off = off + 1
         if type == 1: # Number
-            # Sage needs a way to read double from bytes
-            # For now, placeholder or adding a helper
-            # Let's assume we can't easily do it and skip or use 0
-            # Wait, I can't skip it because the offset must be correct
-            # Double is 8 bytes.
-            vm.constants.push(0.0) # FIXME
+            push(vm.constants, 0.0) # FIXME: read double
             off = off + 8
         elif type == 3: # String
             let slen = read_be16(data, off)
             off = off + 2
-            let s = ""
-            for j in range(slen):
-                s = s + chr(data[off + j])
-            vm.constants.push(s)
+            var s = ""
+            var k = 0
+            while k < slen:
+                s = s + chr(data[off + k])
+                k = k + 1
+            push(vm.constants, s)
             off = off + slen
+        j = j + 1
 
     let chunk_count = read_be32(data, off)
     off = off + 4
 
-    for i in range(chunk_count):
+    var c = 0
+    while c < chunk_count:
         let clen = read_be32(data, off)
         off = off + 4
         let chunk_code = []
-        for j in range(clen):
-            chunk_code.push(data[off + j])
-        vm.chunks.push(chunk_code)
+        var k = 0
+        while k < clen:
+            push(chunk_code, data[off + k])
+            k = k + 1
+        push(vm.chunks, chunk_code)
         off = off + clen
+        c = c + 1
 
-    for i in range(len(vm.chunks)):
-        vm.run(vm.chunks[i])
+    var idx = 0
+    while idx < len(vm.chunks):
+        vm.run(vm.chunks[idx])
+        idx = idx + 1
 
 main()

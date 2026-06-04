@@ -1,0 +1,14 @@
+# Binaries
+sgvm
+sgvmc
+
+# Temporary files
+.tmp.svm
+*.sgvm
+
+# Build artifacts
+*.o
+*.obj
+*.bin
+*.elf
+*.efi

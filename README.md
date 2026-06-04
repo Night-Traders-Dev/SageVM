@@ -2,22 +2,46 @@
 
 This repository contains the SageLang ports of the SGVM (Sage General Virtual Machine) and SGVMC (SGVM Compiler) tools. These tools allow for the compilation and execution of SageLang bytecode in a pure SageLang environment.
 
+## Installation
+
+To build and install the tools to your system:
+
+```bash
+make
+sudo make install
+```
+
+This will compile `sgvm.sage` and `sgvmc.sage` into native binaries and install them to `/usr/local/bin`.
+
 ## Tools
 
-### `sgvm.sage`
+### `sgvm` (Interpreter)
 A pure SageLang implementation of the SGVM interpreter. It can execute compiled `.sgvm` binaries.
 
 **Usage:**
 ```bash
-sage sgvm.sage <file.sgvm>
+sgvm <file.sgvm>
 ```
 
-### `sgvmc.sage`
-A pure SageLang bytecode compiler/linker. It takes the intermediate VM output from the main SageLang compiler and packs it into a binary `.sgvm` artifact suitable for execution by `sgvm.sage` or the C-based MetalVM.
+### `sgvmc` (Compiler)
+A pure SageLang bytecode compiler/linker. It takes the intermediate VM output from the main SageLang compiler and packs it into a binary `.sgvm` artifact.
 
 **Usage:**
 ```bash
-sage sgvmc.sage <input.sage> <output.sgvm>
+sgvmc <input.sage> <output.sgvm> [--shebang]
+```
+
+**Options:**
+- `--shebang`: Prepend a shebang line (`#!/usr/bin/env sgvm`) to the output file, allowing it to be executed directly if the execute bit is set.
+
+## Executing .sgvm Files
+
+If a `.sgvm` file was compiled with the `--shebang` flag, you can run it directly from the console:
+
+```bash
+sgvmc hello.sage hello.sgvm --shebang
+chmod +x hello.sgvm
+./hello.sgvm
 ```
 
 ## Integration with SageLang

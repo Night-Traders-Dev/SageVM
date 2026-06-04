@@ -63,6 +63,7 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 ## Binary Format
 
 The SGVM binary format consists of:
+0. Optional Shebang: `#!/usr/bin/env sgvm\n` (added by `sgvmc --shebang`)
 1. Header: "SGVM" (4 bytes)
 2. Version: 0x01 0x00 (2 bytes)
 3. Constant Pool:
