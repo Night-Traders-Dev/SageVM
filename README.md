@@ -44,6 +44,12 @@ chmod +x hello.sgvm
 ./hello.sgvm
 ```
 
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md): Technical details of the VM implementation and opcodes.
+- [Specification](docs/SPEC.md): Formal specification of the SGVM execution pipeline and verification.
+- [Changelog](docs/CHANGELOG.md): History of changes and improvements.
+
 ## Integration with SageLang
 
 This repository is intended to be used as a submodule within the main SageLang repository, typically located at `core/src/sage/vm-tools`.
