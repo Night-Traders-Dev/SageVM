@@ -49,6 +49,7 @@ chmod +x hello.sgvm
 - [Architecture](docs/ARCHITECTURE.md): Technical details of the VM implementation and opcodes.
 - [Specification](docs/SPEC.md): Formal specification of the SGVM execution pipeline and verification.
 - [Changelog](docs/CHANGELOG.md): History of changes and improvements.
+- [Roadmap](docs/ROADMAP.md): Features and library modules yet to be implemented.
 
 ## Integration with SageLang
 
