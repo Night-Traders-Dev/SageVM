@@ -2,15 +2,14 @@
 
 This document outlines the features and standard library modules currently unsupported by the SGVM interpreter (`sgvm.sage`). Tasks are categorized by their implementation difficulty.
 
-## 🟢 Low Difficulty (Opcode Support)
-These tasks primarily involve adding handlers to the `MetalVM.run` loop for existing opcodes defined in SageLang.
-
-- **Floating Point Binary Loading**: Currently, the VM uses a placeholder for 64-bit doubles. Need to implement a proper byte-to-double conversion in `sgvm.sage`.
-- **Exception Handling**: Implement `BC_OP_SETUP_TRY`, `BC_OP_END_TRY`, and `BC_OP_RAISE`. This requires adding an exception handler stack to the VM state.
-- **Enhanced Flow Control**: Ensure full parity for `OP_BREAK`, `OP_CONTINUE`, and `OP_LOOP_BACK` across complex nested scopes.
-- **Import Opcode**: Implement `BC_OP_IMPORT` to allow the VM to dynamically load and link additional `.sgvm` files at runtime.
+## ✅ Supported Features
+- **Floating Point Binary Loading**: Full IEEE 754 64-bit double support for packing and unpacking.
+- **Exception Handling**: Full support for `try/catch/finally` via `SETUP_TRY`, `END_TRY`, and `RAISE`.
+- **Enhanced Flow Control**: Correct handling of relative jumps and loop control opcodes.
+- **Dynamic Imports**: Ability to load and execute external `.sgvm` modules at runtime.
 
 ## 🟡 Medium Difficulty (Native Bridging)
+
 These tasks require implementing a "Native Bridge" to map SageLang standard library calls to the host environment's capabilities.
 
 - **Math Module parity**: Map `math.sqrt`, `math.sin`, `math.cos`, etc., to the host SageLang's math functions.

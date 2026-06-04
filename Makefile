@@ -1,4 +1,4 @@
-SAGE = sage
+SAGE = /root/Devel/sagelang/core/sage
 SAGE_PATH = /root/Devel/sagelang/core/lib
 
 all: sgvm sgvmc
