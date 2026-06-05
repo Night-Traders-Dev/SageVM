@@ -103,12 +103,6 @@ class SGVMUtils:
         return lines
 
     proc my_substr(s, start, length):
-        print "my_substr s:"
-        print s
-        print "start:"
-        print start
-        print "length:"
-        print length
         var res = ""
         var i = 0
         while i < length:
@@ -116,6 +110,21 @@ class SGVMUtils:
                 res = res + s[start + i]
             i = i + 1
         return res
+
+    ## Parse an integer from a line at a given offset.
+    ## Decomposed to avoid nested method call compiler bug in C backend.
+    proc parse_int_field(self, line, offset):
+        let sub = self.my_substr(line, offset, len(line))
+        let trimmed = self.trim(sub)
+        let numval = tonumber(trimmed)
+        return self.my_int(numval)
+
+    ## Parse a hex byte from a hex string at a given offset.
+    ## Decomposed to avoid nested method call compiler bug in C backend.
+    proc parse_hex_byte(self, hex, offset):
+        let sub = self.my_substr(hex, offset, 2)
+        let bval = self.hex_to_byte(sub)
+        return self.my_int(bval)
 
     proc trim(s):
         var start = 0

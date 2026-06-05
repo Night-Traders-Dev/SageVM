@@ -145,9 +145,9 @@ class SGVMCompiler:
         while i < len(lines):
             let line = self.utils.trim(lines[i])
             if startswith(line, "functions "):
-                function_count = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(line, 10, len(line)))))
+                function_count = self.utils.parse_int_field(line, 10)
             elif startswith(line, "chunks "):
-                chunk_count = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(line, 7, len(line)))))
+                chunk_count = self.utils.parse_int_field(line, 7)
             elif line == "chunk":
                 self.current_chunk = self.current_chunk + 1
                 push(self.local_to_global, [])
@@ -159,23 +159,23 @@ class SGVMCompiler:
                 # Read params line
                 i = i + 1
                 let pline = self.utils.trim(lines[i])
-                let pcount = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(pline, 7, len(pline)))))
+                let pcount = self.utils.parse_int_field(pline, 7)
                 var pidx = 0
                 while pidx < pcount:
                     i = i + 1 # param <len>
                     let param_len_line = self.utils.trim(lines[i])
-                    let plen = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(param_len_line, 6, len(param_len_line)))))
+                    let plen = self.utils.parse_int_field(param_len_line, 6)
                     i = i + 1 # hex string
                     let hex = self.utils.trim(lines[i])
                     var p_name = ""
                     var k = 0
                     while k < plen:
-                        p_name = p_name + chr(self.utils.my_int(self.utils.hex_to_byte(self.utils.my_substr(hex, k*2, 2))))
+                        p_name = p_name + chr(self.utils.parse_hex_byte(hex, k*2))
                         k = k + 1
                     push(self.chunk_params[self.current_chunk], p_name)
                     pidx = pidx + 1
             elif startswith(line, "constants "):
-                let count = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(line, 10, len(line)))))
+                let count = self.utils.parse_int_field(line, 10)
                 # Dynamically size the local_to_global table for this chunk
                 var j = 0
                 while j < count:
@@ -186,15 +186,17 @@ class SGVMCompiler:
                     i = i + 1
                     let cl = self.utils.trim(lines[i])
                     if startswith(cl, "number "):
-                        self.local_to_global[self.current_chunk][j] = self.add_const_num(tonumber(self.utils.trim(self.utils.my_substr(cl, 7, len(cl)))))
+                        let num_sub = self.utils.my_substr(cl, 7, len(cl))
+                        let num_trimmed = self.utils.trim(num_sub)
+                        self.local_to_global[self.current_chunk][j] = self.add_const_num(tonumber(num_trimmed))
                     elif startswith(cl, "string "):
-                        let slen = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(cl, 7, len(cl)))))
+                        let slen = self.utils.parse_int_field(cl, 7)
                         i = i + 1
                         let hex = self.utils.trim(lines[i])
                         var s = ""
                         var k = 0
                         while k < slen:
-                            s = s + chr(self.utils.my_int(self.utils.hex_to_byte(self.utils.my_substr(hex, k*2, 2))))
+                            s = s + chr(self.utils.parse_hex_byte(hex, k*2))
                             k = k + 1
                         # Check if this string matches a parameter name for current_chunk
                         var param_idx = -1
@@ -237,59 +239,57 @@ class SGVMCompiler:
             let line = self.utils.trim(lines[i])
             if line == "chunk" or line == "function": self.current_chunk = self.current_chunk + 1
             elif startswith(line, "code "):
-                let clen = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(line, 5, len(line)))))
-                let chunk_str = str(self.current_chunk)
-                let clen_str = str(clen)
-                print "Chunk"
-                print chunk_str
-                print "clen line:"
-                print line
-                print "clen:"
-                print clen_str
+                let clen = self.utils.parse_int_field(line, 5)
                 self.write_be32(clen)
                 i = i + 1
                 let hex = self.utils.trim(lines[i])
                 var j = 0
                 while j < clen * 2:
-                    let op = self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2))
+                    let op = self.utils.parse_hex_byte(hex, j)
                     self.write_byte(op)
                     j = j + 2
                     if op == OP_CONSTANT or op == OP_GET_GLOBAL or op == OP_DEFINE_GLOBAL or op == OP_SET_GLOBAL: 
-                        let v1 = self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2))
-                        let v2 = self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2))
+                        let v1 = self.utils.parse_hex_byte(hex, j)
+                        let v2 = self.utils.parse_hex_byte(hex, j+2)
                         self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
                         j = j + 4
                     elif op == OP_DEFINE_FUNCTION:
-                        let v1 = self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2))
-                        let v2 = self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2))
+                        let v1 = self.utils.parse_hex_byte(hex, j)
+                        let v2 = self.utils.parse_hex_byte(hex, j+2)
                         self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
-                        self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j+4, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+6, 2)))
+                        let f1 = self.utils.parse_hex_byte(hex, j+4)
+                        let f2 = self.utils.parse_hex_byte(hex, j+6)
+                        self.write_be16(f1 * 256 + f2)
                         j = j + 8
                     elif op == OP_CLASS:
-                        let n1 = self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2))
-                        let n2 = self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2))
+                        let n1 = self.utils.parse_hex_byte(hex, j)
+                        let n2 = self.utils.parse_hex_byte(hex, j+2)
                         self.write_be16(self.local_to_global[self.current_chunk][n1 * 256 + n2])
-                        self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j+4, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+6, 2)))
-                        let p1 = self.utils.hex_to_byte(self.utils.my_substr(hex, j+8, 2))
-                        let p2 = self.utils.hex_to_byte(self.utils.my_substr(hex, j+10, 2))
+                        let c1 = self.utils.parse_hex_byte(hex, j+4)
+                        let c2 = self.utils.parse_hex_byte(hex, j+6)
+                        self.write_be16(c1 * 256 + c2)
+                        let p1 = self.utils.parse_hex_byte(hex, j+8)
+                        let p2 = self.utils.parse_hex_byte(hex, j+10)
                         self.write_be16(self.local_to_global[self.current_chunk][p1 * 256 + p2])
                         j = j + 12
                     elif op == OP_GET_PROPERTY or op == OP_SET_PROPERTY or op == OP_LOAD_FUNCTION or op == OP_IMPORT or op == OP_METHOD:
-                        let v1 = self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2))
-                        let v2 = self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2))
+                        let v1 = self.utils.parse_hex_byte(hex, j)
+                        let v2 = self.utils.parse_hex_byte(hex, j+2)
                         self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
                         j = j + 4
                     elif op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_ARRAY or op == OP_TUPLE or op == OP_DICT or op == OP_EXEC_AST_STMT or op == OP_BREAK or op == OP_CONTINUE or op == OP_LOOP_BACK or op == OP_SETUP_TRY:
-                        self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2)))
+                        let j1 = self.utils.parse_hex_byte(hex, j)
+                        let j2 = self.utils.parse_hex_byte(hex, j+2)
+                        self.write_be16(j1 * 256 + j2)
                         j = j + 4
                     elif op == OP_CALL_METHOD:
-                        let v1 = self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2))
-                        let v2 = self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2))
+                        let v1 = self.utils.parse_hex_byte(hex, j)
+                        let v2 = self.utils.parse_hex_byte(hex, j+2)
                         self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
-                        self.write_byte(self.utils.hex_to_byte(self.utils.my_substr(hex, j+4, 2)))
+                        self.write_byte(self.utils.parse_hex_byte(hex, j+4))
                         j = j + 6
                     elif op == OP_CALL or op == OP_DUP:
-                        self.write_byte(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)))
+                        self.write_byte(self.utils.parse_hex_byte(hex, j))
                         j = j + 2
             i = i + 1
         io.writebytes(output_file, self.output_bytes)
