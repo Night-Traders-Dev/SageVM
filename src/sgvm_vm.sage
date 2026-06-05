@@ -1,4 +1,6 @@
 import io
+import math
+import std.regex as re
 from sgvm_core import SGVMUtils
 from sgvm_core import OP_CONSTANT
 from sgvm_core import OP_NIL
@@ -83,6 +85,107 @@ class MetalVM:
         self.returning = false
         self.frame_bases = [0]
         self.arg_names = ["__arg0", "__arg1", "__arg2", "__arg3", "__arg4", "__arg5", "__arg6", "__arg7", "__arg8", "__arg9"]
+        self.setup_builtins()
+
+    proc setup_builtins(self):
+        # Math Module
+        let math_mod = {"__methods__": {}}
+        math_mod["__methods__"]["sqrt"] = {"__native__": true, "__name__": "math.sqrt"}
+        math_mod["__methods__"]["sin"] = {"__native__": true, "__name__": "math.sin"}
+        math_mod["__methods__"]["cos"] = {"__native__": true, "__name__": "math.cos"}
+        math_mod["__methods__"]["tan"] = {"__native__": true, "__name__": "math.tan"}
+        math_mod["__methods__"]["floor"] = {"__native__": true, "__name__": "math.floor"}
+        math_mod["__methods__"]["ceil"] = {"__native__": true, "__name__": "math.ceil"}
+        math_mod["__methods__"]["abs"] = {"__native__": true, "__name__": "math.abs"}
+        math_mod["__methods__"]["pow"] = {"__native__": true, "__name__": "math.pow"}
+        self.globals["math"] = math_mod
+        
+        # IO Module
+        let io_mod = {"__methods__": {}}
+        io_mod["__methods__"]["read"] = {"__native__": true, "__name__": "io.read"}
+        io_mod["__methods__"]["write"] = {"__native__": true, "__name__": "io.write"}
+        self.globals["io"] = io_mod
+        
+        # Sys Module
+        let sys_mod = {"__methods__": {}}
+        sys_mod["__methods__"]["args"] = {"__native__": true, "__name__": "sys.args"}
+        sys_mod["__methods__"]["getenv"] = {"__native__": true, "__name__": "sys.getenv"}
+        sys_mod["__methods__"]["clock"] = {"__native__": true, "__name__": "sys.clock"}
+        sys_mod["__methods__"]["exit"] = {"__native__": true, "__name__": "sys.exit"}
+        self.globals["sys"] = sys_mod
+        
+        # Regex Module
+        let re_mod = {"__methods__": {}}
+        re_mod["__methods__"]["search"] = {"__native__": true, "__name__": "re.search"}
+        re_mod["__methods__"]["match"] = {"__native__": true, "__name__": "re.match"}
+        re_mod["__methods__"]["test"] = {"__native__": true, "__name__": "re.test"}
+        self.globals["re"] = re_mod
+        
+        # Core builtins
+        self.globals["str"] = {"__native__": true, "__name__": "core.str"}
+        self.globals["tonumber"] = {"__native__": true, "__name__": "core.tonumber"}
+        self.globals["len"] = {"__native__": true, "__name__": "core.len"}
+
+    proc call_native(self, name, obj, args):
+        if name == "core.str": return str(args[0])
+        elif name == "core.tonumber": return tonumber(args[0])
+        elif name == "core.len": return len(args[0])
+        elif name == "re.search": return re.search(args[0], args[1])
+        elif name == "re.match": return re.full_match(args[0], args[1])
+        elif name == "re.test": return re.test(args[0], args[1])
+        elif name == "math.sqrt": return math.sqrt(args[0])
+        elif name == "math.sin": return math.sin(args[0])
+        elif name == "math.cos": return math.cos(args[0])
+        elif name == "math.tan": return math.tan(args[0])
+        elif name == "math.floor": return math.floor(args[0])
+        elif name == "math.ceil": return math.ceil(args[0])
+        elif name == "math.abs": return math.abs(args[0])
+        elif name == "math.pow": return math.pow(args[0], args[1])
+        elif name == "io.read": return io.readfile(args[0])
+        elif name == "io.write": return io.writefile(args[0], args[1])
+        elif name == "sys.args": return sys.args()
+        elif name == "sys.getenv": return sys.getenv(args[0])
+        elif name == "sys.clock": return clock()
+        elif name == "sys.exit": self.halted = true
+        elif name == "string.find":
+            # Simple find implementation
+            let h = obj
+            let n = args[0]
+            if len(n) == 0: return 0
+            for i in range(len(h) - len(n) + 1):
+                        var is_match = true
+                        for j in range(len(n)):
+                            if h[i+j] != n[j]:
+                                is_match = false
+                                break
+                        if is_match: return i
+            return -1
+        elif name == "string.replace":
+            let s = obj
+            let old = args[0]
+            let new_s = args[1]
+            if len(old) == 0: return s
+            # Simple replace
+            var res = ""
+            var i = 0
+            while i < len(s):
+                var is_match = true
+                if i + len(old) <= len(s):
+                    for j in range(len(old)):
+                        if s[i+j] != old[j]:
+                            is_match = false
+                            break
+                else:
+                    is_match = false
+                
+                if is_match:
+                    res = res + new_s
+                    i = i + len(old)
+                else:
+                    res = res + s[i]
+                    i = i + 1
+            return res
+        return nil
 
     proc push(self, val):
         if len(self.stack) >= self.max_stack_depth:
@@ -241,6 +344,11 @@ class MetalVM:
                     self.push(obj[name])
                 elif type(obj) == "dict" and dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
                     self.push(obj["__methods__"][name])
+                elif type(obj) == "string":
+                    if name == "find" or name == "replace" or name == "split":
+                        self.push({"__native__": true, "__name__": "string." + name, "__obj__": obj})
+                    else:
+                        self.push(nil)
                 else:
                     self.push(nil)
             elif op == OP_SET_PROPERTY:
@@ -459,7 +567,7 @@ class MetalVM:
                     self.halted = true
             elif op == OP_IMPORT:
                 var name = self.constants[self.utils.my_int(self.read_u16())]
-                self.load_module(name)
+                self.push(self.load_module(name))
             elif op == OP_CLASS:
                 var name = self.constants[self.utils.my_int(self.read_u16())]
                 var mcount = self.utils.my_int(self.read_u16())
@@ -483,9 +591,25 @@ class MetalVM:
                 while j < argc:
                     push(args, self.pop_stack())
                     j = j + 1
+                # Reverse args to match call order
+                var r_args = []
+                var k = 0
+                while k < len(args):
+                    push(r_args, args[len(args) - 1 - k])
+                    k = k + 1
+                args = r_args
+                
                 var callee = self.pop_stack()
-                if type(callee) == "dict" and dict_has(callee, "__chunks__"):
-                    self.run_func(callee, args)
+                if type(callee) == "dict":
+                    if dict_has(callee, "__chunks__"):
+                        self.run_func(callee, args)
+                    elif dict_has(callee, "__native__"):
+                        var obj = nil
+                        if dict_has(callee, "__obj__"): obj = callee["__obj__"]
+                        self.push(self.call_native(callee["__name__"], obj, args))
+                    else:
+                        print "Warning: Unsupported call target: " + str(callee)
+                        self.push(nil)
                 else:
                     print "Warning: Unsupported call target: " + str(callee)
                     self.push(nil)
@@ -497,6 +621,14 @@ class MetalVM:
                 while j < argc:
                     push(args, self.pop_stack())
                     j = j + 1
+                # Reverse args to match call order
+                var r_args = []
+                var k = 0
+                while k < len(args):
+                    push(r_args, args[len(args) - 1 - k])
+                    k = k + 1
+                args = r_args
+                
                 var obj = self.pop_stack()
                 var curr = obj
                 var method = nil
@@ -508,11 +640,21 @@ class MetalVM:
                         curr = curr["__parent_obj__"]
                     else:
                         break
+                
                 if method != nil:
-                    push(args, obj)
-                    self.run_func(method, args)
+                    if type(method) == "dict" and dict_has(method, "__native__"):
+                        self.push(self.call_native(method["__name__"], obj, args))
+                    else:
+                        push(args, obj)
+                        self.run_func(method, args)
+                elif type(obj) == "string":
+                    if name == "find" or name == "replace" or name == "split":
+                        self.push(self.call_native("string." + name, obj, args))
+                    else:
+                        print "Warning: String method '" + name + "' not found"
+                        self.push(nil)
                 else:
-                    print "Warning: Method '" + name + "' not found"
+                    print "Warning: Method '" + name + "' not found on " + str(obj)
                     self.push(nil)
             elif op == OP_HALT:
                 self.halted = true
@@ -566,13 +708,19 @@ class MetalVM:
 
     proc load_module(self, name):
         if dict_has(self.modules, name):
-            return
+            if name == "math" or name == "io" or name == "sys" or name == "re":
+                return self.globals[name]
+            return true # Or the module object if we tracked it
+        # Check if it's a builtin module
+        if name == "math" or name == "io" or name == "sys" or name == "re":
+            self.modules[name] = true
+            return self.globals[name]
         self.modules[name] = true
         var path = name + ".sgvm"
         var data = io.readbytes(path)
         if data == nil:
             print "Error: Could not load module " + name
-            return
+            return nil
         var off = 0
         if len(data) > 2 and self.utils.my_int(data[0]) == 35 and self.utils.my_int(data[1]) == 33:
             while off < len(data) and self.utils.my_int(data[off]) != 10:
@@ -581,7 +729,7 @@ class MetalVM:
                 off = off + 1
         if len(data) - off < 4 or self.utils.my_int(data[off]) != 83 or self.utils.my_int(data[off+1]) != 71 or self.utils.my_int(data[off+2]) != 86 or self.utils.my_int(data[off+3]) != 77:
             print "Error: Invalid SGVM header in module " + name
-            return
+            return nil
         var old_ip = self.ip
         var old_code = self.code
         var old_constants = self.constants
@@ -633,3 +781,4 @@ class MetalVM:
         self.code = old_code
         self.constants = old_constants
         self.chunks = old_chunks
+        return true # TODO: return a proper module object

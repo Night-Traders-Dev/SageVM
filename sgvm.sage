@@ -6,16 +6,16 @@ from sgvm_core import SGVMUtils
 proc main():
     var args = sys.args()
     var input_file = ""
-    var trace = false
+    var debug = false
     var i = 0
     while i < len(args):
         if endswith(args[i], ".sgvm"):
             input_file = args[i]
-        elif args[i] == "--trace":
-            trace = true
+        elif args[i] == "--debug":
+            debug = true
         i = i + 1
     if input_file == "":
-        print "Usage: sgvm <file.sgvm> [--trace]"
+        print "Usage: sgvm <file.sgvm> [--debug]"
         return
     var data = io.readbytes(input_file)
     if data == nil:
@@ -32,7 +32,7 @@ proc main():
         print "Error: Invalid SGVM header"
         return
     var metal_vm = MetalVM()
-    metal_vm.trace = trace
+    metal_vm.trace = debug
     off = off + 6
     var function_count = core_utils.my_int(core_utils.read_be16(data, off))
     off = off + 2
@@ -56,12 +56,13 @@ proc main():
             push(metal_vm.constants, s)
             off = off + slen
         j = j + 1
-    print "Constants count: " + str(len(metal_vm.constants))
-    var c_idx = 0
-    while c_idx < len(metal_vm.constants):
-        print "Const " + str(c_idx) + ": " + str(metal_vm.constants[c_idx])
-        c_idx = c_idx + 1
-    print "data len: " + str(len(data)) + " off: " + str(off)
+    if debug:
+        print "Constants count: " + str(len(metal_vm.constants))
+        var c_idx = 0
+        while c_idx < len(metal_vm.constants):
+            print "Const " + str(c_idx) + ": " + str(metal_vm.constants[c_idx])
+            c_idx = c_idx + 1
+        print "data len: " + str(len(data)) + " off: " + str(off)
     var chunk_count = core_utils.my_int(core_utils.read_be32(data, off))
     off = off + 4
     var c = 0
