@@ -103,6 +103,12 @@ class SGVMUtils:
         return lines
 
     proc my_substr(s, start, length):
+        print "my_substr s:"
+        print s
+        print "start:"
+        print start
+        print "length:"
+        print length
         var res = ""
         var i = 0
         while i < length:
