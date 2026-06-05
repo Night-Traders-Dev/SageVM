@@ -169,6 +169,7 @@ class MetalVM:
         thread_mod["__methods__"]["lock"] = {"__native__": true, "__name__": "thread.lock"}
         thread_mod["__methods__"]["unlock"] = {"__native__": true, "__name__": "thread.unlock"}
         thread_mod["__methods__"]["sleep"] = {"__native__": true, "__name__": "thread.sleep"}
+        thread_mod["__methods__"]["yield"] = {"__native__": true, "__name__": "thread.yield"}
         thread_mod["__methods__"]["id"] = {"__native__": true, "__name__": "thread.id"}
         self.globals["thread"] = thread_mod
 
@@ -180,6 +181,24 @@ class MetalVM:
         gc_mod["__methods__"]["stats"] = {"__native__": true, "__name__": "gc.stats"}
         self.globals["gc"] = gc_mod
         
+        # Atomic Operations
+        let atomic_mod = {"__methods__": {}}
+        atomic_mod["__methods__"]["new"] = {"__native__": true, "__name__": "atomic.new"}
+        atomic_mod["__methods__"]["load"] = {"__native__": true, "__name__": "atomic.load"}
+        atomic_mod["__methods__"]["store"] = {"__native__": true, "__name__": "atomic.store"}
+        atomic_mod["__methods__"]["add"] = {"__native__": true, "__name__": "atomic.add"}
+        atomic_mod["__methods__"]["cas"] = {"__native__": true, "__name__": "atomic.cas"}
+        atomic_mod["__methods__"]["exchange"] = {"__native__": true, "__name__": "atomic.exchange"}
+        self.globals["atomic"] = atomic_mod
+
+        # Semaphore Module
+        let sem_mod = {"__methods__": {}}
+        sem_mod["__methods__"]["new"] = {"__native__": true, "__name__": "sem.new"}
+        sem_mod["__methods__"]["wait"] = {"__native__": true, "__name__": "sem.wait"}
+        sem_mod["__methods__"]["post"] = {"__native__": true, "__name__": "sem.post"}
+        sem_mod["__methods__"]["trywait"] = {"__native__": true, "__name__": "sem.trywait"}
+        self.globals["sem"] = sem_mod
+
         # Core builtins
         self.globals["str"] = {"__native__": true, "__name__": "core.str"}
         self.globals["tonumber"] = {"__native__": true, "__name__": "core.tonumber"}
@@ -194,12 +213,11 @@ class MetalVM:
     proc call_native(self, name, obj, args):
         # Safety Checks
         if self.safe_mode:
-            if startswith(name, "ffi.") or startswith(name, "mem.") or startswith(name, "struct."):
+            if startswith(name, "ffi.") or startswith(name, "mem.") or startswith(name, "struct.") or startswith(name, "atomic.") or startswith(name, "sem."):
                 print "Security Error: Native bridge call '" + name + "' denied in safe mode."
                 return nil
-            if name == "io.write" or name == "io.read":
-                 # In safe mode, we might allow read/write but restrict paths (not implemented here)
-                 print "Security Error: I/O access denied in safe mode."
+            if name == "io.write" or name == "io.read" or name == "sys.exit":
+                 print "Security Error: I/O or system access denied in safe mode."
                  return nil
         
         if not self.ffi_enabled and startswith(name, "ffi."):
@@ -224,10 +242,7 @@ class MetalVM:
                 return nil
             self.allocated_memory = self.allocated_memory + size
             return mem_alloc(size)
-        elif name == "mem.free":
-            # Tracking free is harder without keeping track of pointer sizes, 
-            # but we can at least allow it.
-            return mem_free(args[0])
+        elif name == "mem.free": return mem_free(args[0])
         elif name == "mem.read": return mem_read(args[0], args[1], args[2])
         elif name == "mem.write": return mem_write(args[0], args[1], args[2], args[3])
         elif name == "mem.size": return mem_size(args[0])
@@ -244,33 +259,33 @@ class MetalVM:
             let func = args[0]
             var thread_args = []
             if len(args) > 1: thread_args = args[1]
-            
-            # Create a clone of the VM for the new thread
             let new_vm = MetalVM()
             new_vm.constants = self.constants
             new_vm.chunks = self.chunks
-            new_vm.globals = self.globals # Share globals (protected by GIL)
-            
-            # Use host thread.spawn
+            new_vm.globals = self.globals
+            new_vm.safe_mode = self.safe_mode
+            new_vm.ffi_enabled = self.ffi_enabled
             return host_thread.spawn(vm_thread_host_entry, {"vm": new_vm, "func": func, "args": thread_args})
         elif name == "thread.join":
-            # Release GIL while waiting for thread join to prevent deadlock
             host_thread.unlock(g_gil)
             let res = host_thread.join(args[0])
             host_thread.lock(g_gil)
             return res
         elif name == "thread.mutex": return host_thread.mutex()
         elif name == "thread.lock":
-            # Release GIL while waiting for lock to prevent deadlock
             host_thread.unlock(g_gil)
             host_thread.lock(args[0])
             host_thread.lock(g_gil)
             return nil
         elif name == "thread.unlock": return host_thread.unlock(args[0])
         elif name == "thread.sleep":
-            # Release GIL while sleeping
             host_thread.unlock(g_gil)
             host_thread.sleep(args[0])
+            host_thread.lock(g_gil)
+            return nil
+        elif name == "thread.yield":
+            host_thread.unlock(g_gil)
+            host_thread.sleep(0.0001)
             host_thread.lock(g_gil)
             return nil
         elif name == "thread.id": return host_thread.id()
@@ -278,6 +293,20 @@ class MetalVM:
         elif name == "gc.enable": return gc_enable()
         elif name == "gc.disable": return gc_disable()
         elif name == "gc.stats": return gc_stats()
+        elif name == "atomic.new": return atomic_new(args[0])
+        elif name == "atomic.load": return atomic_load(args[0])
+        elif name == "atomic.store": return atomic_store(args[0], args[1])
+        elif name == "atomic.add": return atomic_add(args[0], args[1])
+        elif name == "atomic.cas": return atomic_cas(args[0], args[1], args[2])
+        elif name == "atomic.exchange": return atomic_exchange(args[0], args[1])
+        elif name == "sem.new": return sem_new(args[0])
+        elif name == "sem.wait":
+            host_thread.unlock(g_gil)
+            let res = sem_wait(args[0])
+            host_thread.lock(g_gil)
+            return res
+        elif name == "sem.post": return sem_post(args[0])
+        elif name == "sem.trywait": return sem_trywait(args[0])
         elif name == "math.sqrt": return math.sqrt(args[0])
         elif name == "math.sin": return math.sin(args[0])
         elif name == "math.cos": return math.cos(args[0])
@@ -418,15 +447,9 @@ class MetalVM:
         self.halted = false
         self.returning = false
         
-        var op_count = 0
         host_thread.lock(g_gil)
         
         while not self.halted and not self.returning and self.ip < len(self.code):
-            op_count = op_count + 1
-            if op_count % 100 == 0:
-                host_thread.unlock(g_gil)
-                host_thread.lock(g_gil)
-            
             var current_ip = self.ip
             var op = self.read_u8()
             if self.trace:
@@ -756,7 +779,9 @@ class MetalVM:
                 var callee = self.pop_stack()
                 if type(callee) == "dict":
                     if dict_has(callee, "__chunks__"):
+                        host_thread.unlock(g_gil)
                         self.run_func(callee, args)
+                        host_thread.lock(g_gil)
                     elif dict_has(callee, "__native__"):
                         var obj = nil
                         if dict_has(callee, "__obj__"): obj = callee["__obj__"]
@@ -800,7 +825,9 @@ class MetalVM:
                         self.push(self.call_native(method["__name__"], obj, args))
                     else:
                         push(args, obj)
+                        host_thread.unlock(g_gil)
                         self.run_func(method, args)
+                        host_thread.lock(g_gil)
                 elif type(obj) == "string":
                     if name == "find" or name == "replace" or name == "split":
                         self.push(self.call_native("string." + name, obj, args))
@@ -865,11 +892,11 @@ class MetalVM:
 
     proc load_module(self, name):
         if dict_has(self.modules, name):
-            if name == "math" or name == "io" or name == "sys" or name == "re" or name == "thread" or name == "ffi" or name == "mem" or name == "struct" or name == "gc":
+            if name == "math" or name == "io" or name == "sys" or name == "re" or name == "thread" or name == "ffi" or name == "mem" or name == "struct" or name == "gc" or name == "atomic" or name == "sem":
                 return self.globals[name]
             return true # Or the module object if we tracked it
         # Check if it's a builtin module
-        if name == "math" or name == "io" or name == "sys" or name == "re" or name == "thread" or name == "ffi" or name == "mem" or name == "struct" or name == "gc":
+        if name == "math" or name == "io" or name == "sys" or name == "re" or name == "thread" or name == "ffi" or name == "mem" or name == "struct" or name == "gc" or name == "atomic" or name == "sem":
             self.modules[name] = true
             return self.globals[name]
         self.modules[name] = true
