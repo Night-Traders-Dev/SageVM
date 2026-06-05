@@ -1,0 +1,206 @@
+import io
+import sys
+import sgvm_core
+
+class SGVMCompiler:
+    proc init(self):
+        self.output_bytes = []
+        self.global_consts = []
+        self.local_to_global = []
+        self.current_chunk = -1
+        self.utils = sgvm_core.SGVMUtils()
+
+    proc write_byte(self, b):
+        push(self.output_bytes, self.utils.my_int(b))
+
+    proc write_string(self, s):
+        var i = 0
+        while i < len(s):
+            self.write_byte(ord(s[i]))
+            i = i + 1
+
+    proc write_be16(self, v):
+        var val = self.utils.my_int(v)
+        self.write_byte(self.utils.my_int(val / 256))
+        self.write_byte(val % 256)
+
+    proc write_be32(self, v):
+        var val = self.utils.my_int(v)
+        self.write_byte(self.utils.my_int(val / 16777216) % 256)
+        self.write_byte(self.utils.my_int(val / 65536) % 256)
+        self.write_byte(self.utils.my_int(val / 256) % 256)
+        self.write_byte(val % 256)
+
+    proc write_double(self, v):
+        if v == nil: return
+        if v == 0.0:
+            var i = 0
+            while i < 8:
+                self.write_byte(0)
+                i = i + 1
+            return
+        var sign = 0.0
+        var val = v
+        if val < 0.0:
+            sign = 1.0
+            val = -val
+        var exp = 0
+        if val >= 1.0:
+            while val >= 2.0:
+                val = val / 2.0
+                exp = exp + 1
+        else:
+            while val < 1.0:
+                val = val * 2.0
+                exp = exp - 1
+        var mantissa = val - 1.0
+        var e_field = exp + 1023
+        var b0 = sign * 128.0 + self.utils.my_int(e_field / 16)
+        var b1 = (e_field % 16) * 16
+        var f = mantissa
+        var bits = []
+        var i = 0
+        while i < 52:
+            f = f * 2.0
+            if f >= 1.0:
+                push(bits, 1.0)
+                f = f - 1.0
+            else:
+                push(bits, 0.0)
+            i = i + 1
+        var b1_low = 0.0
+        var k = 0
+        while k < 4:
+            b1_low = b1_low * 2.0 + bits[k]
+            k = k + 1
+        self.write_byte(b0)
+        self.write_byte(b1 + b1_low)
+        var byte_idx = 2
+        while byte_idx < 8:
+            var bv = 0.0
+            var bit_idx = 0
+            while bit_idx < 8:
+                bv = bv * 2.0 + bits[4 + (byte_idx-2)*8 + bit_idx]
+                bit_idx = bit_idx + 1
+            self.write_byte(bv)
+            byte_idx = byte_idx + 1
+
+    proc add_const_num(self, d):
+        var i = 0
+        while i < len(self.global_consts):
+            if self.global_consts[i]["type"] == 1 and self.global_consts[i]["num"] == d:
+                return i
+            i = i + 1
+        let c = {"type": 1, "num": d}
+        push(self.global_consts, c)
+        return len(self.global_consts) - 1
+
+    proc add_const_str(self, s):
+        var i = 0
+        while i < len(self.global_consts):
+            if self.global_consts[i]["type"] == 3 and self.global_consts[i]["str"] == s:
+                return i
+            i = i + 1
+        let c = {"type": 3, "str": s}
+        push(self.global_consts, c)
+        return len(self.global_consts) - 1
+
+    proc compile(self, input_file, output_file, use_shebang):
+        let tmp_svm = ".tmp.svm"
+        sys.exec("sage --emit-vm " + input_file + " -o " + tmp_svm)
+        let content = io.readfile(tmp_svm)
+        if content == nil: return
+        let lines = self.utils.split_lines(content)
+        
+        # First pass: parse constants
+        var i = 0
+        var chunk_count = 0
+        while i < len(lines):
+            let line = self.utils.trim(lines[i])
+            if startswith(line, "chunks "):
+                chunk_count = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(line, 7, len(line)))))
+            elif line == "chunk":
+                self.current_chunk = self.current_chunk + 1
+                push(self.local_to_global, [])
+                var j = 0
+                while j < 512:
+                    push(self.local_to_global[self.current_chunk], 0)
+                    j = j + 1
+            elif startswith(line, "constants "):
+                let count = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(line, 10, len(line)))))
+                var j = 0
+                while j < count:
+                    i = i + 1
+                    let cl = self.utils.trim(lines[i])
+                    if startswith(cl, "number "):
+                        self.local_to_global[self.current_chunk][j] = self.add_const_num(tonumber(self.utils.trim(self.utils.my_substr(cl, 7, len(cl)))))
+                    elif startswith(cl, "string "):
+                        let slen = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(cl, 7, len(cl)))))
+                        i = i + 1
+                        let hex = self.utils.trim(lines[i])
+                        var s = ""
+                        var k = 0
+                        while k < slen:
+                            s = s + chr(self.utils.my_int(self.utils.hex_to_byte(self.utils.my_substr(hex, k*2, 2))))
+                            k = k + 1
+                        self.local_to_global[self.current_chunk][j] = self.add_const_str(s)
+                    j = j + 1
+            i = i + 1
+
+        if use_shebang: self.write_string("#!/usr/bin/env sgvm\n")
+        self.write_string("SGVM")
+        self.write_byte(0x01); self.write_byte(0x00)
+        self.write_be16(len(self.global_consts))
+        var cidx = 0
+        while cidx < len(self.global_consts):
+            let c = self.global_consts[cidx]
+            self.write_byte(c["type"])
+            if c["type"] == 1: self.write_double(c["num"])
+            else:
+                self.write_be16(len(c["str"]))
+                self.write_string(c["str"])
+            cidx = cidx + 1
+        self.write_be32(chunk_count)
+        
+        # Second pass: parse code
+        self.current_chunk = -1
+        i = 0
+        while i < len(lines):
+            let line = self.utils.trim(lines[i])
+            if line == "chunk": self.current_chunk = self.current_chunk + 1
+            elif startswith(line, "code "):
+                let clen = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(line, 5, len(line)))))
+                self.write_be32(clen)
+                i = i + 1
+                let hex = self.utils.trim(lines[i])
+                var j = 0
+                while j < clen * 2:
+                    let op = self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2))
+                    self.write_byte(op)
+                    j = j + 2
+                    if op == sgvm_core.OP_CONSTANT or op == sgvm_core.OP_GET_GLOBAL or op == sgvm_core.OP_DEFINE_GLOBAL or op == sgvm_core.OP_SET_GLOBAL: 
+                        let v1 = self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2))
+                        let v2 = self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2))
+                        self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
+                        j = j + 4
+                    elif op == sgvm_core.OP_DEFINE_FUNCTION:
+                        self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2)))
+                        self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j+4, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+6, 2)))
+                        j = j + 8
+                    elif op == sgvm_core.OP_CLASS:
+                        self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2)))
+                        self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j+4, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+6, 2)))
+                        self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j+8, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+10, 2)))
+                        j = j + 12
+                    elif op == sgvm_core.OP_GET_PROPERTY or op == sgvm_core.OP_SET_PROPERTY or op == sgvm_core.OP_LOAD_FUNCTION or op == sgvm_core.OP_JUMP or op == sgvm_core.OP_JUMP_IF_FALSE or op == sgvm_core.OP_ARRAY or op == sgvm_core.OP_TUPLE or op == sgvm_core.OP_DICT or op == sgvm_core.OP_EXEC_AST_STMT or op == sgvm_core.OP_BREAK or op == sgvm_core.OP_CONTINUE or op == sgvm_core.OP_LOOP_BACK or op == sgvm_core.OP_IMPORT or op == sgvm_core.OP_METHOD or op == sgvm_core.OP_SETUP_TRY:
+                        self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2)))
+                        j = j + 4
+                    elif op == sgvm_core.OP_CALL_METHOD:
+                        self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2)))
+                        self.write_byte(self.utils.hex_to_byte(self.utils.my_substr(hex, j+4, 2)))
+                        j = j + 6
+                    elif op == sgvm_core.OP_CALL or op == sgvm_core.OP_DUP:
+                        self.write_byte(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)))
+                        j = j + 2
+            i = i + 1
+        io.writebytes(output_file, self.output_bytes)

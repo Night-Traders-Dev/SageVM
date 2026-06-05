@@ -1,0 +1,380 @@
+import io
+from sgvm_core import SGVMUtils
+from sgvm_core import OP_CONSTANT
+from sgvm_core import OP_NIL
+from sgvm_core import OP_TRUE
+from sgvm_core import OP_FALSE
+from sgvm_core import OP_POP
+from sgvm_core import OP_GET_GLOBAL
+from sgvm_core import OP_DEFINE_GLOBAL
+from sgvm_core import OP_SET_GLOBAL
+from sgvm_core import OP_DEFINE_FUNCTION
+from sgvm_core import OP_GET_PROPERTY
+from sgvm_core import OP_SET_PROPERTY
+from sgvm_core import OP_GET_INDEX
+from sgvm_core import OP_SET_INDEX
+from sgvm_core import OP_LOAD_FUNCTION
+from sgvm_core import OP_SLICE
+from sgvm_core import OP_ADD
+from sgvm_core import OP_SUB
+from sgvm_core import OP_MUL
+from sgvm_core import OP_DIV
+from sgvm_core import OP_MOD
+from sgvm_core import OP_NEGATE
+from sgvm_core import OP_EQUAL
+from sgvm_core import OP_NOT_EQUAL
+from sgvm_core import OP_GREATER
+from sgvm_core import OP_GREATER_EQUAL
+from sgvm_core import OP_LESS
+from sgvm_core import OP_LESS_EQUAL
+from sgvm_core import OP_BIT_AND
+from sgvm_core import OP_BIT_OR
+from sgvm_core import OP_BIT_XOR
+from sgvm_core import OP_BIT_NOT
+from sgvm_core import OP_SHIFT_LEFT
+from sgvm_core import OP_SHIFT_RIGHT
+from sgvm_core import OP_NOT
+from sgvm_core import OP_TRUTHY
+from sgvm_core import OP_JUMP
+from sgvm_core import OP_JUMP_IF_FALSE
+from sgvm_core import OP_CALL
+from sgvm_core import OP_CALL_METHOD
+from sgvm_core import OP_ARRAY
+from sgvm_core import OP_TUPLE
+from sgvm_core import OP_DICT
+from sgvm_core import OP_PRINT
+from sgvm_core import OP_EXEC_AST_STMT
+from sgvm_core import OP_RETURN
+from sgvm_core import OP_PUSH_ENV
+from sgvm_core import OP_POP_ENV
+from sgvm_core import OP_DUP
+from sgvm_core import OP_ARRAY_LEN
+from sgvm_core import OP_BREAK
+from sgvm_core import OP_CONTINUE
+from sgvm_core import OP_LOOP_BACK
+from sgvm_core import OP_IMPORT
+from sgvm_core import OP_CLASS
+from sgvm_core import OP_METHOD
+from sgvm_core import OP_INHERIT
+from sgvm_core import OP_SETUP_TRY
+from sgvm_core import OP_END_TRY
+from sgvm_core import OP_RAISE
+from sgvm_core import OP_HALT
+
+class MetalVM:
+    proc init(self):
+        self.stack = []
+        self.constants = []
+        self.chunks = []
+        self.globals = {}
+        self.scopes = []
+        push(self.scopes, {})
+        self.handlers = []
+        self.ip = 0
+        self.code = []
+        self.halted = false
+        self.trace = false
+        self.modules = {}
+        self.utils = SGVMUtils()
+
+    proc push(self, val):
+        push(self.stack, val)
+
+    proc pop(self):
+        if len(self.stack) == 0:
+            return nil
+        return pop(self.stack)
+
+    proc peek(self, dist):
+        if len(self.stack) <= dist:
+            return nil
+        return self.stack[len(self.stack) - 1 - dist]
+
+    proc read_u8(self):
+        var b = self.code[self.ip]
+        self.ip = self.ip + 1
+        return b
+
+    proc read_u16(self):
+        var hi = self.read_u8()
+        var lo = self.read_u8()
+        return hi * 256 + lo
+
+    proc run(self, code):
+        self.code = code
+        self.ip = 0
+        self.halted = false
+        while not self.halted and self.ip < len(self.code):
+            var current_ip = self.ip
+            var op = self.read_u8()
+            if self.trace:
+                print "IP: " + str(current_ip) + " OP: " + str(op)
+            
+            if op == OP_CONSTANT:
+                var idx = self.utils.my_int(self.read_u16())
+                self.push(self.constants[idx])
+            elif op == OP_NIL:
+                self.push(nil)
+            elif op == OP_TRUE:
+                self.push(true)
+            elif op == OP_FALSE:
+                self.push(false)
+            elif op == OP_POP:
+                self.pop()
+            elif op == OP_GET_GLOBAL:
+                var name = self.constants[self.utils.my_int(self.read_u16())]
+                var found = false
+                var i = 0
+                while i < len(self.scopes):
+                    var s = self.scopes[len(self.scopes) - 1 - i]
+                    if dict_has(s, name):
+                        self.push(s[name])
+                        found = true
+                        i = len(self.scopes)
+                    else:
+                        i = i + 1
+                if not found:
+                    if dict_has(self.globals, name):
+                        self.push(self.globals[name])
+                    else:
+                        self.push(nil)
+            elif op == OP_DEFINE_GLOBAL:
+                var name = self.constants[self.utils.my_int(self.read_u16())]
+                var val = self.pop()
+                self.scopes[len(self.scopes)-1][name] = val
+            elif op == OP_SET_GLOBAL:
+                var name = self.constants[self.utils.my_int(self.read_u16())]
+                var val = self.peek(0)
+                var found = false
+                var i = 0
+                while i < len(self.scopes):
+                    var s = self.scopes[len(self.scopes) - 1 - i]
+                    if dict_has(s, name):
+                        s[name] = val
+                        found = true
+                        i = len(self.scopes)
+                    else:
+                        i = i + 1
+                if not found:
+                    self.globals[name] = val
+            elif op == OP_ADD:
+                var b = self.pop()
+                var a = self.pop()
+                self.push(a + b)
+            elif op == OP_SUB:
+                var b = self.pop()
+                var a = self.pop()
+                self.push(a - b)
+            elif op == OP_MUL:
+                var b = self.pop()
+                var a = self.pop()
+                self.push(a * b)
+            elif op == OP_DIV:
+                var b = self.pop()
+                var a = self.pop()
+                if b != 0:
+                    self.push(a / b)
+                else:
+                    self.push(nil)
+            elif op == OP_MOD:
+                var b = self.pop()
+                var a = self.pop()
+                self.push(a % b)
+            elif op == OP_NEGATE:
+                self.push(-self.pop())
+            elif op == OP_EQUAL:
+                var b = self.pop()
+                var a = self.pop()
+                self.push(a == b)
+            elif op == OP_NOT_EQUAL:
+                var b = self.pop()
+                var a = self.pop()
+                self.push(a != b)
+            elif op == OP_GREATER:
+                var b = self.pop()
+                var a = self.pop()
+                self.push(a > b)
+            elif op == OP_GREATER_EQUAL:
+                var b = self.pop()
+                var a = self.pop()
+                self.push(a >= b)
+            elif op == OP_LESS:
+                var b = self.pop()
+                var a = self.pop()
+                self.push(a < b)
+            elif op == OP_LESS_EQUAL:
+                var b = self.pop()
+                var a = self.pop()
+                self.push(a <= b)
+            elif op == OP_PRINT:
+                print self.pop()
+            elif op == OP_GET_INDEX:
+                var idx = self.pop()
+                var obj = self.pop()
+                self.push(obj[idx])
+            elif op == OP_SET_INDEX:
+                var val = self.pop()
+                var idx = self.pop()
+                var obj = self.pop()
+                obj[idx] = val
+                self.push(val)
+            elif op == OP_JUMP:
+                var offset = self.read_u16()
+                if offset > 32767:
+                    offset = offset - 65536
+                self.ip = self.ip + self.utils.my_int(offset)
+            elif op == OP_JUMP_IF_FALSE:
+                var offset = self.read_u16()
+                if offset > 32767:
+                    offset = offset - 65536
+                if not self.pop():
+                    self.ip = self.ip + self.utils.my_int(offset)
+            elif op == OP_LOOP_BACK:
+                self.ip = self.ip - self.utils.my_int(self.read_u16())
+            elif op == OP_PUSH_ENV:
+                push(self.scopes, {})
+            elif op == OP_POP_ENV:
+                if len(self.scopes) > 1:
+                    pop(self.scopes)
+            elif op == OP_DUP:
+                var dist = self.read_u8()
+                self.push(self.peek(self.utils.my_int(dist)))
+            elif op == OP_ARRAY_LEN:
+                self.push(len(self.pop()))
+            elif op == OP_SETUP_TRY:
+                var handler = {}
+                handler["handler_ip"] = self.read_u16()
+                handler["stack_depth"] = len(self.stack)
+                handler["env_depth"] = len(self.scopes)
+                push(self.handlers, handler)
+            elif op == OP_END_TRY:
+                if len(self.handlers) > 0:
+                    pop(self.handlers)
+            elif op == OP_RAISE:
+                var exc = self.pop()
+                if len(self.handlers) > 0:
+                    var h = pop(self.handlers)
+                    while len(self.stack) > h["stack_depth"]:
+                        pop(self.stack)
+                    while len(self.scopes) > h["env_depth"]:
+                        pop(self.scopes)
+                    self.ip = self.utils.my_int(h["handler_ip"])
+                    self.push(exc)
+                else:
+                    print "Unhandled Exception"
+                    print exc
+                    self.halted = true
+            elif op == OP_IMPORT:
+                var name = self.constants[self.utils.my_int(self.read_u16())]
+                self.load_module(name)
+            elif op == OP_CLASS:
+                var name = self.constants[self.utils.my_int(self.read_u16())]
+                var mcount = self.utils.my_int(self.read_u16())
+                var pname = self.constants[self.utils.my_int(self.read_u16())]
+                var c = {"__name__": name, "__methods__": {}, "__parent__": pname}
+                self.push(c)
+            elif op == OP_METHOD:
+                var name = self.constants[self.utils.my_int(self.read_u16())]
+                var func = self.pop()
+                var c = self.peek(0)
+                c["__methods__"][name] = func
+            elif op == OP_INHERIT:
+                var child = self.pop()
+                var parent = self.pop()
+                child["__parent_obj__"] = parent
+                self.push(child)
+            elif op == OP_CALL:
+                var argc = self.utils.my_int(self.read_u8())
+                var args = []
+                var j = 0
+                while j < argc:
+                    push(args, self.pop())
+                    j = j + 1
+                var callee = self.pop()
+                if type(callee) == "dict" and dict_has(callee, "__chunks__"):
+                    self.run_func(callee, args)
+                else:
+                    print "Warning: Unsupported call"
+            elif op == OP_HALT:
+                self.halted = true
+            elif op == 255.0:
+                self.halted = true
+
+    proc run_func(self, func, args):
+        push(self.scopes, {})
+        var old_ip = self.ip
+        var old_code = self.code
+        var chunks = func["__chunks__"]
+        var i = 0
+        while i < len(chunks):
+            self.run(chunks[i])
+            i = i + 1
+        self.ip = old_ip
+        self.code = old_code
+        pop(self.scopes)
+
+    proc load_module(self, name):
+        if dict_has(self.modules, name):
+            return
+        var path = name + ".sgvm"
+        var data = io.readbytes(path)
+        if data == nil:
+            print "Error: Could not load module " + name
+            return
+        var off = 0
+        if len(data) > 2 and self.utils.my_int(data[0]) == 35 and self.utils.my_int(data[1]) == 33:
+            while off < len(data) and self.utils.my_int(data[off]) != 10:
+                off = off + 1
+            if off < len(data):
+                off = off + 1
+        if len(data) - off < 4 or self.utils.my_int(data[off]) != 83 or self.utils.my_int(data[off+1]) != 71 or self.utils.my_int(data[off+2]) != 86 or self.utils.my_int(data[off+3]) != 77:
+            return
+        var old_ip = self.ip
+        var old_code = self.code
+        var old_constants = self.constants
+        var old_chunks = self.chunks
+        off = off + 6
+        var const_count = self.utils.my_int(self.utils.read_be16(data, off))
+        off = off + 2
+        self.constants = []
+        var j = 0
+        while j < const_count:
+            var t = data[off]
+            off = off + 1
+            if t == 1:
+                push(self.constants, self.utils.unpack_double(data, off))
+                off = off + 8
+            elif t == 3:
+                var slen = self.utils.my_int(self.utils.read_be16(data, off))
+                off = off + 2
+                var s = ""
+                var k = 0
+                while k < slen:
+                    s = s + chr(self.utils.my_int(data[off + k]))
+                    k = k + 1
+                push(self.constants, s)
+                off = off + slen
+            j = j + 1
+        var chunk_count = self.utils.my_int(self.utils.read_be32(data, off))
+        off = off + 4
+        self.chunks = []
+        var c = 0
+        while c < chunk_count:
+            var clen = self.utils.my_int(self.utils.read_be32(data, off))
+            off = off + 4
+            var chunk_code = []
+            var k = 0
+            while k < clen:
+                push(chunk_code, data[off + k])
+                k = k + 1
+            push(self.chunks, chunk_code)
+            off = off + clen
+            c = c + 1
+        var idx = 0
+        while idx < len(self.chunks):
+            self.run(self.chunks[idx])
+            idx = idx + 1
+        self.ip = old_ip
+        self.code = old_code
+        self.constants = old_constants
+        self.chunks = old_chunks
