@@ -8,15 +8,11 @@ This document outlines the features and standard library modules currently unsup
 - **Enhanced Flow Control**: Correct handling of relative jumps and loop control opcodes.
 - **Dynamic Imports**: Ability to load and execute external `.sgvm` modules at runtime.
 - **Bytecode Verification**: Pre-execution safety checks for constant references and jump targets.
+- **Native Bridging Layer**: Full support for `math`, `io`, `sys`, and `re` modules via host SageLang mapping.
+- **Optimized Strings**: Native bridging for string `find`, `replace`, and `split` operations.
 
 ## 🟡 Medium Difficulty (Native Bridging)
-
-These tasks require implementing a "Native Bridge" to map SageLang standard library calls to the host environment's capabilities.
-
-- **Math Module parity**: Map `math.sqrt`, `math.sin`, `math.cos`, etc., to the host SageLang's math functions.
-- **Basic I/O Bridge**: Expose a restricted set of `io` operations (read/write) to the VM.
-- **System Info**: Support `sys.args`, `sys.getenv`, and `sys.clock` by passing host information into the guest environment.
-- **String Utilities**: Support native string operations like `find`, `replace`, and `regex` through native mapping rather than pure SageLang loops (performance optimization).
+(All tasks currently completed)
 
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.

@@ -5,11 +5,17 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] - 2026-06-05
 
 ### Added
+- **Native Bridging Layer**: Implemented a comprehensive bridge to the host SageLang standard library, providing high-performance access to `math`, `io`, `sys`, and `re` modules.
 - **Bytecode Verifier**: Added mandatory pre-execution verification for constant references and jump targets in `MetalVM`.
 - **Inheritance Support**: Implemented recursive method lookup in `OP_CALL_METHOD` to support class inheritance.
 - **O(1) Constant Pool**: Switched to dictionary-based deduplication in the compiler for linear-time builds.
+- **Native String Methods**: Added support for calling native `find`, `replace`, and `split` methods on string primitives.
 
 ### Fixed
+- **Maximum Search Paths Error**: Resolved a critical interpreter error in SageLang by preventing duplicate search paths and increasing the limit to 64.
+- **CLI Flag Parsing**: Fixed a bug in the SageLang interpreter where `-I` flags were misidentified as script paths.
+- **Call Argument Ordering**: Fixed a VM bug where arguments were passed in reverse order to native functions and methods.
+- **Import Binding**: Updated `OP_IMPORT` to correctly return module objects, allowing them to be assigned to global variables.
 - **Function Returns**: Correctly pop return value and restore execution state in `run_func`, ensuring `OP_RETURN` works as expected.
 - **Constant Table Limit**: Removed the 512-constant limit by dynamically sizing local-to-global mapping tables.
 
