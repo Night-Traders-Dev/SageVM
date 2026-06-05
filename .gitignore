@@ -28,3 +28,4 @@ gdb_print.log
 compile_trace.log
 scratch_test
 scratch_test.sage
+output.txt
