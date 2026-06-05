@@ -22,3 +22,5 @@ test_*.o
 test_*.sgvm
 test_*.svm
 test_*.sage
+trace.log
+gdb.log

@@ -1,5 +1,5 @@
-SAGE ?= /usr/local/bin/sage
-SAGE_PATH ?= ./src:/usr/local/share/sage/lib
+SAGE ?= sage
+SAGE_PATH ?= ./src:/home/kraken/.local/share/sage/lib
 
 all: sgvm sgvmc
 

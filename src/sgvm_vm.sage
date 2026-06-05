@@ -1,5 +1,4 @@
 import io
-import io_ext
 from sgvm_core import SGVMUtils
 from sgvm_core import OP_CONSTANT
 from sgvm_core import OP_NIL
@@ -82,6 +81,7 @@ class MetalVM:
         self.max_call_depth = 1024
         self.return_value = nil
         self.returning = false
+        self.frame_bases = [0]
 
     proc push(self, val):
         if len(self.stack) >= self.max_stack_depth:
@@ -90,15 +90,27 @@ class MetalVM:
             return
         push(self.stack, val)
 
-    proc pop(self):
-        if len(self.stack) == 0:
+    proc pop_stack(self):
+        let base = self.frame_bases[len(self.frame_bases) - 1]
+        if len(self.stack) <= base:
             return nil
         return pop(self.stack)
 
     proc peek(self, dist):
-        if len(self.stack) <= dist:
+        let base = self.frame_bases[len(self.frame_bases) - 1]
+        if len(self.stack) - 1 - dist < base:
             return nil
         return self.stack[len(self.stack) - 1 - dist]
+
+    proc format_stack(self):
+        var s = "["
+        var i = 0
+        while i < len(self.stack):
+            if i > 0: s = s + ", "
+            s = s + str(self.stack[i])
+            i = i + 1
+        s = s + "]"
+        return s
 
     proc read_u8(self):
         var b = self.code[self.ip]
@@ -139,19 +151,10 @@ class MetalVM:
                     print "Error: Bytecode verification failed: OOB constant ref " + str(idx) + " at IP " + str(vip)
                     return false
             
-            if op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_BREAK or op == OP_CONTINUE:
-                var offset = self.utils.my_int(code[vip+1]) * 256 + self.utils.my_int(code[vip+2])
-                if offset > 32767: offset = offset - 65536
-                var target = vip + 3 + offset
+            if op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_BREAK or op == OP_CONTINUE or op == OP_LOOP_BACK:
+                var target = self.utils.my_int(code[vip+1]) * 256 + self.utils.my_int(code[vip+2])
                 if target < 0 or target >= len(code):
                     print "Error: Bytecode verification failed: OOB jump target " + str(target) + " at IP " + str(vip)
-                    return false
-            
-            if op == OP_LOOP_BACK:
-                var offset = self.utils.my_int(code[vip+1]) * 256 + self.utils.my_int(code[vip+2])
-                var target = vip + 3 - offset
-                if target < 0 or target >= len(code):
-                    print "Error: Bytecode verification failed: OOB loop back target " + str(target) + " at IP " + str(vip)
                     return false
             
             vip = vip + 1 + opsize
@@ -164,11 +167,12 @@ class MetalVM:
         self.code = code
         self.ip = 0
         self.halted = false
+        self.returning = false
         while not self.halted and not self.returning and self.ip < len(self.code):
             var current_ip = self.ip
             var op = self.read_u8()
             if self.trace:
-                print "IP: " + str(current_ip) + " OP: " + str(op)
+                print "IP: " + str(current_ip) + " OP: " + str(op) + " Stack: " + self.format_stack()
             
             if op == OP_CONSTANT:
                 var idx = self.utils.my_int(self.read_u16())
@@ -180,9 +184,10 @@ class MetalVM:
             elif op == OP_FALSE:
                 self.push(false)
             elif op == OP_POP:
-                self.pop()
+                self.pop_stack()
             elif op == OP_GET_GLOBAL:
                 var name = self.constants[self.utils.my_int(self.read_u16())]
+                print "Debug: OP_GET_GLOBAL looking up: " + name
                 var found = false
                 var i = 0
                 while i < len(self.scopes):
@@ -200,7 +205,7 @@ class MetalVM:
                         self.push(nil)
             elif op == OP_DEFINE_GLOBAL:
                 var name = self.constants[self.utils.my_int(self.read_u16())]
-                var val = self.pop()
+                var val = self.pop_stack()
                 self.scopes[len(self.scopes)-1][name] = val
             elif op == OP_SET_GLOBAL:
                 var name = self.constants[self.utils.my_int(self.read_u16())]
@@ -221,13 +226,14 @@ class MetalVM:
                 var name_idx = self.utils.my_int(self.read_u16())
                 var chunk_idx = self.utils.my_int(self.read_u16())
                 var name = self.constants[name_idx]
+                print "Debug: OP_DEFINE_FUNCTION: defining: " + name + " with chunk " + str(chunk_idx)
                 var func = {"__name__": name, "__chunks__": []}
                 if chunk_idx < len(self.chunks):
                     push(func["__chunks__"], self.chunks[chunk_idx])
                 self.scopes[len(self.scopes)-1][name] = func
             elif op == OP_GET_PROPERTY:
                 var name = self.constants[self.utils.my_int(self.read_u16())]
-                var obj = self.pop()
+                var obj = self.pop_stack()
                 if type(obj) == "dict" and dict_has(obj, name):
                     self.push(obj[name])
                 elif type(obj) == "dict" and dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
@@ -236,8 +242,8 @@ class MetalVM:
                     self.push(nil)
             elif op == OP_SET_PROPERTY:
                 var name = self.constants[self.utils.my_int(self.read_u16())]
-                var val = self.pop()
-                var obj = self.pop()
+                var val = self.pop_stack()
+                var obj = self.pop_stack()
                 if type(obj) == "dict":
                     obj[name] = val
                 self.push(val)
@@ -248,9 +254,9 @@ class MetalVM:
                     push(func["__chunks__"], self.chunks[chunk_idx])
                 self.push(func)
             elif op == OP_SLICE:
-                var end_val = self.pop()
-                var start_val = self.pop()
-                var obj = self.pop()
+                var end_val = self.pop_stack()
+                var start_val = self.pop_stack()
+                var obj = self.pop_stack()
                 var start_i = self.utils.my_int(start_val)
                 var end_i = self.utils.my_int(end_val)
                 if type(obj) == "string":
@@ -268,110 +274,107 @@ class MetalVM:
                         si = si + 1
                     self.push(res)
             elif op == OP_ADD:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
+                print "Debug: OP_ADD adding: a=" + str(a) + ", b=" + str(b)
                 self.push(a + b)
             elif op == OP_SUB:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
+                print "Debug: OP_SUB subtracting: a=" + str(a) + ", b=" + str(b)
                 self.push(a - b)
             elif op == OP_MUL:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
                 self.push(a * b)
             elif op == OP_DIV:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
                 if b != 0:
                     self.push(a / b)
                 else:
                     self.push(nil)
             elif op == OP_MOD:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
                 self.push(a % b)
             elif op == OP_NEGATE:
-                self.push(-self.pop())
+                self.push(-self.pop_stack())
             elif op == OP_EQUAL:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
                 self.push(a == b)
             elif op == OP_NOT_EQUAL:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
                 self.push(a != b)
             elif op == OP_GREATER:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
                 self.push(a > b)
             elif op == OP_GREATER_EQUAL:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
                 self.push(a >= b)
             elif op == OP_LESS:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
                 self.push(a < b)
             elif op == OP_LESS_EQUAL:
-                var b = self.pop()
-                var a = self.pop()
+                var b = self.pop_stack()
+                var a = self.pop_stack()
                 self.push(a <= b)
             elif op == OP_BIT_AND:
-                var b = self.utils.my_int(self.pop())
-                var a = self.utils.my_int(self.pop())
+                var b = self.utils.my_int(self.pop_stack())
+                var a = self.utils.my_int(self.pop_stack())
                 self.push(a & b)
             elif op == OP_BIT_OR:
-                var b = self.utils.my_int(self.pop())
-                var a = self.utils.my_int(self.pop())
+                var b = self.utils.my_int(self.pop_stack())
+                var a = self.utils.my_int(self.pop_stack())
                 self.push(a | b)
             elif op == OP_BIT_XOR:
-                var b = self.utils.my_int(self.pop())
-                var a = self.utils.my_int(self.pop())
+                var b = self.utils.my_int(self.pop_stack())
+                var a = self.utils.my_int(self.pop_stack())
                 self.push(a ^ b)
             elif op == OP_BIT_NOT:
-                var a = self.utils.my_int(self.pop())
+                var a = self.utils.my_int(self.pop_stack())
                 self.push(~a)
             elif op == OP_SHIFT_LEFT:
-                var b = self.utils.my_int(self.pop())
-                var a = self.utils.my_int(self.pop())
+                var b = self.utils.my_int(self.pop_stack())
+                var a = self.utils.my_int(self.pop_stack())
                 self.push(a << b)
             elif op == OP_SHIFT_RIGHT:
-                var b = self.utils.my_int(self.pop())
-                var a = self.utils.my_int(self.pop())
+                var b = self.utils.my_int(self.pop_stack())
+                var a = self.utils.my_int(self.pop_stack())
                 self.push(a >> b)
             elif op == OP_NOT:
-                self.push(not self.pop())
+                self.push(not self.pop_stack())
             elif op == OP_TRUTHY:
-                var val = self.pop()
+                var val = self.pop_stack()
                 if val == nil or val == false or val == 0 or val == "":
                     self.push(false)
                 else:
                     self.push(true)
             elif op == OP_PRINT:
-                print self.pop()
+                print self.pop_stack()
             elif op == OP_GET_INDEX:
-                var idx = self.pop()
-                var obj = self.pop()
+                var idx = self.pop_stack()
+                var obj = self.pop_stack()
                 self.push(obj[idx])
             elif op == OP_SET_INDEX:
-                var val = self.pop()
-                var idx = self.pop()
-                var obj = self.pop()
+                var val = self.pop_stack()
+                var idx = self.pop_stack()
+                var obj = self.pop_stack()
                 obj[idx] = val
                 self.push(val)
             elif op == OP_JUMP:
-                var offset = self.read_u16()
-                if offset > 32767:
-                    offset = offset - 65536
-                self.ip = self.ip + self.utils.my_int(offset)
+                self.ip = self.utils.my_int(self.read_u16())
             elif op == OP_JUMP_IF_FALSE:
-                var offset = self.read_u16()
-                if offset > 32767:
-                    offset = offset - 65536
-                if not self.pop():
-                    self.ip = self.ip + self.utils.my_int(offset)
+                var target = self.utils.my_int(self.read_u16())
+                if not self.pop_stack():
+                    self.ip = target
             elif op == OP_LOOP_BACK:
-                self.ip = self.ip - self.utils.my_int(self.read_u16())
+                self.ip = self.utils.my_int(self.read_u16())
             elif op == OP_ARRAY:
                 var count = self.utils.my_int(self.read_u16())
                 var arr = []
@@ -381,7 +384,7 @@ class MetalVM:
                     ai = ai + 1
                 ai = count - 1
                 while ai >= 0:
-                    arr[ai] = self.pop()
+                    arr[ai] = self.pop_stack()
                     ai = ai - 1
                 self.push(arr)
             elif op == OP_TUPLE:
@@ -393,7 +396,7 @@ class MetalVM:
                     ti = ti + 1
                 ti = count - 1
                 while ti >= 0:
-                    tup[ti] = self.pop()
+                    tup[ti] = self.pop_stack()
                     ti = ti - 1
                 self.push(tup)
             elif op == OP_DICT:
@@ -401,8 +404,8 @@ class MetalVM:
                 var d = {}
                 var di = 0
                 while di < count:
-                    var val = self.pop()
-                    var key = self.pop()
+                    var val = self.pop_stack()
+                    var key = self.pop_stack()
                     d[key] = val
                     di = di + 1
                 self.push(d)
@@ -410,7 +413,7 @@ class MetalVM:
                 # Fallback opcode — skip the operand
                 self.read_u16()
             elif op == OP_RETURN:
-                self.return_value = self.pop()
+                self.return_value = self.pop_stack()
                 self.returning = true
             elif op == OP_PUSH_ENV:
                 push(self.scopes, {})
@@ -421,15 +424,11 @@ class MetalVM:
                 var dist = self.read_u8()
                 self.push(self.peek(self.utils.my_int(dist)))
             elif op == OP_ARRAY_LEN:
-                self.push(len(self.pop()))
+                self.push(len(self.pop_stack()))
             elif op == OP_BREAK:
-                # Loop break — skip to end via offset
-                var offset = self.utils.my_int(self.read_u16())
-                self.ip = self.ip + offset
+                self.ip = self.utils.my_int(self.read_u16())
             elif op == OP_CONTINUE:
-                # Loop continue — skip to loop back via offset
-                var offset = self.utils.my_int(self.read_u16())
-                self.ip = self.ip + offset
+                self.ip = self.utils.my_int(self.read_u16())
             elif op == OP_SETUP_TRY:
                 var handler = {}
                 handler["handler_ip"] = self.read_u16()
@@ -440,7 +439,7 @@ class MetalVM:
                 if len(self.handlers) > 0:
                     pop(self.handlers)
             elif op == OP_RAISE:
-                var exc = self.pop()
+                var exc = self.pop_stack()
                 if len(self.handlers) > 0:
                     var h = pop(self.handlers)
                     while len(self.stack) > h["stack_depth"]:
@@ -464,12 +463,12 @@ class MetalVM:
                 self.push(c)
             elif op == OP_METHOD:
                 var name = self.constants[self.utils.my_int(self.read_u16())]
-                var func = self.pop()
+                var func = self.pop_stack()
                 var c = self.peek(0)
                 c["__methods__"][name] = func
             elif op == OP_INHERIT:
-                var child = self.pop()
-                var parent = self.pop()
+                var child = self.pop_stack()
+                var parent = self.pop_stack()
                 child["__parent_obj__"] = parent
                 self.push(child)
             elif op == OP_CALL:
@@ -477,9 +476,9 @@ class MetalVM:
                 var args = []
                 var j = 0
                 while j < argc:
-                    push(args, self.pop())
+                    push(args, self.pop_stack())
                     j = j + 1
-                var callee = self.pop()
+                var callee = self.pop_stack()
                 if type(callee) == "dict" and dict_has(callee, "__chunks__"):
                     self.run_func(callee, args)
                 else:
@@ -491,9 +490,9 @@ class MetalVM:
                 var args = []
                 var j = 0
                 while j < argc:
-                    push(args, self.pop())
+                    push(args, self.pop_stack())
                     j = j + 1
-                var obj = self.pop()
+                var obj = self.pop_stack()
                 var curr = obj
                 var method = nil
                 while type(curr) == "dict":
@@ -533,6 +532,7 @@ class MetalVM:
         
         self.returning = false
         self.return_value = nil
+        push(self.frame_bases, len(self.stack))
         
         var chunks = func["__chunks__"]
         var i = 0
@@ -541,6 +541,7 @@ class MetalVM:
             self.run(chunks[i])
             i = i + 1
         
+        pop(self.frame_bases)
         var res = self.return_value
         
         self.ip = old_ip
@@ -576,6 +577,8 @@ class MetalVM:
         var old_constants = self.constants
         var old_chunks = self.chunks
         off = off + 6
+        var function_count = self.utils.my_int(self.utils.read_be16(data, off))
+        off = off + 2
         var const_count = self.utils.my_int(self.utils.read_be16(data, off))
         off = off + 2
         self.constants = []
@@ -612,7 +615,7 @@ class MetalVM:
             push(self.chunks, chunk_code)
             off = off + clen
             c = c + 1
-        var idx = 0
+        var idx = function_count
         while idx < len(self.chunks):
             self.run(self.chunks[idx])
             idx = idx + 1

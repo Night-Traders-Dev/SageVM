@@ -34,6 +34,8 @@ proc main():
     var metal_vm = MetalVM()
     metal_vm.trace = trace
     off = off + 6
+    var function_count = core_utils.my_int(core_utils.read_be16(data, off))
+    off = off + 2
     var const_count = core_utils.my_int(core_utils.read_be16(data, off))
     off = off + 2
     var j = 0
@@ -68,7 +70,7 @@ proc main():
         push(metal_vm.chunks, chunk_code)
         off = off + clen
         c = c + 1
-    var idx = 0
+    var idx = function_count
     while idx < len(metal_vm.chunks):
         metal_vm.run(metal_vm.chunks[idx])
         idx = idx + 1
