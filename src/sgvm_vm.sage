@@ -80,6 +80,8 @@ class MetalVM:
         self.max_stack_depth = 65536
         self.call_depth = 0
         self.max_call_depth = 1024
+        self.return_value = nil
+        self.returning = false
 
     proc push(self, val):
         if len(self.stack) >= self.max_stack_depth:
@@ -108,11 +110,61 @@ class MetalVM:
         var lo = self.read_u8()
         return hi * 256 + lo
 
+    proc get_op_size(self, op):
+        if op == OP_CONSTANT or op == OP_GET_GLOBAL or op == OP_DEFINE_GLOBAL or op == OP_SET_GLOBAL or op == OP_GET_PROPERTY or op == OP_SET_PROPERTY or op == OP_LOAD_FUNCTION or op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_ARRAY or op == OP_TUPLE or op == OP_DICT or op == OP_EXEC_AST_STMT or op == OP_BREAK or op == OP_CONTINUE or op == OP_LOOP_BACK or op == OP_IMPORT or op == OP_METHOD or op == OP_SETUP_TRY:
+            return 2
+        if op == OP_DEFINE_FUNCTION:
+            return 4
+        if op == OP_CALL or op == OP_DUP:
+            return 1
+        if op == OP_CALL_METHOD:
+            return 3
+        if op == OP_CLASS:
+            return 6
+        return 0
+
+    proc verify(self, code):
+        var vip = 0
+        while vip < len(code):
+            var op = code[vip]
+            var opsize = self.get_op_size(op)
+            if vip + 1 + opsize > len(code):
+                print "Error: Bytecode verification failed: OOB operand for OP " + str(op) + " at IP " + str(vip)
+                return false
+            
+            # Specific checks
+            if op == OP_CONSTANT or op == OP_GET_GLOBAL or op == OP_DEFINE_GLOBAL or op == OP_SET_GLOBAL or op == OP_GET_PROPERTY or op == OP_SET_PROPERTY or op == OP_IMPORT or op == OP_METHOD or op == OP_CLASS:
+                var idx = self.utils.my_int(code[vip+1]) * 256 + self.utils.my_int(code[vip+2])
+                if idx >= len(self.constants):
+                    print "Error: Bytecode verification failed: OOB constant ref " + str(idx) + " at IP " + str(vip)
+                    return false
+            
+            if op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_BREAK or op == OP_CONTINUE:
+                var offset = self.utils.my_int(code[vip+1]) * 256 + self.utils.my_int(code[vip+2])
+                if offset > 32767: offset = offset - 65536
+                var target = vip + 3 + offset
+                if target < 0 or target >= len(code):
+                    print "Error: Bytecode verification failed: OOB jump target " + str(target) + " at IP " + str(vip)
+                    return false
+            
+            if op == OP_LOOP_BACK:
+                var offset = self.utils.my_int(code[vip+1]) * 256 + self.utils.my_int(code[vip+2])
+                var target = vip + 3 - offset
+                if target < 0 or target >= len(code):
+                    print "Error: Bytecode verification failed: OOB loop back target " + str(target) + " at IP " + str(vip)
+                    return false
+            
+            vip = vip + 1 + opsize
+        return true
+
     proc run(self, code):
+        if not self.verify(code):
+            self.halted = true
+            return
         self.code = code
         self.ip = 0
         self.halted = false
-        while not self.halted and self.ip < len(self.code):
+        while not self.halted and not self.returning and self.ip < len(self.code):
             var current_ip = self.ip
             var op = self.read_u8()
             if self.trace:
@@ -358,8 +410,8 @@ class MetalVM:
                 # Fallback opcode — skip the operand
                 self.read_u16()
             elif op == OP_RETURN:
-                # Signal return by halting the current chunk execution
-                self.halted = true
+                self.return_value = self.pop()
+                self.returning = true
             elif op == OP_PUSH_ENV:
                 push(self.scopes, {})
             elif op == OP_POP_ENV:
@@ -432,6 +484,7 @@ class MetalVM:
                     self.run_func(callee, args)
                 else:
                     print "Warning: Unsupported call target: " + str(callee)
+                    self.push(nil)
             elif op == OP_CALL_METHOD:
                 var name = self.constants[self.utils.my_int(self.read_u16())]
                 var argc = self.utils.my_int(self.read_u8())
@@ -441,8 +494,17 @@ class MetalVM:
                     push(args, self.pop())
                     j = j + 1
                 var obj = self.pop()
-                if type(obj) == "dict" and dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
-                    var method = obj["__methods__"][name]
+                var curr = obj
+                var method = nil
+                while type(curr) == "dict":
+                    if dict_has(curr, "__methods__") and dict_has(curr["__methods__"], name):
+                        method = curr["__methods__"][name]
+                        break
+                    if dict_has(curr, "__parent_obj__"):
+                        curr = curr["__parent_obj__"]
+                    else:
+                        break
+                if method != nil:
                     push(args, obj)
                     self.run_func(method, args)
                 else:
@@ -466,17 +528,30 @@ class MetalVM:
         var old_ip = self.ip
         var old_code = self.code
         var old_halted = self.halted
+        var old_returning = self.returning
+        var old_return_val = self.return_value
+        
+        self.returning = false
+        self.return_value = nil
+        
         var chunks = func["__chunks__"]
         var i = 0
-        while i < len(chunks):
+        while i < len(chunks) and not self.returning and not self.halted:
             self.halted = false
             self.run(chunks[i])
             i = i + 1
+        
+        var res = self.return_value
+        
         self.ip = old_ip
         self.code = old_code
         self.halted = old_halted
+        self.returning = old_returning
+        self.return_value = old_return_val
+        
         pop(self.scopes)
         self.call_depth = self.call_depth - 1
+        self.push(res)
 
     proc load_module(self, name):
         if dict_has(self.modules, name):

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] - 2026-06-05
+
+### Added
+- **Bytecode Verifier**: Added mandatory pre-execution verification for constant references and jump targets in `MetalVM`.
+- **Inheritance Support**: Implemented recursive method lookup in `OP_CALL_METHOD` to support class inheritance.
+- **O(1) Constant Pool**: Switched to dictionary-based deduplication in the compiler for linear-time builds.
+
+### Fixed
+- **Function Returns**: Correctly pop return value and restore execution state in `run_func`, ensuring `OP_RETURN` works as expected.
+- **Constant Table Limit**: Removed the 512-constant limit by dynamically sizing local-to-global mapping tables.
+
 ## [Unreleased] - 2026-06-04
 
 ### Added

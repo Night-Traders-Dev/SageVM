@@ -31,6 +31,7 @@ class SGVMCompiler:
     proc init(self):
         self.output_bytes = []
         self.global_consts = []
+        self.const_map = {} # New: Map of value to index for O(1) lookup
         self.local_to_global = []
         self.current_chunk = -1
         self.utils = SGVMUtils()
@@ -111,24 +112,24 @@ class SGVMCompiler:
             byte_idx = byte_idx + 1
 
     proc add_const_num(self, d):
-        var i = 0
-        while i < len(self.global_consts):
-            if self.global_consts[i]["type"] == 1 and self.global_consts[i]["num"] == d:
-                return i
-            i = i + 1
+        let key = "n" + str(d)
+        if dict_has(self.const_map, key):
+            return self.const_map[key]
         let c = {"type": 1, "num": d}
         push(self.global_consts, c)
-        return len(self.global_consts) - 1
+        let idx = len(self.global_consts) - 1
+        self.const_map[key] = idx
+        return idx
 
     proc add_const_str(self, s):
-        var i = 0
-        while i < len(self.global_consts):
-            if self.global_consts[i]["type"] == 3 and self.global_consts[i]["str"] == s:
-                return i
-            i = i + 1
+        let key = "s" + s
+        if dict_has(self.const_map, key):
+            return self.const_map[key]
         let c = {"type": 3, "str": s}
         push(self.global_consts, c)
-        return len(self.global_consts) - 1
+        let idx = len(self.global_consts) - 1
+        self.const_map[key] = idx
+        return idx
 
     proc compile(self, input_file, output_file, use_shebang):
         let tmp_svm = ".tmp.svm"
@@ -147,13 +148,14 @@ class SGVMCompiler:
             elif line == "chunk":
                 self.current_chunk = self.current_chunk + 1
                 push(self.local_to_global, [])
-                var j = 0
-                while j < 512:
-                    push(self.local_to_global[self.current_chunk], 0)
-                    j = j + 1
             elif startswith(line, "constants "):
                 let count = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(line, 10, len(line)))))
+                # Dynamically size the local_to_global table for this chunk
                 var j = 0
+                while j < count:
+                    push(self.local_to_global[self.current_chunk], 0)
+                    j = j + 1
+                j = 0
                 while j < count:
                     i = i + 1
                     let cl = self.utils.trim(lines[i])

@@ -67,6 +67,10 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_RAISE | 58 | Raise an exception |
 | OP_HALT | 0xFF | Halt execution |
 
+## Function Arguments
+
+Arguments to SGVM functions are passed positionally and bound to the function's local scope using the naming convention `__argN`, where `N` is the zero-based index of the argument. For example, the first argument is accessible as `__arg0`, the second as `__arg1`, and so on.
+
 ## Binary Format
 
 The SGVM binary format consists of:

@@ -7,6 +7,7 @@ This document outlines the features and standard library modules currently unsup
 - **Exception Handling**: Full support for `try/catch/finally` via `SETUP_TRY`, `END_TRY`, and `RAISE`.
 - **Enhanced Flow Control**: Correct handling of relative jumps and loop control opcodes.
 - **Dynamic Imports**: Ability to load and execute external `.sgvm` modules at runtime.
+- **Bytecode Verification**: Pre-execution safety checks for constant references and jump targets.
 
 ## 🟡 Medium Difficulty (Native Bridging)
 
