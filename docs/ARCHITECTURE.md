@@ -58,6 +58,13 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_BREAK | 49 | Loop break |
 | OP_CONTINUE | 50 | Loop continue |
 | OP_LOOP_BACK | 51 | Jump to the start of a loop |
+| OP_IMPORT | 52 | Import and execute an external module |
+| OP_CLASS | 53 | Define a class |
+| OP_METHOD | 54 | Define a method on a class |
+| OP_INHERIT | 55 | Set up class inheritance |
+| OP_SETUP_TRY | 56 | Push an exception handler |
+| OP_END_TRY | 57 | Pop the current exception handler |
+| OP_RAISE | 58 | Raise an exception |
 | OP_HALT | 0xFF | Halt execution |
 
 ## Binary Format

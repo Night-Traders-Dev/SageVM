@@ -76,8 +76,15 @@ class MetalVM:
         self.trace = false
         self.modules = {}
         self.utils = SGVMUtils()
+        self.max_stack_depth = 65536
+        self.call_depth = 0
+        self.max_call_depth = 1024
 
     proc push(self, val):
+        if len(self.stack) >= self.max_stack_depth:
+            print "Error: Stack overflow (depth " + str(len(self.stack)) + ")"
+            self.halted = true
+            return
         push(self.stack, val)
 
     proc pop(self):
@@ -157,6 +164,56 @@ class MetalVM:
                         i = i + 1
                 if not found:
                     self.globals[name] = val
+            elif op == OP_DEFINE_FUNCTION:
+                var name_idx = self.utils.my_int(self.read_u16())
+                var chunk_idx = self.utils.my_int(self.read_u16())
+                var name = self.constants[name_idx]
+                var func = {"__name__": name, "__chunks__": []}
+                if chunk_idx < len(self.chunks):
+                    push(func["__chunks__"], self.chunks[chunk_idx])
+                self.scopes[len(self.scopes)-1][name] = func
+            elif op == OP_GET_PROPERTY:
+                var name = self.constants[self.utils.my_int(self.read_u16())]
+                var obj = self.pop()
+                if type(obj) == "dict" and dict_has(obj, name):
+                    self.push(obj[name])
+                elif type(obj) == "dict" and dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
+                    self.push(obj["__methods__"][name])
+                else:
+                    self.push(nil)
+            elif op == OP_SET_PROPERTY:
+                var name = self.constants[self.utils.my_int(self.read_u16())]
+                var val = self.pop()
+                var obj = self.pop()
+                if type(obj) == "dict":
+                    obj[name] = val
+                self.push(val)
+            elif op == OP_LOAD_FUNCTION:
+                var chunk_idx = self.utils.my_int(self.read_u16())
+                var func = {"__name__": "<anon>", "__chunks__": []}
+                if chunk_idx < len(self.chunks):
+                    push(func["__chunks__"], self.chunks[chunk_idx])
+                self.push(func)
+            elif op == OP_SLICE:
+                var end_val = self.pop()
+                var start_val = self.pop()
+                var obj = self.pop()
+                var start_i = self.utils.my_int(start_val)
+                var end_i = self.utils.my_int(end_val)
+                if type(obj) == "string":
+                    var res = ""
+                    var si = start_i
+                    while si < end_i and si < len(obj):
+                        res = res + obj[si]
+                        si = si + 1
+                    self.push(res)
+                else:
+                    var res = []
+                    var si = start_i
+                    while si < end_i and si < len(obj):
+                        push(res, obj[si])
+                        si = si + 1
+                    self.push(res)
             elif op == OP_ADD:
                 var b = self.pop()
                 var a = self.pop()
@@ -206,6 +263,37 @@ class MetalVM:
                 var b = self.pop()
                 var a = self.pop()
                 self.push(a <= b)
+            elif op == OP_BIT_AND:
+                var b = self.utils.my_int(self.pop())
+                var a = self.utils.my_int(self.pop())
+                self.push(a & b)
+            elif op == OP_BIT_OR:
+                var b = self.utils.my_int(self.pop())
+                var a = self.utils.my_int(self.pop())
+                self.push(a | b)
+            elif op == OP_BIT_XOR:
+                var b = self.utils.my_int(self.pop())
+                var a = self.utils.my_int(self.pop())
+                self.push(a ^ b)
+            elif op == OP_BIT_NOT:
+                var a = self.utils.my_int(self.pop())
+                self.push(~a)
+            elif op == OP_SHIFT_LEFT:
+                var b = self.utils.my_int(self.pop())
+                var a = self.utils.my_int(self.pop())
+                self.push(a << b)
+            elif op == OP_SHIFT_RIGHT:
+                var b = self.utils.my_int(self.pop())
+                var a = self.utils.my_int(self.pop())
+                self.push(a >> b)
+            elif op == OP_NOT:
+                self.push(not self.pop())
+            elif op == OP_TRUTHY:
+                var val = self.pop()
+                if val == nil or val == false or val == 0 or val == "":
+                    self.push(false)
+                else:
+                    self.push(true)
             elif op == OP_PRINT:
                 print self.pop()
             elif op == OP_GET_INDEX:
@@ -231,6 +319,46 @@ class MetalVM:
                     self.ip = self.ip + self.utils.my_int(offset)
             elif op == OP_LOOP_BACK:
                 self.ip = self.ip - self.utils.my_int(self.read_u16())
+            elif op == OP_ARRAY:
+                var count = self.utils.my_int(self.read_u16())
+                var arr = []
+                var ai = 0
+                while ai < count:
+                    push(arr, nil)
+                    ai = ai + 1
+                ai = count - 1
+                while ai >= 0:
+                    arr[ai] = self.pop()
+                    ai = ai - 1
+                self.push(arr)
+            elif op == OP_TUPLE:
+                var count = self.utils.my_int(self.read_u16())
+                var tup = []
+                var ti = 0
+                while ti < count:
+                    push(tup, nil)
+                    ti = ti + 1
+                ti = count - 1
+                while ti >= 0:
+                    tup[ti] = self.pop()
+                    ti = ti - 1
+                self.push(tup)
+            elif op == OP_DICT:
+                var count = self.utils.my_int(self.read_u16())
+                var d = {}
+                var di = 0
+                while di < count:
+                    var val = self.pop()
+                    var key = self.pop()
+                    d[key] = val
+                    di = di + 1
+                self.push(d)
+            elif op == OP_EXEC_AST_STMT:
+                # Fallback opcode — skip the operand
+                self.read_u16()
+            elif op == OP_RETURN:
+                # Signal return by halting the current chunk execution
+                self.halted = true
             elif op == OP_PUSH_ENV:
                 push(self.scopes, {})
             elif op == OP_POP_ENV:
@@ -241,6 +369,14 @@ class MetalVM:
                 self.push(self.peek(self.utils.my_int(dist)))
             elif op == OP_ARRAY_LEN:
                 self.push(len(self.pop()))
+            elif op == OP_BREAK:
+                # Loop break — skip to end via offset
+                var offset = self.utils.my_int(self.read_u16())
+                self.ip = self.ip + offset
+            elif op == OP_CONTINUE:
+                # Loop continue — skip to loop back via offset
+                var offset = self.utils.my_int(self.read_u16())
+                self.ip = self.ip + offset
             elif op == OP_SETUP_TRY:
                 var handler = {}
                 handler["handler_ip"] = self.read_u16()
@@ -294,28 +430,57 @@ class MetalVM:
                 if type(callee) == "dict" and dict_has(callee, "__chunks__"):
                     self.run_func(callee, args)
                 else:
-                    print "Warning: Unsupported call"
+                    print "Warning: Unsupported call target: " + str(callee)
+            elif op == OP_CALL_METHOD:
+                var name = self.constants[self.utils.my_int(self.read_u16())]
+                var argc = self.utils.my_int(self.read_u8())
+                var args = []
+                var j = 0
+                while j < argc:
+                    push(args, self.pop())
+                    j = j + 1
+                var obj = self.pop()
+                if type(obj) == "dict" and dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
+                    var method = obj["__methods__"][name]
+                    push(args, obj)
+                    self.run_func(method, args)
+                else:
+                    print "Warning: Method '" + name + "' not found"
+                    self.push(nil)
             elif op == OP_HALT:
-                self.halted = true
-            elif op == 255.0:
                 self.halted = true
 
     proc run_func(self, func, args):
+        if self.call_depth >= self.max_call_depth:
+            print "Error: Call stack overflow (depth " + str(self.call_depth) + ")"
+            self.halted = true
+            return
+        self.call_depth = self.call_depth + 1
         push(self.scopes, {})
+        # Bind arguments to the function scope as positional params
+        var ai = 0
+        while ai < len(args):
+            self.scopes[len(self.scopes)-1]["__arg" + str(ai)] = args[ai]
+            ai = ai + 1
         var old_ip = self.ip
         var old_code = self.code
+        var old_halted = self.halted
         var chunks = func["__chunks__"]
         var i = 0
         while i < len(chunks):
+            self.halted = false
             self.run(chunks[i])
             i = i + 1
         self.ip = old_ip
         self.code = old_code
+        self.halted = old_halted
         pop(self.scopes)
+        self.call_depth = self.call_depth - 1
 
     proc load_module(self, name):
         if dict_has(self.modules, name):
             return
+        self.modules[name] = true
         var path = name + ".sgvm"
         var data = io.readbytes(path)
         if data == nil:
@@ -328,6 +493,7 @@ class MetalVM:
             if off < len(data):
                 off = off + 1
         if len(data) - off < 4 or self.utils.my_int(data[off]) != 83 or self.utils.my_int(data[off+1]) != 71 or self.utils.my_int(data[off+2]) != 86 or self.utils.my_int(data[off+3]) != 77:
+            print "Error: Invalid SGVM header in module " + name
             return
         var old_ip = self.ip
         var old_code = self.code

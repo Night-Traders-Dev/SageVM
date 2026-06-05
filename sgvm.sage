@@ -1,7 +1,7 @@
 import sys
 import io
-import sgvm_vm
-import sgvm_core
+from sgvm_vm import MetalVM
+from sgvm_core import SGVMUtils
 
 proc main():
     var args = sys.args()
@@ -22,7 +22,7 @@ proc main():
         print "Error: Could not read file"
         return
     var off = 0
-    let core_utils = sgvm_core.SGVMUtils()
+    let core_utils = SGVMUtils()
     if len(data) > 2 and core_utils.my_int(data[0]) == 35 and core_utils.my_int(data[1]) == 33:
         while off < len(data) and core_utils.my_int(data[off]) != 10:
             off = off + 1
@@ -31,7 +31,7 @@ proc main():
     if len(data) - off < 4 or core_utils.my_int(data[off]) != 83 or core_utils.my_int(data[off+1]) != 71 or core_utils.my_int(data[off+2]) != 86 or core_utils.my_int(data[off+3]) != 77:
         print "Error: Invalid SGVM header"
         return
-    var metal_vm = sgvm_vm.MetalVM()
+    var metal_vm = MetalVM()
     metal_vm.trace = trace
     off = off + 6
     var const_count = core_utils.my_int(core_utils.read_be16(data, off))

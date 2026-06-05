@@ -1,6 +1,30 @@
 import io
 import sys
-import sgvm_core
+from sgvm_core import SGVMUtils
+from sgvm_core import OP_CONSTANT
+from sgvm_core import OP_GET_GLOBAL
+from sgvm_core import OP_DEFINE_GLOBAL
+from sgvm_core import OP_SET_GLOBAL
+from sgvm_core import OP_DEFINE_FUNCTION
+from sgvm_core import OP_GET_PROPERTY
+from sgvm_core import OP_SET_PROPERTY
+from sgvm_core import OP_LOAD_FUNCTION
+from sgvm_core import OP_JUMP
+from sgvm_core import OP_JUMP_IF_FALSE
+from sgvm_core import OP_ARRAY
+from sgvm_core import OP_TUPLE
+from sgvm_core import OP_DICT
+from sgvm_core import OP_EXEC_AST_STMT
+from sgvm_core import OP_BREAK
+from sgvm_core import OP_CONTINUE
+from sgvm_core import OP_LOOP_BACK
+from sgvm_core import OP_IMPORT
+from sgvm_core import OP_CLASS
+from sgvm_core import OP_METHOD
+from sgvm_core import OP_SETUP_TRY
+from sgvm_core import OP_CALL_METHOD
+from sgvm_core import OP_CALL
+from sgvm_core import OP_DUP
 
 class SGVMCompiler:
     proc init(self):
@@ -8,7 +32,7 @@ class SGVMCompiler:
         self.global_consts = []
         self.local_to_global = []
         self.current_chunk = -1
-        self.utils = sgvm_core.SGVMUtils()
+        self.utils = SGVMUtils()
 
     proc write_byte(self, b):
         push(self.output_bytes, self.utils.my_int(b))
@@ -149,7 +173,8 @@ class SGVMCompiler:
 
         if use_shebang: self.write_string("#!/usr/bin/env sgvm\n")
         self.write_string("SGVM")
-        self.write_byte(0x01); self.write_byte(0x00)
+        self.write_byte(0x01)
+        self.write_byte(0x00)
         self.write_be16(len(self.global_consts))
         var cidx = 0
         while cidx < len(self.global_consts):
@@ -178,28 +203,28 @@ class SGVMCompiler:
                     let op = self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2))
                     self.write_byte(op)
                     j = j + 2
-                    if op == sgvm_core.OP_CONSTANT or op == sgvm_core.OP_GET_GLOBAL or op == sgvm_core.OP_DEFINE_GLOBAL or op == sgvm_core.OP_SET_GLOBAL: 
+                    if op == OP_CONSTANT or op == OP_GET_GLOBAL or op == OP_DEFINE_GLOBAL or op == OP_SET_GLOBAL: 
                         let v1 = self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2))
                         let v2 = self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2))
                         self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
                         j = j + 4
-                    elif op == sgvm_core.OP_DEFINE_FUNCTION:
+                    elif op == OP_DEFINE_FUNCTION:
                         self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2)))
                         self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j+4, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+6, 2)))
                         j = j + 8
-                    elif op == sgvm_core.OP_CLASS:
+                    elif op == OP_CLASS:
                         self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2)))
                         self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j+4, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+6, 2)))
                         self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j+8, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+10, 2)))
                         j = j + 12
-                    elif op == sgvm_core.OP_GET_PROPERTY or op == sgvm_core.OP_SET_PROPERTY or op == sgvm_core.OP_LOAD_FUNCTION or op == sgvm_core.OP_JUMP or op == sgvm_core.OP_JUMP_IF_FALSE or op == sgvm_core.OP_ARRAY or op == sgvm_core.OP_TUPLE or op == sgvm_core.OP_DICT or op == sgvm_core.OP_EXEC_AST_STMT or op == sgvm_core.OP_BREAK or op == sgvm_core.OP_CONTINUE or op == sgvm_core.OP_LOOP_BACK or op == sgvm_core.OP_IMPORT or op == sgvm_core.OP_METHOD or op == sgvm_core.OP_SETUP_TRY:
+                    elif op == OP_GET_PROPERTY or op == OP_SET_PROPERTY or op == OP_LOAD_FUNCTION or op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_ARRAY or op == OP_TUPLE or op == OP_DICT or op == OP_EXEC_AST_STMT or op == OP_BREAK or op == OP_CONTINUE or op == OP_LOOP_BACK or op == OP_IMPORT or op == OP_METHOD or op == OP_SETUP_TRY:
                         self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2)))
                         j = j + 4
-                    elif op == sgvm_core.OP_CALL_METHOD:
+                    elif op == OP_CALL_METHOD:
                         self.write_be16(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)) * 256 + self.utils.hex_to_byte(self.utils.my_substr(hex, j+2, 2)))
                         self.write_byte(self.utils.hex_to_byte(self.utils.my_substr(hex, j+4, 2)))
                         j = j + 6
-                    elif op == sgvm_core.OP_CALL or op == sgvm_core.OP_DUP:
+                    elif op == OP_CALL or op == OP_DUP:
                         self.write_byte(self.utils.hex_to_byte(self.utils.my_substr(hex, j, 2)))
                         j = j + 2
             i = i + 1

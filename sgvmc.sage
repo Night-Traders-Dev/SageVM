@@ -1,6 +1,6 @@
 import sys
 import io
-from sgvm_compiler import *
+from sgvm_compiler import SGVMCompiler
 
 proc main():
     let args = sys.args()

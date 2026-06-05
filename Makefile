@@ -1,17 +1,12 @@
-<<<<<<< HEAD
-SAGE = /root/Devel/sagelang/core/sage
-SAGE_PATH = /root/Devel/sagelang/core/lib:./src
-=======
-SAGE = /usr/local/bin/sage
-SAGE_PATH = /usr/local/share/sage/lib
->>>>>>> fb7e6460ee9f588d3e14736f1f9307625c6afc9b
+SAGE ?= /usr/local/bin/sage
+SAGE_PATH ?= /usr/local/share/sage/lib:./src
 
 all: sgvm sgvmc
 
-sgvm: sgvm.sage src/sgvm_vm.sage src/sgvm_opcodes.sage src/sgvm_utils.sage
+sgvm: sgvm.sage src/sgvm_vm.sage src/sgvm_core.sage
 	SAGE_PATH=$(SAGE_PATH) $(SAGE) --compile sgvm.sage -o sgvm
 
-sgvmc: sgvmc.sage src/sgvm_compiler.sage src/sgvm_opcodes.sage src/sgvm_utils.sage
+sgvmc: sgvmc.sage src/sgvm_compiler.sage src/sgvm_core.sage
 	SAGE_PATH=$(SAGE_PATH) $(SAGE) --compile sgvmc.sage -o sgvmc
 
 clean:

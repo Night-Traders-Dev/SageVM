@@ -118,7 +118,7 @@ class SGVMUtils:
         var eidx = len(s)
         while eidx > start and (ord(s[eidx-1]) <= 32):
             eidx = eidx - 1
-        return string_substr(s, start, eidx - start)
+        return self.my_substr(s, start, eidx - start)
 
     proc read_be16(bs, off):
         return bs[off] * 256 + bs[off+1]
