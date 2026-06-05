@@ -1,4 +1,5 @@
 import io
+import io_ext
 import sys
 from sgvm_core import SGVMUtils
 from sgvm_core import OP_CONSTANT

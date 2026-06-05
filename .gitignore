@@ -12,3 +12,13 @@ sgvmc
 *.bin
 *.elf
 *.efi
+*.svm
+
+# Test artifacts
+t*.sage
+test_*.c
+test_*.h
+test_*.o
+test_*.sgvm
+test_*.svm
+test_*.sage
