@@ -111,16 +111,12 @@ class SGVMUtils:
             i = i + 1
         return res
 
-    ## Parse an integer from a line at a given offset.
-    ## Decomposed to avoid nested method call compiler bug in C backend.
     proc parse_int_field(self, line, offset):
         let sub = self.my_substr(line, offset, len(line))
         let trimmed = self.trim(sub)
         let numval = tonumber(trimmed)
         return self.my_int(numval)
 
-    ## Parse a hex byte from a hex string at a given offset.
-    ## Decomposed to avoid nested method call compiler bug in C backend.
     proc parse_hex_byte(self, hex, offset):
         let sub = self.my_substr(hex, offset, 2)
         let bval = self.hex_to_byte(sub)
