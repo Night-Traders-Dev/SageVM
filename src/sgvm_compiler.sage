@@ -238,6 +238,7 @@ class SGVMCompiler:
             if line == "chunk" or line == "function": self.current_chunk = self.current_chunk + 1
             elif startswith(line, "code "):
                 let clen = self.utils.my_int(tonumber(self.utils.trim(self.utils.my_substr(line, 5, len(line)))))
+                print "Chunk " + str(self.current_chunk) + " clen line: '" + line + "' clen: " + str(clen)
                 self.write_be32(clen)
                 i = i + 1
                 let hex = self.utils.trim(lines[i])

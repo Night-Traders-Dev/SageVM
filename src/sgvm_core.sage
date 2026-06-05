@@ -64,7 +64,7 @@ class SGVMUtils:
     proc my_int(x):
         if x == nil:
             return 0
-        return int(x)
+        return x >> 0
 
     proc hex_to_byte(h):
         let chars = "0123456789abcdef"
@@ -124,6 +124,8 @@ class SGVMUtils:
         return bs[off] * 256 + bs[off+1]
 
     proc read_be32(bs, off):
+        if type(bs[off]) != "number" or type(bs[off+1]) != "number" or type(bs[off+2]) != "number" or type(bs[off+3]) != "number":
+            print "read_be32 error! off: " + str(off) + " types: " + str(type(bs[off])) + ", " + str(type(bs[off+1])) + ", " + str(type(bs[off+2])) + ", " + str(type(bs[off+3]))
         return bs[off] * 16777216 + bs[off+1] * 65536 + bs[off+2] * 256 + bs[off+3]
 
     proc unpack_double(bs, off):

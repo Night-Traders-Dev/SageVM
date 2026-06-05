@@ -61,6 +61,7 @@ proc main():
     while c_idx < len(metal_vm.constants):
         print "Const " + str(c_idx) + ": " + str(metal_vm.constants[c_idx])
         c_idx = c_idx + 1
+    print "data len: " + str(len(data)) + " off: " + str(off)
     var chunk_count = core_utils.my_int(core_utils.read_be32(data, off))
     off = off + 4
     var c = 0
