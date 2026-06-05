@@ -67,6 +67,18 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_RAISE | 58 | Raise an exception |
 | OP_HALT | 0xFF | Halt execution |
 
+## Native Bridge
+
+SGVM provides a high-performance native bridge to the host SageLang environment. This allows guest bytecode to call standard library functions directly without the overhead of guest-side implementations.
+
+The following modules are currently bridged:
+- **math**: `sqrt`, `sin`, `cos`, `tan`, `floor`, `ceil`, `abs`, `pow`.
+- **io**: `read` (maps to `readfile`), `write` (maps to `writefile`).
+- **sys**: `args()`, `getenv()`, `clock()`, `exit()`.
+- **re**: `search()`, `match()` (full match), `test()`.
+
+Native bridging is implemented by tagging objects and function-like dictionaries with a `__native__` property. The `OP_CALL` and `OP_CALL_METHOD` opcodes detect these tags and dispatch execution to the VM's `call_native()` handler.
+
 ## Function Arguments
 
 Arguments to SGVM functions are passed positionally and bound to the function's local scope using the naming convention `__argN`, where `N` is the zero-based index of the argument. For example, the first argument is accessible as `__arg0`, the second as `__arg1`, and so on.

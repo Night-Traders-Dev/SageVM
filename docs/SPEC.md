@@ -28,7 +28,7 @@ SGVM supports multiple execution strategies:
 The kernel interacts with SGVM via the following internal interfaces:
 - `metal_vm_load_binary()`: Loads a compiled `.sgvm` artifact into memory.
 - `metal_vm_run()` / `metal_vm_step()`: Executes bytecode instructions.
-- `metal_vm_register_native()`: Binds kernel-level C functions to SageLang (the primary mechanism for exposing hardware to scripts).
+- `metal_vm_register_native()`: Binds kernel-level functions to SageLang (implemented via the **Native Bridge** in the SageLang-based interpreter).
 - `sage_gil_acquire()` / `sage_gil_release()`: Serializes access to the VM state to maintain thread safety in SMP environments.
 
 ## 6. Object System & GC

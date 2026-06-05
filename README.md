@@ -20,8 +20,11 @@ A pure SageLang implementation of the SGVM interpreter. It can execute compiled 
 
 **Usage:**
 ```bash
-sgvm <file.sgvm>
+sgvm <file.sgvm> [--debug]
 ```
+
+**Options:**
+- `--debug`: Enable diagnostic output, including constant pool entries, data offsets, and a full bytecode trace during execution.
 
 ### `sgvmc` (Compiler)
 A pure SageLang bytecode compiler/linker. It takes the intermediate VM output from the main SageLang compiler and packs it into a binary `.sgvm` artifact.
