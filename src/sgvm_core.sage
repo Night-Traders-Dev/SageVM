@@ -64,7 +64,7 @@ class SGVMUtils:
     proc my_int(x):
         if x == nil:
             return 0
-        return tonumber(str(x))
+        return int(x)
 
     proc hex_to_byte(h):
         let chars = "0123456789abcdef"

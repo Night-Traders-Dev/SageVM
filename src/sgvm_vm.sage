@@ -82,6 +82,7 @@ class MetalVM:
         self.return_value = nil
         self.returning = false
         self.frame_bases = [0]
+        self.arg_names = ["__arg0", "__arg1", "__arg2", "__arg3", "__arg4", "__arg5", "__arg6", "__arg7", "__arg8", "__arg9"]
 
     proc push(self, val):
         if len(self.stack) >= self.max_stack_depth:
@@ -187,7 +188,8 @@ class MetalVM:
                 self.pop_stack()
             elif op == OP_GET_GLOBAL:
                 var name = self.constants[self.utils.my_int(self.read_u16())]
-                print "Debug: OP_GET_GLOBAL looking up: " + name
+                if self.trace:
+                    print "Debug: OP_GET_GLOBAL looking up: " + name
                 var found = false
                 var i = 0
                 while i < len(self.scopes):
@@ -226,7 +228,8 @@ class MetalVM:
                 var name_idx = self.utils.my_int(self.read_u16())
                 var chunk_idx = self.utils.my_int(self.read_u16())
                 var name = self.constants[name_idx]
-                print "Debug: OP_DEFINE_FUNCTION: defining: " + name + " with chunk " + str(chunk_idx)
+                if self.trace:
+                    print "Debug: OP_DEFINE_FUNCTION: defining: " + name + " with chunk " + str(chunk_idx)
                 var func = {"__name__": name, "__chunks__": []}
                 if chunk_idx < len(self.chunks):
                     push(func["__chunks__"], self.chunks[chunk_idx])
@@ -276,12 +279,14 @@ class MetalVM:
             elif op == OP_ADD:
                 var b = self.pop_stack()
                 var a = self.pop_stack()
-                print "Debug: OP_ADD adding: a=" + str(a) + ", b=" + str(b)
+                if self.trace:
+                    print "Debug: OP_ADD adding: a=" + str(a) + ", b=" + str(b)
                 self.push(a + b)
             elif op == OP_SUB:
                 var b = self.pop_stack()
                 var a = self.pop_stack()
-                print "Debug: OP_SUB subtracting: a=" + str(a) + ", b=" + str(b)
+                if self.trace:
+                    print "Debug: OP_SUB subtracting: a=" + str(a) + ", b=" + str(b)
                 self.push(a - b)
             elif op == OP_MUL:
                 var b = self.pop_stack()
@@ -522,7 +527,12 @@ class MetalVM:
         # Bind arguments to the function scope as positional params
         var ai = 0
         while ai < len(args):
-            self.scopes[len(self.scopes)-1]["__arg" + str(ai)] = args[ai]
+            var name = ""
+            if ai < len(self.arg_names):
+                name = self.arg_names[ai]
+            else:
+                name = "__arg" + str(ai)
+            self.scopes[len(self.scopes)-1][name] = args[ai]
             ai = ai + 1
         var old_ip = self.ip
         var old_code = self.code

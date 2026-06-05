@@ -25,3 +25,6 @@ test_*.sage
 trace.log
 gdb.log
 gdb_print.log
+compile_trace.log
+scratch_test
+scratch_test.sage
