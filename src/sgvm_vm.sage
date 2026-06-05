@@ -1,5 +1,6 @@
 import io
 import math
+import thread as host_thread
 import std.regex as re
 from sgvm_core import SGVMUtils
 from sgvm_core import OP_CONSTANT
@@ -63,6 +64,12 @@ from sgvm_core import OP_END_TRY
 from sgvm_core import OP_RAISE
 from sgvm_core import OP_HALT
 
+let g_gil = host_thread.mutex()
+
+proc vm_thread_host_entry(td):
+    let vm = td["vm"]
+    return vm.vm_thread_entry(td)
+
 class MetalVM:
     proc init(self):
         self.stack = []
@@ -86,6 +93,12 @@ class MetalVM:
         self.frame_bases = [0]
         self.arg_names = ["__arg0", "__arg1", "__arg2", "__arg3", "__arg4", "__arg5", "__arg6", "__arg7", "__arg8", "__arg9"]
         self.setup_builtins()
+        
+        # Isolation & Resource Limits
+        self.safe_mode = false
+        self.ffi_enabled = true
+        self.max_memory = -1 # No limit
+        self.allocated_memory = 0
 
     proc setup_builtins(self):
         # Math Module
@@ -120,19 +133,151 @@ class MetalVM:
         re_mod["__methods__"]["match"] = {"__native__": true, "__name__": "re.match"}
         re_mod["__methods__"]["test"] = {"__native__": true, "__name__": "re.test"}
         self.globals["re"] = re_mod
+
+        # FFI Module
+        let ffi_mod = {"__methods__": {}}
+        ffi_mod["__methods__"]["open"] = {"__native__": true, "__name__": "ffi.open"}
+        ffi_mod["__methods__"]["call"] = {"__native__": true, "__name__": "ffi.call"}
+        ffi_mod["__methods__"]["close"] = {"__native__": true, "__name__": "ffi.close"}
+        self.globals["ffi"] = ffi_mod
+
+        # Memory Module
+        let mem_mod = {"__methods__": {}}
+        mem_mod["__methods__"]["alloc"] = {"__native__": true, "__name__": "mem.alloc"}
+        mem_mod["__methods__"]["free"] = {"__native__": true, "__name__": "mem.free"}
+        mem_mod["__methods__"]["read"] = {"__native__": true, "__name__": "mem.read"}
+        mem_mod["__methods__"]["write"] = {"__native__": true, "__name__": "mem.write"}
+        mem_mod["__methods__"]["size"] = {"__native__": true, "__name__": "mem.size"}
+        mem_mod["__methods__"]["usage"] = {"__native__": true, "__name__": "mem.usage"}
+        mem_mod["__methods__"]["limit"] = {"__native__": true, "__name__": "mem.limit"}
+        self.globals["mem"] = mem_mod
+
+        # Struct Module
+        let struct_mod = {"__methods__": {}}
+        struct_mod["__methods__"]["def"] = {"__native__": true, "__name__": "struct.def"}
+        struct_mod["__methods__"]["new"] = {"__native__": true, "__name__": "struct.new"}
+        struct_mod["__methods__"]["get"] = {"__native__": true, "__name__": "struct.get"}
+        struct_mod["__methods__"]["set"] = {"__native__": true, "__name__": "struct.set"}
+        struct_mod["__methods__"]["size"] = {"__native__": true, "__name__": "struct.size"}
+        self.globals["struct"] = struct_mod
+
+        # Thread Module
+        let thread_mod = {"__methods__": {}}
+        thread_mod["__methods__"]["spawn"] = {"__native__": true, "__name__": "thread.spawn"}
+        thread_mod["__methods__"]["join"] = {"__native__": true, "__name__": "thread.join"}
+        thread_mod["__methods__"]["mutex"] = {"__native__": true, "__name__": "thread.mutex"}
+        thread_mod["__methods__"]["lock"] = {"__native__": true, "__name__": "thread.lock"}
+        thread_mod["__methods__"]["unlock"] = {"__native__": true, "__name__": "thread.unlock"}
+        thread_mod["__methods__"]["sleep"] = {"__native__": true, "__name__": "thread.sleep"}
+        thread_mod["__methods__"]["id"] = {"__native__": true, "__name__": "thread.id"}
+        self.globals["thread"] = thread_mod
+
+        # GC Control
+        let gc_mod = {"__methods__": {}}
+        gc_mod["__methods__"]["collect"] = {"__native__": true, "__name__": "gc.collect"}
+        gc_mod["__methods__"]["enable"] = {"__native__": true, "__name__": "gc.enable"}
+        gc_mod["__methods__"]["disable"] = {"__native__": true, "__name__": "gc.disable"}
+        gc_mod["__methods__"]["stats"] = {"__native__": true, "__name__": "gc.stats"}
+        self.globals["gc"] = gc_mod
         
         # Core builtins
         self.globals["str"] = {"__native__": true, "__name__": "core.str"}
         self.globals["tonumber"] = {"__native__": true, "__name__": "core.tonumber"}
         self.globals["len"] = {"__native__": true, "__name__": "core.len"}
 
+    proc vm_thread_entry(self, td):
+        let vm = td["vm"]
+        let func = td["func"]
+        let args = td["args"]
+        return vm.run_func(func, args)
+
     proc call_native(self, name, obj, args):
+        # Safety Checks
+        if self.safe_mode:
+            if startswith(name, "ffi.") or startswith(name, "mem.") or startswith(name, "struct."):
+                print "Security Error: Native bridge call '" + name + "' denied in safe mode."
+                return nil
+            if name == "io.write" or name == "io.read":
+                 # In safe mode, we might allow read/write but restrict paths (not implemented here)
+                 print "Security Error: I/O access denied in safe mode."
+                 return nil
+        
+        if not self.ffi_enabled and startswith(name, "ffi."):
+            print "Security Error: FFI is disabled in this VM."
+            return nil
+
         if name == "core.str": return str(args[0])
         elif name == "core.tonumber": return tonumber(args[0])
         elif name == "core.len": return len(args[0])
         elif name == "re.search": return re.search(args[0], args[1])
         elif name == "re.match": return re.full_match(args[0], args[1])
         elif name == "re.test": return re.test(args[0], args[1])
+        elif name == "ffi.open": return ffi_open(args[0])
+        elif name == "ffi.call":
+            if len(args) < 4: return ffi_call(args[0], args[1], args[2])
+            return ffi_call(args[0], args[1], args[2], args[3])
+        elif name == "ffi.close": return ffi_close(args[0])
+        elif name == "mem.alloc":
+            let size = args[0]
+            if self.max_memory != -1 and self.allocated_memory + size > self.max_memory:
+                print "Resource Error: Memory limit exceeded (" + str(self.max_memory) + " bytes)."
+                return nil
+            self.allocated_memory = self.allocated_memory + size
+            return mem_alloc(size)
+        elif name == "mem.free":
+            # Tracking free is harder without keeping track of pointer sizes, 
+            # but we can at least allow it.
+            return mem_free(args[0])
+        elif name == "mem.read": return mem_read(args[0], args[1], args[2])
+        elif name == "mem.write": return mem_write(args[0], args[1], args[2], args[3])
+        elif name == "mem.size": return mem_size(args[0])
+        elif name == "mem.usage": return self.allocated_memory
+        elif name == "mem.limit":
+            self.max_memory = args[0]
+            return nil
+        elif name == "struct.def": return struct_def(args[0])
+        elif name == "struct.new": return struct_new(args[0])
+        elif name == "struct.get": return struct_get(args[0], args[1], args[2])
+        elif name == "struct.set": return struct_set(args[0], args[1], args[2], args[3])
+        elif name == "struct.size": return struct_size(args[0])
+        elif name == "thread.spawn":
+            let func = args[0]
+            var thread_args = []
+            if len(args) > 1: thread_args = args[1]
+            
+            # Create a clone of the VM for the new thread
+            let new_vm = MetalVM()
+            new_vm.constants = self.constants
+            new_vm.chunks = self.chunks
+            new_vm.globals = self.globals # Share globals (protected by GIL)
+            
+            # Use host thread.spawn
+            return host_thread.spawn(vm_thread_host_entry, {"vm": new_vm, "func": func, "args": thread_args})
+        elif name == "thread.join":
+            # Release GIL while waiting for thread join to prevent deadlock
+            host_thread.unlock(g_gil)
+            let res = host_thread.join(args[0])
+            host_thread.lock(g_gil)
+            return res
+        elif name == "thread.mutex": return host_thread.mutex()
+        elif name == "thread.lock":
+            # Release GIL while waiting for lock to prevent deadlock
+            host_thread.unlock(g_gil)
+            host_thread.lock(args[0])
+            host_thread.lock(g_gil)
+            return nil
+        elif name == "thread.unlock": return host_thread.unlock(args[0])
+        elif name == "thread.sleep":
+            # Release GIL while sleeping
+            host_thread.unlock(g_gil)
+            host_thread.sleep(args[0])
+            host_thread.lock(g_gil)
+            return nil
+        elif name == "thread.id": return host_thread.id()
+        elif name == "gc.collect": return gc_collect()
+        elif name == "gc.enable": return gc_enable()
+        elif name == "gc.disable": return gc_disable()
+        elif name == "gc.stats": return gc_stats()
         elif name == "math.sqrt": return math.sqrt(args[0])
         elif name == "math.sin": return math.sin(args[0])
         elif name == "math.cos": return math.cos(args[0])
@@ -272,7 +417,16 @@ class MetalVM:
         self.ip = 0
         self.halted = false
         self.returning = false
+        
+        var op_count = 0
+        host_thread.lock(g_gil)
+        
         while not self.halted and not self.returning and self.ip < len(self.code):
+            op_count = op_count + 1
+            if op_count % 100 == 0:
+                host_thread.unlock(g_gil)
+                host_thread.lock(g_gil)
+            
             var current_ip = self.ip
             var op = self.read_u8()
             if self.trace:
@@ -658,6 +812,8 @@ class MetalVM:
                     self.push(nil)
             elif op == OP_HALT:
                 self.halted = true
+        
+        host_thread.unlock(g_gil)
 
     proc run_func(self, func, args):
         if self.call_depth >= self.max_call_depth:
@@ -705,14 +861,15 @@ class MetalVM:
         pop(self.scopes)
         self.call_depth = self.call_depth - 1
         self.push(res)
+        return res
 
     proc load_module(self, name):
         if dict_has(self.modules, name):
-            if name == "math" or name == "io" or name == "sys" or name == "re":
+            if name == "math" or name == "io" or name == "sys" or name == "re" or name == "thread" or name == "ffi" or name == "mem" or name == "struct" or name == "gc":
                 return self.globals[name]
             return true # Or the module object if we tracked it
         # Check if it's a builtin module
-        if name == "math" or name == "io" or name == "sys" or name == "re":
+        if name == "math" or name == "io" or name == "sys" or name == "re" or name == "thread" or name == "ffi" or name == "mem" or name == "struct" or name == "gc":
             self.modules[name] = true
             return self.globals[name]
         self.modules[name] = true

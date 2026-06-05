@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 - **Inheritance Support**: Implemented recursive method lookup in `OP_CALL_METHOD` to support class inheritance.
 - **O(1) Constant Pool**: Switched to dictionary-based deduplication in the compiler for linear-time builds.
 - **Native String Methods**: Added support for calling native `find`, `replace`, and `split` methods on string primitives.
+- **Multi-threading Engine**: Implemented full `thread` module support with `spawn`, `join`, `mutex`, `lock`, `unlock`, and `sleep`.
+- **Global Interpreter Lock (GIL)**: Added a host-mutex-backed GIL to serialize guest bytecode execution, with smart yielding during blocking calls.
+- **FFI & Memory Bridge**: Added `ffi`, `mem`, and `struct` modules for low-level host interop and raw memory management.
+- **Guest Sandboxing**: Added `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
+- **Resource Tracking**: Implemented guest-level memory allocation tracking and enforcement of memory limits via `mem.limit()`.
+- **GC Control Primitives**: Exposed host garbage collector controls (`gc.collect()`, `gc.stats()`) to the guest VM.
 
 ### Fixed
 - **Maximum Search Paths Error**: Resolved a critical interpreter error in SageLang by preventing duplicate search paths and increasing the limit to 64.

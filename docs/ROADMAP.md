@@ -10,6 +10,9 @@ This document outlines the features and standard library modules currently unsup
 - **Bytecode Verification**: Pre-execution safety checks for constant references and jump targets.
 - **Native Bridging Layer**: Full support for `math`, `io`, `sys`, and `re` modules via host SageLang mapping.
 - **Optimized Strings**: Native bridging for string `find`, `replace`, and `split` operations.
+- **Multi-threading**: Full support for `thread` module with a Global Interpreter Lock (GIL) and result capturing.
+- **FFI & Memory Interop**: Safe bridging to host C libraries via `ffi`, `mem`, and `struct` modules.
+- **Resource Management**: Guest memory tracking and limits (`mem.limit`), plus GC control primitives.
 
 ## 🟡 Medium Difficulty (Native Bridging)
 (All tasks currently completed)
@@ -18,9 +21,6 @@ This document outlines the features and standard library modules currently unsup
 These tasks involve significant architectural additions or complex resource management.
 
 - **GPU Hot-Paths**: Implementation of the `BC_OP_GPU_*` opcodes for Vulkan/OpenGL acceleration. This requires a handle-based resource manager within the VM.
-- **Multi-threading**: Implementing the SageLang `thread` module. This would require managing multiple VM states and a Global Interpreter Lock (GIL) within the SageLang-based interpreter.
-- **Garbage Collection Optimization**: While SageLang handles memory, a dedicated "Guest GC" or capability-aware allocator might be needed for high-isolation environments.
-- **FFI Support**: Allowing guest bytecode to call into host-system C libraries safely.
 - **Networking**: Full implementation of `net`, `socket`, and `http` modules, requiring a safe abstraction of the host's networking stack.
 
 ## 🟣 Research / Future

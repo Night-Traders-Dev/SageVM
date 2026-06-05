@@ -76,8 +76,26 @@ The following modules are currently bridged:
 - **io**: `read` (maps to `readfile`), `write` (maps to `writefile`).
 - **sys**: `args()`, `getenv()`, `clock()`, `exit()`.
 - **re**: `search()`, `match()` (full match), `test()`.
+- **thread**: `spawn()`, `join()`, `mutex()`, `lock()`, `unlock()`, `sleep()`.
+- **ffi**: `open()`, `call()`, `close()`.
+- **mem**: `alloc()`, `free()`, `read()`, `write()`, `size()`, `usage()`, `limit()`.
+- **struct**: `def()`, `new()`, `get()`, `set()`, `size()`.
+- **gc**: `collect()`, `stats()`, `enable()`, `disable()`.
 
 Native bridging is implemented by tagging objects and function-like dictionaries with a `__native__` property. The `OP_CALL` and `OP_CALL_METHOD` opcodes detect these tags and dispatch execution to the VM's `call_native()` handler.
+
+## Multi-threading & GIL
+
+SGVM supports true multi-threading by leveraging the host SageLang `thread` module. Each guest thread runs in its own `MetalVM` instance, sharing the same constant pool and global environment.
+
+To maintain consistency within the SageLang-based interpreter, a **Global Interpreter Lock (GIL)** is used to serialize guest bytecode execution. The GIL is automatically released during blocking operations such as `thread.sleep()`, `thread.join()`, and `thread.lock()` to allow for maximum concurrency.
+
+## Sandboxing & Isolation
+
+For high-isolation environments, `MetalVM` provides several security features:
+- **safe_mode**: When enabled, access to sensitive modules (`ffi`, `mem`, `struct`, `io`) is restricted.
+- **ffi_enabled**: A dedicated flag to toggle FFI support independently of other security settings.
+- **Resource Limits**: The `mem.limit()` function allows the host to cap the amount of raw memory the guest can allocate.
 
 ## Function Arguments
 
