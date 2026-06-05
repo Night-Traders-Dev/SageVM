@@ -24,3 +24,4 @@ test_*.svm
 test_*.sage
 trace.log
 gdb.log
+gdb_print.log
