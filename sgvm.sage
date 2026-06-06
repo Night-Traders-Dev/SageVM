@@ -1,6 +1,6 @@
 import sys
 import io
-from sgvm_vm import MetalVM
+import sgvm_vm
 from sgvm_core import SGVMUtils
 
 proc main():
@@ -31,7 +31,7 @@ proc main():
     if len(data) - off < 4 or core_utils.my_int(data[off]) != 83 or core_utils.my_int(data[off+1]) != 71 or core_utils.my_int(data[off+2]) != 86 or core_utils.my_int(data[off+3]) != 77:
         print "Error: Invalid SGVM header"
         return
-    var metal_vm = MetalVM()
+    var metal_vm = sgvm_vm.MetalVM()
     metal_vm.trace = debug
     off = off + 6
     var function_count = core_utils.my_int(core_utils.read_be16(data, off))
