@@ -82,6 +82,8 @@ class MetalVM:
         self.ip = 0
         self.code = []
         self.halted = false
+        self.is_throwing = false
+        self.exception_value = nil
         self.trace = false
         self.modules = {}
         self.utils = SGVMUtils()
@@ -458,6 +460,27 @@ class MetalVM:
         host_thread.lock(g_gil)
         
         while not self.halted and not self.returning and ip < len(code):
+            if self.is_throwing:
+                if len(handlers) > 0:
+                    let h = handlers[len(handlers) - 1]
+                    if h["env_depth"] > self.call_depth:
+                        pop(handlers)
+                        while len(stack) > h["stack_depth"]: pop(stack)
+                        while len(scopes) > h["env_depth"]: pop(scopes)
+                        ip = utils.my_int(h["handler_ip"])
+                        push(stack, self.exception_value)
+                        self.is_throwing = false
+                        self.exception_value = nil
+                        continue
+                    else:
+                        break
+                else:
+                    print "Unhandled Exception: " + str(self.exception_value)
+                    self.halted = true
+                    self.is_throwing = false
+                    self.exception_value = nil
+                    break
+
             let op = utils.my_int(code[ip])
             if self.trace:
                 self.ip = ip # Sync for format_stack/print
@@ -879,15 +902,8 @@ class MetalVM:
                 if len(handlers) > 0: pop(handlers)
             elif op == 58: # OP_RAISE
                 let exc = pop(stack)
-                if len(handlers) > 0:
-                    let h = pop(handlers)
-                    while len(stack) > h["stack_depth"]: pop(stack)
-                    while len(scopes) > h["env_depth"]: pop(scopes)
-                    ip = utils.my_int(h["handler_ip"])
-                    push(stack, exc)
-                else:
-                    print "Unhandled Exception: " + str(exc)
-                    self.halted = true
+                self.is_throwing = true
+                self.exception_value = exc
             elif op == 255: # OP_HALT
                 self.halted = true
         
@@ -923,7 +939,7 @@ class MetalVM:
         
         var chunks = func["__chunks__"]
         var i = 0
-        while i < len(chunks) and not self.returning and not self.halted:
+        while i < len(chunks) and not self.returning and not self.halted and not self.is_throwing:
             self.halted = false
             self.run(chunks[i])
             i = i + 1
@@ -939,7 +955,8 @@ class MetalVM:
         
         pop(self.scopes)
         self.call_depth = self.call_depth - 1
-        self.push(res)
+        if not self.is_throwing:
+            self.push(res)
         return res
 
     proc load_module(self, name):
@@ -1010,7 +1027,7 @@ class MetalVM:
             off = off + clen
             c = c + 1
         var idx = function_count
-        while idx < len(self.chunks):
+        while idx < len(self.chunks) and not self.is_throwing and not self.halted:
             self.run(self.chunks[idx])
             idx = idx + 1
         self.ip = old_ip

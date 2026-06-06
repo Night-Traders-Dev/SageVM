@@ -78,7 +78,7 @@ proc main():
         off = off + clen
         c = c + 1
     var idx = function_count
-    while idx < len(metal_vm.chunks):
+    while idx < len(metal_vm.chunks) and not metal_vm.is_throwing and not metal_vm.halted:
         metal_vm.run(metal_vm.chunks[idx])
         idx = idx + 1
 

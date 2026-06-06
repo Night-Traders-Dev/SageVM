@@ -91,12 +91,25 @@ class SGVMUtils:
         let nl = chr(10)
         var i = 0
         while i < len(s):
-            if s[i] == nl:
+            let char_val = s[i]
+            var is_nl = false
+            var is_cr = false
+            if type(char_val) == "number":
+                is_nl = (char_val == 10)
+                is_cr = (char_val == 13)
+            else:
+                is_nl = (char_val == nl)
+                is_cr = (char_val == chr(13))
+            
+            if is_nl:
                 push(lines, current)
                 current = ""
             else:
-                if s[i] != chr(13):
-                    current = current + s[i]
+                if not is_cr:
+                    if type(char_val) == "number":
+                        current = current + chr(char_val)
+                    else:
+                        current = current + char_val
             i = i + 1
         if len(current) > 0:
             push(lines, current)
