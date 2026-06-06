@@ -135,13 +135,21 @@ class SGVMUtils:
         let bval = self.hex_to_byte(sub)
         return self.my_int(bval)
 
-    proc trim(s):
+    proc trim(self, s):
+        if len(s) == 0:
+            return ""
         var start = 0
-        while start < len(s) and (ord(s[start]) <= 32):
-            start = start + 1
+        while start < len(s):
+            if ord(s[start]) <= 32:
+                start = start + 1
+            else:
+                break
         var eidx = len(s)
-        while eidx > start and (ord(s[eidx-1]) <= 32):
-            eidx = eidx - 1
+        while eidx > start:
+            if ord(s[eidx-1]) <= 32:
+                eidx = eidx - 1
+            else:
+                break
         return self.my_substr(s, start, eidx - start)
 
     proc read_be16(bs, off):
