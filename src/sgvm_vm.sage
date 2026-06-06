@@ -1,5 +1,6 @@
 import io
 import math
+import net
 import thread as host_thread
 import std.regex as re
 from sgvm_core import SGVMUtils
@@ -183,6 +184,21 @@ class MetalVM:
         gc_mod["__methods__"]["stats"] = {"__native__": true, "__name__": "gc.stats"}
         self.globals["gc"] = gc_mod
         
+        # Net Module
+        let net_mod = {"__methods__": {}}
+        net_mod["__methods__"]["connect"] = {"__native__": true, "__name__": "net.connect"}
+        net_mod["__methods__"]["listen"] = {"__native__": true, "__name__": "net.listen"}
+        net_mod["__methods__"]["accept"] = {"__native__": true, "__name__": "net.accept"}
+        net_mod["__methods__"]["send"] = {"__native__": true, "__name__": "net.send"}
+        net_mod["__methods__"]["recv"] = {"__native__": true, "__name__": "net.recv"}
+        net_mod["__methods__"]["sendall"] = {"__native__": true, "__name__": "net.sendall"}
+        net_mod["__methods__"]["recvall"] = {"__native__": true, "__name__": "net.recvall"}
+        net_mod["__methods__"]["recvline"] = {"__native__": true, "__name__": "net.recvline"}
+        net_mod["__methods__"]["close"] = {"__native__": true, "__name__": "net.close"}
+        net_mod["__methods__"]["http_get"] = {"__native__": true, "__name__": "net.http_get"}
+        net_mod["__methods__"]["http_post"] = {"__native__": true, "__name__": "net.http_post"}
+        self.globals["net"] = net_mod
+        
         # Atomic Operations
         let atomic_mod = {"__methods__": {}}
         atomic_mod["__methods__"]["new"] = {"__native__": true, "__name__": "atomic.new"}
@@ -205,6 +221,29 @@ class MetalVM:
         self.globals["str"] = {"__native__": true, "__name__": "core.str"}
         self.globals["tonumber"] = {"__native__": true, "__name__": "core.tonumber"}
         self.globals["len"] = {"__native__": true, "__name__": "core.len"}
+        self.globals["range"] = {"__native__": true, "__name__": "core.range"}
+        self.globals["push"] = {"__native__": true, "__name__": "core.push"}
+        self.globals["pop"] = {"__native__": true, "__name__": "core.pop"}
+        self.globals["chr"] = {"__native__": true, "__name__": "core.chr"}
+        self.globals["ord"] = {"__native__": true, "__name__": "core.ord"}
+        self.globals["clock"] = {"__native__": true, "__name__": "core.clock"}
+        self.globals["input"] = {"__native__": true, "__name__": "core.input"}
+        self.globals["type"] = {"__native__": true, "__name__": "core.type"}
+        self.globals["startswith"] = {"__native__": true, "__name__": "core.startswith"}
+        self.globals["endswith"] = {"__native__": true, "__name__": "core.endswith"}
+        self.globals["dict_keys"] = {"__native__": true, "__name__": "core.dict_keys"}
+        self.globals["dict_values"] = {"__native__": true, "__name__": "core.dict_values"}
+        self.globals["dict_has"] = {"__native__": true, "__name__": "core.dict_has"}
+        self.globals["dict_delete"] = {"__native__": true, "__name__": "core.dict_delete"}
+        self.globals["split"] = {"__native__": true, "__name__": "core.split"}
+        self.globals["join"] = {"__native__": true, "__name__": "core.join"}
+        self.globals["replace"] = {"__native__": true, "__name__": "core.replace"}
+        self.globals["upper"] = {"__native__": true, "__name__": "core.upper"}
+        self.globals["lower"] = {"__native__": true, "__name__": "core.lower"}
+        self.globals["strip"] = {"__native__": true, "__name__": "core.strip"}
+        self.globals["slice"] = {"__native__": true, "__name__": "core.slice"}
+        self.globals["contains"] = {"__native__": true, "__name__": "core.contains"}
+        self.globals["indexof"] = {"__native__": true, "__name__": "core.indexof"}
 
     proc vm_thread_entry(self, td):
         let vm = td["vm"]
@@ -229,6 +268,66 @@ class MetalVM:
         if name == "core.str": return str(args[0])
         elif name == "core.tonumber": return tonumber(args[0])
         elif name == "core.len": return len(args[0])
+        elif name == "core.range":
+            var start = 0
+            var limit = 0
+            if len(args) == 1:
+                limit = args[0]
+            elif len(args) == 2:
+                start = args[0]
+                limit = args[1]
+            let arr = []
+            var v = start
+            while v < limit:
+                push(arr, v)
+                v = v + 1
+            return arr
+        elif name == "core.push":
+            push(args[0], args[1])
+            return nil
+        elif name == "core.pop":
+            return pop(args[0])
+        elif name == "core.chr":
+            return chr(args[0])
+        elif name == "core.ord":
+            return ord(args[0])
+        elif name == "core.clock":
+            return clock()
+        elif name == "core.input":
+            if len(args) > 0: return input(args[0])
+            return input()
+        elif name == "core.type":
+            return type(args[0])
+        elif name == "core.startswith":
+            return startswith(args[0], args[1])
+        elif name == "core.endswith":
+            return endswith(args[0], args[1])
+        elif name == "core.dict_keys":
+            return dict_keys(args[0])
+        elif name == "core.dict_values":
+            return dict_values(args[0])
+        elif name == "core.dict_has":
+            return dict_has(args[0], args[1])
+        elif name == "core.dict_delete":
+            return dict_delete(args[0], args[1])
+        elif name == "core.split":
+            return split(args[0], args[1])
+        elif name == "core.join":
+            return join(args[0], args[1])
+        elif name == "core.replace":
+            return replace(args[0], args[1], args[2])
+        elif name == "core.upper":
+            return upper(args[0])
+        elif name == "core.lower":
+            return lower(args[0])
+        elif name == "core.strip":
+            return strip(args[0])
+        elif name == "core.slice":
+            return slice(args[0], args[1], args[2])
+        elif name == "core.contains":
+            return contains(args[0], args[1])
+        elif name == "core.indexof":
+            return indexof(args[0], args[1])
         elif name == "re.search": return re.search(args[0], args[1])
         elif name == "re.match": return re.full_match(args[0], args[1])
         elif name == "re.test": return re.test(args[0], args[1])
@@ -319,6 +418,21 @@ class MetalVM:
         elif name == "math.pow": return math.pow(args[0], args[1])
         elif name == "io.read": return io.readfile(args[0])
         elif name == "io.write": return io.writefile(args[0], args[1])
+        elif name == "net.connect": return net.connect(args[0], args[1])
+        elif name == "net.listen":
+            if len(args) == 3: return net.listen(args[0], args[1], args[2])
+            return net.listen(args[0], args[1])
+        elif name == "net.accept": return net.accept(args[0])
+        elif name == "net.send": return net.send(args[0], args[1])
+        elif name == "net.recv": return net.recv(args[0], args[1])
+        elif name == "net.sendall": return net.sendall(args[0], args[1])
+        elif name == "net.recvall": return net.recvall(args[0], args[1])
+        elif name == "net.recvline":
+            if len(args) == 2: return net.recvline(args[0], args[1])
+            return net.recvline(args[0])
+        elif name == "net.close": return net.close(args[0])
+        elif name == "net.http_get": return net.http_get(args[0])
+        elif name == "net.http_post": return net.http_post(args[0])
         elif name == "sys.args": return sys.args()
         elif name == "sys.getenv": return sys.getenv(args[0])
         elif name == "sys.clock": return clock()
@@ -717,7 +831,9 @@ class MetalVM:
                 let lo = code[ip + 1]
                 let target = hi * 256 + lo
                 ip = ip + 2
-                if not pop(stack): ip = target
+                let cond = stack[len(stack) - 1]
+                if cond == nil or cond == false or cond == 0 or cond == "":
+                    ip = target
             elif op == 37: # OP_CALL
                 let argc = utils.my_int(code[ip])
                 ip = ip + 1
@@ -961,11 +1077,11 @@ class MetalVM:
 
     proc load_module(self, name):
         if dict_has(self.modules, name):
-            if name == "math" or name == "io" or name == "sys" or name == "re" or name == "thread" or name == "ffi" or name == "mem" or name == "struct" or name == "gc" or name == "atomic" or name == "sem":
+            if name == "math" or name == "io" or name == "sys" or name == "re" or name == "thread" or name == "ffi" or name == "mem" or name == "struct" or name == "gc" or name == "atomic" or name == "sem" or name == "net":
                 return self.globals[name]
             return true # Or the module object if we tracked it
         # Check if it's a builtin module
-        if name == "math" or name == "io" or name == "sys" or name == "re" or name == "thread" or name == "ffi" or name == "mem" or name == "struct" or name == "gc" or name == "atomic" or name == "sem":
+        if name == "math" or name == "io" or name == "sys" or name == "re" or name == "thread" or name == "ffi" or name == "mem" or name == "struct" or name == "gc" or name == "atomic" or name == "sem" or name == "net":
             self.modules[name] = true
             return self.globals[name]
         self.modules[name] = true
