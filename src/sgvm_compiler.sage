@@ -1,3 +1,5 @@
+import sys
+import io
 import sgvm_core
 from sgvm_core import SGVMUtils
 from sgvm_core import OP_CONSTANT
@@ -133,7 +135,8 @@ class SGVMCompiler:
 
     proc compile(self, input_file, output_file, use_shebang):
         let tmp_svm = ".tmp.svm"
-        sys.exec("sage --emit-vm " + input_file + " -o " + tmp_svm)
+        let cmd = "sage --emit-vm " + input_file + " -o " + tmp_svm
+        sys.exec(cmd)
         let content = io.readfile(tmp_svm)
         if content == nil: return
         let lines = self.utils.split_lines(content)

@@ -1,6 +1,6 @@
 import sys
 import io
-from sgvm_compiler import SGVMCompiler
+import sgvm_compiler
 
 proc main():
     let args = sys.args()
@@ -21,7 +21,7 @@ proc main():
         print "Usage: sgvmc <input.sage> <output.sgvm> [--shebang]"
         return
     
-    let compiler = SGVMCompiler()
+    let compiler = sgvm_compiler.SGVMCompiler()
     compiler.compile(input_file, output_file, use_shebang)
     print "Compilation complete."
 
