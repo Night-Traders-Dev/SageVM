@@ -5,19 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] - 2026-06-06
 
 ### Added
-- **Native C Hardening**: Significantly improved the stability of the C backend for production use.
-- **Support for BYTES type**: Extended the runtime and compiler to handle first-class binary byte arrays, ensuring correct `.sgvm` parsing.
-- **Namespaced Class Construction**: Fixed a critical bug in the C backend where constructors from other modules (e.g., `sgvm_vm.MetalVM()`) failed to resolve.
-- **Native Math Builtins**: Enabled native `sin`, `cos`, `tan`, `pow`, `floor`, `ceil`, `sqrt`, and `random` primitives to break library initialization cycles.
-- **Optional Debug Output**: Introduced the `--verbose` flag to the compiler to hide internal diagnostic messages by default.
-- **Module Alias Resolution**: Corrected handling of module bindings (e.g., `import thread as host_thread`) in the generated C code.
-- **Automated Bootstrap**: Updated the `Makefile` to automatically manage the SageLang submodule dependency.
+- **SGVM Toolchain**: Initiated work on a standalone, self-hosted distribution.
+- **Native Class Support**: Started hardening `sgvm` to support native class instantiation and method dispatch for full bytecode-based execution.
 
-### Fixed
-- **Circular Initialization**: Resolved the `Undefined variable '_random_seed'` error by implementing native module detection in the C codegen.
-- **Binary I/O Stability**: Switched from string-based bytecode loading to the new `BYTES` type for reliable integer indexing.
-
-## [Unreleased] - 2026-06-05
+## [0.8.1] - 2026-06-06
 
 ### Added
 - **Native Bridging Layer**: Implemented a comprehensive bridge to the host SageLang standard library, providing high-performance access to `math`, `io`, `sys`, and `re` modules.
