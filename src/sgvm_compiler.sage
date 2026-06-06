@@ -1,5 +1,4 @@
-import io
-import sys
+import sgvm_core
 from sgvm_core import SGVMUtils
 from sgvm_core import OP_CONSTANT
 from sgvm_core import OP_GET_GLOBAL
@@ -248,48 +247,52 @@ class SGVMCompiler:
                     let op = self.utils.parse_hex_byte(hex, j)
                     self.write_byte(op)
                     j = j + 2
-                    if op == OP_CONSTANT or op == OP_GET_GLOBAL or op == OP_DEFINE_GLOBAL or op == OP_SET_GLOBAL: 
+                    if op == 0 or op == 5 or op == 6 or op == 7: # CONSTANT, GET_GLOBAL, DEFINE_GLOBAL, SET_GLOBAL
                         let v1 = self.utils.parse_hex_byte(hex, j)
                         let v2 = self.utils.parse_hex_byte(hex, j+2)
                         self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
                         j = j + 4
-                    elif op == OP_DEFINE_FUNCTION:
-                        let v1 = self.utils.parse_hex_byte(hex, j)
-                        let v2 = self.utils.parse_hex_byte(hex, j+2)
-                        self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
+                    elif op == 8: # DEFINE_FUNCTION
+                        let n1 = self.utils.parse_hex_byte(hex, j)
+                        let n2 = self.utils.parse_hex_byte(hex, j+2)
+                        self.write_be16(self.local_to_global[self.current_chunk][n1 * 256 + n2])
                         let f1 = self.utils.parse_hex_byte(hex, j+4)
                         let f2 = self.utils.parse_hex_byte(hex, j+6)
                         self.write_be16(f1 * 256 + f2)
                         j = j + 8
-                    elif op == OP_CLASS:
+                    elif op == 13: # LOAD_FUNCTION
+                        let f1 = self.utils.parse_hex_byte(hex, j)
+                        let f2 = self.utils.parse_hex_byte(hex, j+2)
+                        self.write_be16(f1 * 256 + f2)
+                        j = j + 4
+                    elif op == 53: # CLASS
                         let n1 = self.utils.parse_hex_byte(hex, j)
                         let n2 = self.utils.parse_hex_byte(hex, j+2)
                         self.write_be16(self.local_to_global[self.current_chunk][n1 * 256 + n2])
-                        let c1 = self.utils.parse_hex_byte(hex, j+4)
-                        let c2 = self.utils.parse_hex_byte(hex, j+6)
-                        self.write_be16(c1 * 256 + c2)
-                        let p1 = self.utils.parse_hex_byte(hex, j+8)
-                        let p2 = self.utils.parse_hex_byte(hex, j+10)
-                        self.write_be16(self.local_to_global[self.current_chunk][p1 * 256 + p2])
-                        j = j + 12
-                    elif op == OP_GET_PROPERTY or op == OP_SET_PROPERTY or op == OP_LOAD_FUNCTION or op == OP_IMPORT or op == OP_METHOD:
+                        j = j + 4
+                    elif op == 9 or op == 10 or op == 52 or op == 54: # GET_PROP, SET_PROP, IMPORT, METHOD
                         let v1 = self.utils.parse_hex_byte(hex, j)
                         let v2 = self.utils.parse_hex_byte(hex, j+2)
                         self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
                         j = j + 4
-                    elif op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_ARRAY or op == OP_TUPLE or op == OP_DICT or op == OP_EXEC_AST_STMT or op == OP_BREAK or op == OP_CONTINUE or op == OP_LOOP_BACK or op == OP_SETUP_TRY:
+                    elif op == 35 or op == 36 or op == 39 or op == 40 or op == 41 or op == 43 or op == 49 or op == 50 or op == 51 or op == 56: # JUMPS, COLLECTIONS, etc (2-byte operand)
                         let j1 = self.utils.parse_hex_byte(hex, j)
                         let j2 = self.utils.parse_hex_byte(hex, j+2)
                         self.write_be16(j1 * 256 + j2)
                         j = j + 4
-                    elif op == OP_CALL_METHOD:
+                    elif op == 38: # CALL_METHOD
                         let v1 = self.utils.parse_hex_byte(hex, j)
                         let v2 = self.utils.parse_hex_byte(hex, j+2)
                         self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
                         self.write_byte(self.utils.parse_hex_byte(hex, j+4))
                         j = j + 6
-                    elif op == OP_CALL or op == OP_DUP:
+                    elif op == 37 or op == 47: # CALL, DUP
                         self.write_byte(self.utils.parse_hex_byte(hex, j))
                         j = j + 2
+                    elif op >= 60 and op < 100: # GPU opcodes (0 operands)
+                        continue
+                    elif op == 0: # pass as no-op
+                        continue
+                    # No else needed, unknown opcodes just write the byte and loop
             i = i + 1
         io.writebytes(output_file, self.output_bytes)

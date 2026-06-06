@@ -401,7 +401,7 @@ class MetalVM:
         return hi * 256 + lo
 
     proc get_op_size(self, op):
-        if op == OP_CONSTANT or op == OP_GET_GLOBAL or op == OP_DEFINE_GLOBAL or op == OP_SET_GLOBAL or op == OP_GET_PROPERTY or op == OP_SET_PROPERTY or op == OP_LOAD_FUNCTION or op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_ARRAY or op == OP_TUPLE or op == OP_DICT or op == OP_EXEC_AST_STMT or op == OP_BREAK or op == OP_CONTINUE or op == OP_LOOP_BACK or op == OP_IMPORT or op == OP_METHOD or op == OP_SETUP_TRY:
+        if op == OP_CONSTANT or op == OP_GET_GLOBAL or op == OP_DEFINE_GLOBAL or op == OP_SET_GLOBAL or op == OP_GET_PROPERTY or op == OP_SET_PROPERTY or op == OP_LOAD_FUNCTION or op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_ARRAY or op == OP_TUPLE or op == OP_DICT or op == OP_EXEC_AST_STMT or op == OP_BREAK or op == OP_CONTINUE or op == OP_LOOP_BACK or op == OP_IMPORT or op == OP_METHOD or op == OP_SETUP_TRY or op == OP_CLASS:
             return 2
         if op == OP_DEFINE_FUNCTION:
             return 4
@@ -409,8 +409,6 @@ class MetalVM:
             return 1
         if op == OP_CALL_METHOD:
             return 3
-        if op == OP_CLASS:
-            return 6
         return 0
 
     proc verify(self, code):
@@ -442,341 +440,269 @@ class MetalVM:
         if not self.verify(code):
             self.halted = true
             return
+        
+        # Local caching for performance
+        let stack = self.stack
+        let constants = self.constants
+        let globals = self.globals
+        let scopes = self.scopes
+        let handlers = self.handlers
+        let chunks = self.chunks
+        let utils = self.utils
+        
         self.code = code
-        self.ip = 0
+        var ip = 0
         self.halted = false
         self.returning = false
         
         host_thread.lock(g_gil)
         
-        while not self.halted and not self.returning and self.ip < len(self.code):
-            var current_ip = self.ip
-            var op = self.read_u8()
+        while not self.halted and not self.returning and ip < len(code):
+            let op = utils.my_int(code[ip])
             if self.trace:
-                print "IP: " + str(current_ip) + " OP: " + str(op) + " Stack: " + self.format_stack()
+                self.ip = ip # Sync for format_stack/print
+                print "IP: " + str(ip) + " OP: " + str(op) + " Stack: " + self.format_stack()
+            ip = ip + 1
             
-            if op == OP_CONSTANT:
-                var idx = self.utils.my_int(self.read_u16())
-                self.push(self.constants[idx])
-            elif op == OP_NIL:
-                self.push(nil)
-            elif op == OP_TRUE:
-                self.push(true)
-            elif op == OP_FALSE:
-                self.push(false)
-            elif op == OP_POP:
-                self.pop_stack()
-            elif op == OP_GET_GLOBAL:
-                var name = self.constants[self.utils.my_int(self.read_u16())]
-                if self.trace:
-                    print "Debug: OP_GET_GLOBAL looking up: " + name
+            if op == 0: # OP_CONSTANT
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                push(stack, constants[hi * 256 + lo])
+            elif op == 1: # OP_NIL
+                push(stack, nil)
+            elif op == 2: # OP_TRUE
+                push(stack, true)
+            elif op == 3: # OP_FALSE
+                push(stack, false)
+            elif op == 4: # OP_POP
+                pop(stack)
+            elif op == 5: # OP_GET_GLOBAL
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let name = constants[hi * 256 + lo]
                 var found = false
                 var i = 0
-                while i < len(self.scopes):
-                    var s = self.scopes[len(self.scopes) - 1 - i]
+                while i < len(scopes):
+                    let s = scopes[len(scopes) - 1 - i]
                     if dict_has(s, name):
-                        self.push(s[name])
+                        push(stack, s[name])
                         found = true
-                        i = len(self.scopes)
+                        i = len(scopes)
                     else:
                         i = i + 1
                 if not found:
-                    if dict_has(self.globals, name):
-                        self.push(self.globals[name])
+                    if dict_has(globals, name):
+                        push(stack, globals[name])
                     else:
-                        self.push(nil)
-            elif op == OP_DEFINE_GLOBAL:
-                var name = self.constants[self.utils.my_int(self.read_u16())]
-                var val = self.pop_stack()
-                self.scopes[len(self.scopes)-1][name] = val
-            elif op == OP_SET_GLOBAL:
-                var name = self.constants[self.utils.my_int(self.read_u16())]
-                var val = self.peek(0)
+                        push(stack, nil)
+            elif op == 6: # OP_DEFINE_GLOBAL
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let name = constants[hi * 256 + lo]
+                let val = pop(stack)
+                scopes[len(scopes)-1][name] = val
+            elif op == 7: # OP_SET_GLOBAL
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let name = constants[hi * 256 + lo]
+                let val = stack[len(stack) - 1]
                 var found = false
                 var i = 0
-                while i < len(self.scopes):
-                    var s = self.scopes[len(self.scopes) - 1 - i]
+                while i < len(scopes):
+                    let s = scopes[len(scopes) - 1 - i]
                     if dict_has(s, name):
                         s[name] = val
                         found = true
-                        i = len(self.scopes)
+                        i = len(scopes)
                     else:
                         i = i + 1
                 if not found:
-                    self.globals[name] = val
-            elif op == OP_DEFINE_FUNCTION:
-                var name_idx = self.utils.my_int(self.read_u16())
-                var chunk_idx = self.utils.my_int(self.read_u16())
-                var name = self.constants[name_idx]
-                if self.trace:
-                    print "Debug: OP_DEFINE_FUNCTION: defining: " + name + " with chunk " + str(chunk_idx)
-                var func = {"__name__": name, "__chunks__": []}
-                if chunk_idx < len(self.chunks):
-                    push(func["__chunks__"], self.chunks[chunk_idx])
-                self.scopes[len(self.scopes)-1][name] = func
-            elif op == OP_GET_PROPERTY:
-                var name = self.constants[self.utils.my_int(self.read_u16())]
-                var obj = self.pop_stack()
-                if type(obj) == "dict" and dict_has(obj, name):
-                    self.push(obj[name])
-                elif type(obj) == "dict" and dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
-                    self.push(obj["__methods__"][name])
+                    globals[name] = val
+            elif op == 8: # OP_DEFINE_FUNCTION
+                let hi_n = code[ip]
+                let lo_n = code[ip + 1]
+                let hi_c = code[ip + 2]
+                let lo_c = code[ip + 3]
+                ip = ip + 4
+                let name = constants[hi_n * 256 + lo_n]
+                let chunk_idx = hi_c * 256 + lo_c
+                let func = {"__name__": name, "__chunks__": []}
+                if chunk_idx < len(chunks):
+                    push(func["__chunks__"], chunks[chunk_idx])
+                scopes[len(scopes)-1][name] = func
+            elif op == 9: # OP_GET_PROPERTY
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let name = constants[hi * 256 + lo]
+                let obj = pop(stack)
+                if type(obj) == "dict":
+                    if dict_has(obj, name):
+                        push(stack, obj[name])
+                    elif dict_has(obj, "__class__"):
+                        var curr = obj["__class__"]
+                        var method = nil
+                        while type(curr) == "dict":
+                            if dict_has(curr, "__methods__") and dict_has(curr["__methods__"], name):
+                                method = curr["__methods__"][name]
+                                break
+                            if dict_has(curr, "__parent_obj__"): curr = curr["__parent_obj__"]
+                            else: break
+                        if method != nil: push(stack, method)
+                        else: push(stack, nil)
+                    elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
+                        push(stack, obj["__methods__"][name])
+                    else: push(stack, nil)
                 elif type(obj) == "string":
                     if name == "find" or name == "replace" or name == "split":
-                        self.push({"__native__": true, "__name__": "string." + name, "__obj__": obj})
-                    else:
-                        self.push(nil)
-                else:
-                    self.push(nil)
-            elif op == OP_SET_PROPERTY:
-                var name = self.constants[self.utils.my_int(self.read_u16())]
-                var val = self.pop_stack()
-                var obj = self.pop_stack()
-                if type(obj) == "dict":
-                    obj[name] = val
-                self.push(val)
-            elif op == OP_LOAD_FUNCTION:
-                var chunk_idx = self.utils.my_int(self.read_u16())
-                var func = {"__name__": "<anon>", "__chunks__": []}
-                if chunk_idx < len(self.chunks):
-                    push(func["__chunks__"], self.chunks[chunk_idx])
-                self.push(func)
-            elif op == OP_SLICE:
-                var end_val = self.pop_stack()
-                var start_val = self.pop_stack()
-                var obj = self.pop_stack()
-                var start_i = self.utils.my_int(start_val)
-                var end_i = self.utils.my_int(end_val)
+                        push(stack, {"__native__": true, "__name__": "string." + name, "__obj__": obj})
+                    else: push(stack, nil)
+                else: push(stack, nil)
+            elif op == 10: # OP_SET_PROPERTY
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let name = constants[hi * 256 + lo]
+                let val = pop(stack)
+                let obj = pop(stack)
+                if type(obj) == "dict": obj[name] = val
+                push(stack, val)
+            elif op == 11: # OP_GET_INDEX
+                let idx = pop(stack)
+                let obj = pop(stack)
+                push(stack, obj[idx])
+            elif op == 12: # OP_SET_INDEX
+                let val = pop(stack)
+                let idx = pop(stack)
+                let obj = pop(stack)
+                obj[idx] = val
+                push(stack, val)
+            elif op == 13: # OP_LOAD_FUNCTION
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let chunk_idx = hi * 256 + lo
+                let func = {"__name__": "<anon>", "__chunks__": []}
+                if chunk_idx < len(chunks): push(func["__chunks__"], chunks[chunk_idx])
+                push(stack, func)
+            elif op == 14: # OP_SLICE
+                let end_val = pop(stack)
+                let start_val = pop(stack)
+                let obj = pop(stack)
+                let start_i = utils.my_int(start_val)
+                let end_i = utils.my_int(end_val)
                 if type(obj) == "string":
                     var res = ""
                     var si = start_i
                     while si < end_i and si < len(obj):
                         res = res + obj[si]
                         si = si + 1
-                    self.push(res)
+                    push(stack, res)
                 else:
                     var res = []
                     var si = start_i
                     while si < end_i and si < len(obj):
                         push(res, obj[si])
                         si = si + 1
-                    self.push(res)
-            elif op == OP_ADD:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                if self.trace:
-                    print "Debug: OP_ADD adding: a=" + str(a) + ", b=" + str(b)
-                self.push(a + b)
-            elif op == OP_SUB:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                if self.trace:
-                    print "Debug: OP_SUB subtracting: a=" + str(a) + ", b=" + str(b)
-                self.push(a - b)
-            elif op == OP_MUL:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                self.push(a * b)
-            elif op == OP_DIV:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                if b != 0:
-                    self.push(a / b)
-                else:
-                    self.push(nil)
-            elif op == OP_MOD:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                self.push(a % b)
-            elif op == OP_NEGATE:
-                self.push(-self.pop_stack())
-            elif op == OP_EQUAL:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                self.push(a == b)
-            elif op == OP_NOT_EQUAL:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                self.push(a != b)
-            elif op == OP_GREATER:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                self.push(a > b)
-            elif op == OP_GREATER_EQUAL:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                self.push(a >= b)
-            elif op == OP_LESS:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                self.push(a < b)
-            elif op == OP_LESS_EQUAL:
-                var b = self.pop_stack()
-                var a = self.pop_stack()
-                self.push(a <= b)
-            elif op == OP_BIT_AND:
-                var b = self.utils.my_int(self.pop_stack())
-                var a = self.utils.my_int(self.pop_stack())
-                self.push(a & b)
-            elif op == OP_BIT_OR:
-                var b = self.utils.my_int(self.pop_stack())
-                var a = self.utils.my_int(self.pop_stack())
-                self.push(a | b)
-            elif op == OP_BIT_XOR:
-                var b = self.utils.my_int(self.pop_stack())
-                var a = self.utils.my_int(self.pop_stack())
-                self.push(a ^ b)
-            elif op == OP_BIT_NOT:
-                var a = self.utils.my_int(self.pop_stack())
-                self.push(~a)
-            elif op == OP_SHIFT_LEFT:
-                var b = self.utils.my_int(self.pop_stack())
-                var a = self.utils.my_int(self.pop_stack())
-                self.push(a << b)
-            elif op == OP_SHIFT_RIGHT:
-                var b = self.utils.my_int(self.pop_stack())
-                var a = self.utils.my_int(self.pop_stack())
-                self.push(a >> b)
-            elif op == OP_NOT:
-                self.push(not self.pop_stack())
-            elif op == OP_TRUTHY:
-                var val = self.pop_stack()
-                if val == nil or val == false or val == 0 or val == "":
-                    self.push(false)
-                else:
-                    self.push(true)
-            elif op == OP_PRINT:
-                print self.pop_stack()
-            elif op == OP_GET_INDEX:
-                var idx = self.pop_stack()
-                var obj = self.pop_stack()
-                self.push(obj[idx])
-            elif op == OP_SET_INDEX:
-                var val = self.pop_stack()
-                var idx = self.pop_stack()
-                var obj = self.pop_stack()
-                obj[idx] = val
-                self.push(val)
-            elif op == OP_JUMP:
-                self.ip = self.utils.my_int(self.read_u16())
-            elif op == OP_JUMP_IF_FALSE:
-                var target = self.utils.my_int(self.read_u16())
-                if not self.pop_stack():
-                    self.ip = target
-            elif op == OP_LOOP_BACK:
-                self.ip = self.utils.my_int(self.read_u16())
-            elif op == OP_ARRAY:
-                var count = self.utils.my_int(self.read_u16())
-                var arr = []
-                var ai = 0
-                while ai < count:
-                    push(arr, nil)
-                    ai = ai + 1
-                ai = count - 1
-                while ai >= 0:
-                    arr[ai] = self.pop_stack()
-                    ai = ai - 1
-                self.push(arr)
-            elif op == OP_TUPLE:
-                var count = self.utils.my_int(self.read_u16())
-                var tup = []
-                var ti = 0
-                while ti < count:
-                    push(tup, nil)
-                    ti = ti + 1
-                ti = count - 1
-                while ti >= 0:
-                    tup[ti] = self.pop_stack()
-                    ti = ti - 1
-                self.push(tup)
-            elif op == OP_DICT:
-                var count = self.utils.my_int(self.read_u16())
-                var d = {}
-                var di = 0
-                while di < count:
-                    var val = self.pop_stack()
-                    var key = self.pop_stack()
-                    d[key] = val
-                    di = di + 1
-                self.push(d)
-            elif op == OP_EXEC_AST_STMT:
-                # Fallback opcode — skip the operand
-                self.read_u16()
-            elif op == OP_RETURN:
-                self.return_value = self.pop_stack()
-                self.returning = true
-            elif op == OP_PUSH_ENV:
-                push(self.scopes, {})
-            elif op == OP_POP_ENV:
-                if len(self.scopes) > 1:
-                    pop(self.scopes)
-            elif op == OP_DUP:
-                var dist = self.read_u8()
-                self.push(self.peek(self.utils.my_int(dist)))
-            elif op == OP_ARRAY_LEN:
-                self.push(len(self.pop_stack()))
-            elif op == OP_BREAK:
-                self.ip = self.utils.my_int(self.read_u16())
-            elif op == OP_CONTINUE:
-                self.ip = self.utils.my_int(self.read_u16())
-            elif op == OP_SETUP_TRY:
-                var handler = {}
-                handler["handler_ip"] = self.read_u16()
-                handler["stack_depth"] = len(self.stack)
-                handler["env_depth"] = len(self.scopes)
-                push(self.handlers, handler)
-            elif op == OP_END_TRY:
-                if len(self.handlers) > 0:
-                    pop(self.handlers)
-            elif op == OP_RAISE:
-                var exc = self.pop_stack()
-                if len(self.handlers) > 0:
-                    var h = pop(self.handlers)
-                    while len(self.stack) > h["stack_depth"]:
-                        pop(self.stack)
-                    while len(self.scopes) > h["env_depth"]:
-                        pop(self.scopes)
-                    self.ip = self.utils.my_int(h["handler_ip"])
-                    self.push(exc)
-                else:
-                    print "Unhandled Exception"
-                    print exc
-                    self.halted = true
-            elif op == OP_IMPORT:
-                var name = self.constants[self.utils.my_int(self.read_u16())]
-                self.push(self.load_module(name))
-            elif op == OP_CLASS:
-                var name = self.constants[self.utils.my_int(self.read_u16())]
-                var mcount = self.utils.my_int(self.read_u16())
-                var pname = self.constants[self.utils.my_int(self.read_u16())]
-                var c = {"__name__": name, "__methods__": {}, "__parent__": pname}
-                self.push(c)
-            elif op == OP_METHOD:
-                var name = self.constants[self.utils.my_int(self.read_u16())]
-                var func = self.pop_stack()
-                var c = self.peek(0)
-                c["__methods__"][name] = func
-            elif op == OP_INHERIT:
-                var child = self.pop_stack()
-                var parent = self.pop_stack()
-                child["__parent_obj__"] = parent
-                self.push(child)
-            elif op == OP_CALL:
-                var argc = self.utils.my_int(self.read_u8())
-                var args = []
-                var j = 0
-                while j < argc:
-                    push(args, self.pop_stack())
-                    j = j + 1
-                # Reverse args to match call order
-                var r_args = []
-                var k = 0
-                while k < len(args):
-                    push(r_args, args[len(args) - 1 - k])
-                    k = k + 1
-                args = r_args
+                    push(stack, res)
+            elif op == 15: # OP_ADD
+                let b = pop(stack)
+                let a = pop(stack)
+                push(stack, a + b)
+            elif op == 16: # OP_SUB
+                let b = pop(stack)
+                let a = pop(stack)
+                push(stack, a - b)
+            elif op == 17: # OP_MUL
+                let b = pop(stack)
+                let a = pop(stack)
+                push(stack, a * b)
+            elif op == 18: # OP_DIV
+                let b = pop(stack)
+                let a = pop(stack)
+                if b != 0: push(stack, a / b)
+                else: push(stack, nil)
+            elif op == 19: # OP_MOD
+                let b = pop(stack)
+                let a = pop(stack)
+                push(stack, a % b)
+            elif op == 20: # OP_NEGATE
+                push(stack, -pop(stack))
+            elif op == 21: # OP_EQUAL
+                let b = pop(stack)
+                let a = pop(stack)
+                push(stack, a == b)
+            elif op == 22: # OP_NOT_EQUAL
+                let b = pop(stack)
+                let a = pop(stack)
+                push(stack, a != b)
+            elif op == 23: # OP_GREATER
+                let b = pop(stack)
+                let a = pop(stack)
+                push(stack, a > b)
+            elif op == 24: # OP_GREATER_EQUAL
+                let b = pop(stack)
+                let a = pop(stack)
+                push(stack, a >= b)
+            elif op == 25: # OP_LESS
+                let b = pop(stack)
+                let a = pop(stack)
+                push(stack, a < b)
+            elif op == 26: # OP_LESS_EQUAL
+                let b = pop(stack)
+                let a = pop(stack)
+                push(stack, a <= b)
+            elif op == 27: # OP_BIT_AND
+                let b = utils.my_int(pop(stack))
+                let a = utils.my_int(pop(stack))
+                push(stack, a & b)
+            elif op == 28: # OP_BIT_OR
+                let b = utils.my_int(pop(stack))
+                let a = utils.my_int(pop(stack))
+                push(stack, a | b)
+            elif op == 29: # OP_BIT_XOR
+                let b = utils.my_int(pop(stack))
+                let a = utils.my_int(pop(stack))
+                push(stack, a ^ b)
+            elif op == 30: # OP_BIT_NOT
+                let a = utils.my_int(pop(stack))
+                push(stack, ~a)
+            elif op == 31: # OP_SHIFT_LEFT
+                let b = utils.my_int(pop(stack))
+                let a = utils.my_int(pop(stack))
+                push(stack, a << b)
+            elif op == 32: # OP_SHIFT_RIGHT
+                let b = utils.my_int(pop(stack))
+                let a = utils.my_int(pop(stack))
+                push(stack, a >> b)
+            elif op == 33: # OP_NOT
+                push(stack, not pop(stack))
+            elif op == 34: # OP_TRUTHY
+                let val = pop(stack)
+                if val == nil or val == false or val == 0 or val == "": push(stack, false)
+                else: push(stack, true)
+            elif op == 35: # OP_JUMP
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = hi * 256 + lo
+            elif op == 36: # OP_JUMP_IF_FALSE
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                let target = hi * 256 + lo
+                ip = ip + 2
+                if not pop(stack): ip = target
+            elif op == 37: # OP_CALL
+                let argc = utils.my_int(code[ip])
+                ip = ip + 1
+                let args = []
+                for j in range(argc): push(args, nil)
+                for j in range(argc): args[argc - 1 - j] = pop(stack)
                 
-                var callee = self.pop_stack()
+                let callee = pop(stack)
                 if type(callee) == "dict":
                     if dict_has(callee, "__chunks__"):
                         host_thread.unlock(g_gil)
@@ -785,61 +711,187 @@ class MetalVM:
                     elif dict_has(callee, "__native__"):
                         var obj = nil
                         if dict_has(callee, "__obj__"): obj = callee["__obj__"]
-                        self.push(self.call_native(callee["__name__"], obj, args))
+                        push(stack, self.call_native(callee["__name__"], obj, args))
+                    elif dict_has(callee, "__class_obj__"):
+                        # Instance creation
+                        let inst = {"__class__": callee}
+                        if dict_has(callee["__methods__"], "init"):
+                            let init_m = callee["__methods__"]["init"]
+                            let constructor_args = [inst]
+                            for a in args: push(constructor_args, a)
+                            host_thread.unlock(g_gil)
+                            self.run_func(init_m, constructor_args)
+                            host_thread.lock(g_gil)
+                            pop(stack)
+                            push(stack, inst)
+
                     else:
                         print "Warning: Unsupported call target: " + str(callee)
-                        self.push(nil)
+                        push(stack, nil)
                 else:
                     print "Warning: Unsupported call target: " + str(callee)
-                    self.push(nil)
-            elif op == OP_CALL_METHOD:
-                var name = self.constants[self.utils.my_int(self.read_u16())]
-                var argc = self.utils.my_int(self.read_u8())
-                var args = []
-                var j = 0
-                while j < argc:
-                    push(args, self.pop_stack())
-                    j = j + 1
-                # Reverse args to match call order
-                var r_args = []
-                var k = 0
-                while k < len(args):
-                    push(r_args, args[len(args) - 1 - k])
-                    k = k + 1
-                args = r_args
+                    push(stack, nil)
+            elif op == 38: # OP_CALL_METHOD
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                let argc = utils.my_int(code[ip + 2])
+                ip = ip + 3
+                let name = constants[hi * 256 + lo]
+                let args = []
+                for j in range(argc): push(args, nil)
+                for j in range(argc): args[argc - 1 - j] = pop(stack)
                 
-                var obj = self.pop_stack()
-                var curr = obj
+                let obj = pop(stack)
                 var method = nil
-                while type(curr) == "dict":
-                    if dict_has(curr, "__methods__") and dict_has(curr["__methods__"], name):
-                        method = curr["__methods__"][name]
-                        break
-                    if dict_has(curr, "__parent_obj__"):
-                        curr = curr["__parent_obj__"]
-                    else:
-                        break
+                if type(obj) == "dict":
+                    var curr = nil
+                    if dict_has(obj, "__class__"): curr = obj["__class__"]
+                    elif dict_has(obj, "__methods__"): curr = obj
+                    
+                    while type(curr) == "dict":
+                        if dict_has(curr, "__methods__") and dict_has(curr["__methods__"], name):
+                            method = curr["__methods__"][name]
+                            break
+                        if dict_has(curr, "__parent_obj__"): curr = curr["__parent_obj__"]
+                        else: break
                 
                 if method != nil:
                     if type(method) == "dict" and dict_has(method, "__native__"):
-                        self.push(self.call_native(method["__name__"], obj, args))
+                        push(stack, self.call_native(method["__name__"], obj, args))
                     else:
-                        push(args, obj)
+                        let method_args = [obj]
+                        for a in args: push(method_args, a)
                         host_thread.unlock(g_gil)
-                        self.run_func(method, args)
+                        self.run_func(method, method_args)
                         host_thread.lock(g_gil)
                 elif type(obj) == "string":
                     if name == "find" or name == "replace" or name == "split":
-                        self.push(self.call_native("string." + name, obj, args))
+                        push(stack, self.call_native("string." + name, obj, args))
                     else:
                         print "Warning: String method '" + name + "' not found"
-                        self.push(nil)
+                        push(stack, nil)
                 else:
                     print "Warning: Method '" + name + "' not found on " + str(obj)
-                    self.push(nil)
-            elif op == OP_HALT:
+                    push(stack, nil)
+            elif op == 39: # OP_ARRAY
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let count = hi * 256 + lo
+                let arr = []
+                var ai = 0
+                while ai < count:
+                    push(arr, nil)
+                    ai = ai + 1
+                ai = count - 1
+                while ai >= 0:
+                    arr[ai] = pop(stack)
+                    ai = ai - 1
+                push(stack, arr)
+            elif op == 40: # OP_TUPLE
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let count = hi * 256 + lo
+                let tup = []
+                var ti = 0
+                while ti < count:
+                    push(tup, nil)
+                    ti = ti + 1
+                ti = count - 1
+                while ti >= 0:
+                    tup[ti] = pop(stack)
+                    ti = ti - 1
+                push(stack, tup)
+            elif op == 41: # OP_DICT
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let count = hi * 256 + lo
+                let d = {}
+                var di = 0
+                while di < count:
+                    let val = pop(stack)
+                    let key = pop(stack)
+                    d[key] = val
+                    di = di + 1
+                push(stack, d)
+            elif op == 42: # OP_PRINT
+                print pop(stack)
+            elif op == 43: # OP_EXEC_AST_STMT
+                ip = ip + 2
+            elif op == 44: # OP_RETURN
+                self.return_value = pop(stack)
+                self.returning = true
+            elif op == 45: # OP_PUSH_ENV
+                push(scopes, {})
+            elif op == 46: # OP_POP_ENV
+                if len(scopes) > 1: pop(scopes)
+            elif op == 47: # OP_DUP
+                let dist = code[ip]
+                ip = ip + 1
+                push(stack, stack[len(stack) - 1 - utils.my_int(dist)])
+            elif op == 48: # OP_ARRAY_LEN
+                push(stack, len(pop(stack)))
+            elif op == 49: # OP_BREAK
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = hi * 256 + lo
+            elif op == 50: # OP_CONTINUE
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = hi * 256 + lo
+            elif op == 51: # OP_LOOP_BACK
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = hi * 256 + lo
+            elif op == 52: # OP_IMPORT
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                push(stack, self.load_module(constants[hi * 256 + lo]))
+            elif op == 53: # OP_CLASS
+                let hi_n = code[ip]
+                let lo_n = code[ip + 1]
+                ip = ip + 2
+                let name = constants[hi_n * 256 + lo_n]
+                push(stack, {"__class_obj__": true, "__name__": name, "__methods__": {}, "__parent_obj__": nil})
+            elif op == 54: # OP_METHOD
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let name = constants[hi * 256 + lo]
+                let func = pop(stack)
+                let c = stack[len(stack)-1]
+                c["__methods__"][name] = func
+            elif op == 55: # OP_INHERIT
+                let child = pop(stack)
+                let parent = pop(stack)
+                child["__parent_obj__"] = parent
+                push(stack, child)
+            elif op == 56: # OP_SETUP_TRY
+                let hi = code[ip]
+                let lo = code[ip + 1]
+                ip = ip + 2
+                let handler = {"handler_ip": hi * 256 + lo, "stack_depth": len(stack), "env_depth": len(scopes)}
+                push(handlers, handler)
+            elif op == 57: # OP_END_TRY
+                if len(handlers) > 0: pop(handlers)
+            elif op == 58: # OP_RAISE
+                let exc = pop(stack)
+                if len(handlers) > 0:
+                    let h = pop(handlers)
+                    while len(stack) > h["stack_depth"]: pop(stack)
+                    while len(scopes) > h["env_depth"]: pop(scopes)
+                    ip = utils.my_int(h["handler_ip"])
+                    push(stack, exc)
+                else:
+                    print "Unhandled Exception: " + str(exc)
+                    self.halted = true
+            elif op == 255: # OP_HALT
                 self.halted = true
         
+        self.ip = ip # Final sync
         host_thread.unlock(g_gil)
 
     proc run_func(self, func, args):

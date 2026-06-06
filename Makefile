@@ -14,6 +14,11 @@ all: bootstrap
 	@echo "[BUILD] Building SageVM..."
 	./build.sh
 
+debug: SAGE_FLAGS = -DSAGE_DEBUG
+debug: bootstrap
+	@echo "[BUILD] Building SageVM in DEBUG mode..."
+	SAGE_CFLAGS="$(SAGE_FLAGS)" ./build.sh
+
 # ----------------------------------------------------------------------------
 # Bootstrap SageLang
 # ----------------------------------------------------------------------------
@@ -34,8 +39,7 @@ bootstrap:
 	fi
 
 	@echo "[BOOTSTRAP] Building SageLang..."
-	@$(MAKE) -C $(SAGE_DIR)
-
+	@$(MAKE) -C $(SAGE_DIR) CFLAGS_EXTRA="$(SAGE_CFLAGS)"
 	@if [ ! -x "$(SAGE_BIN)" ]; then \
 		echo ""; \
 		echo "[ERROR] Sage binary not found:"; \
