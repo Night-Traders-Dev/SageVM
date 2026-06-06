@@ -4,6 +4,8 @@ This repository contains the SageLang ports of the SGVM (Sage General Virtual Ma
 
 ## Installation
 
+SageVM requires SageLang **v3.6.1** or higher for native feature support. The build system includes an automatic bootstrap process for the compiler.
+
 To build and install the tools to your system:
 
 ```bash
@@ -11,7 +13,7 @@ make
 sudo make install
 ```
 
-This will compile `sgvm.sage` and `sgvmc.sage` into native binaries and install them to `/usr/local/bin`.
+This will automatically initialize the SageLang submodule, build the `sage` compiler, and then compile `sgvm.sage` and `sgvmc.sage` into native binaries.
 
 ## Tools
 

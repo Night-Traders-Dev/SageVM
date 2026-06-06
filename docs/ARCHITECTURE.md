@@ -101,7 +101,9 @@ For high-isolation environments, `MetalVM` provides several security features:
 
 Arguments to SGVM functions are passed positionally and bound to the function's local scope using the naming convention `__argN`, where `N` is the zero-based index of the argument. For example, the first argument is accessible as `__arg0`, the second as `__arg1`, and so on.
 
-## Binary Format
+## Binary Format & I/O
+
+SGVM uses a dedicated **BYTES** type for high-performance binary I/O, ensuring that bytecode and constants are parsed correctly across backends. The native `io.readbytes` bridge returns this type instead of a standard string, allowing for integer-based byte indexing.
 
 The SGVM binary format consists of:
 0. Optional Shebang: `#!/usr/bin/env sgvm\n` (added by `sgvmc --shebang`)

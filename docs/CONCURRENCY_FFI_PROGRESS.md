@@ -9,15 +9,17 @@ This document tracks the implementation of high-difficulty systems features in t
 - **Primitives**: Support for `thread.spawn`, `thread.join`, `thread.mutex`, `thread.lock`, `thread.unlock`, `thread.sleep`, and `thread.yield`.
 - **GIL (Global Interpreter Lock)**: Integrated a host-mutex-backed GIL to serialize bytecode execution.
 - **Smart Yielding**: Automatic GIL release during blocking calls (`sleep`, `join`, `lock`) and host-level context switching in `yield`.
+- **Native C Support**: Hardened the C backend with true POSIX threads and mutexes, significantly improving stability for multi-threaded VM tools.
 
 ### 2. FFI & Raw Memory
 - **Native Bridge**: Implemented `ffi.open`, `ffi.call`, and `ffi.close` for host C-library interop.
 - **Memory Primitives**: Exposed `mem.alloc`, `mem.free`, `mem.read`, `mem.write`, and `mem.size`.
 - **Struct Support**: Bridged the host's `struct` module (`def`, `new`, `get`, `set`, `size`).
+- **Binary BYTES**: Introduced a first-class `BYTES` type in the C runtime for reliable binary data handling.
 
 ### 3. Advanced Synchronization
-- **Atomic Operations**: Full bridge for `atomic.new`, `load`, `store`, `add`, `cas`, and `exchange`.
-- **Semaphores**: Integrated POSIX semaphores via `sem.new`, `wait`, `post`, and `trywait`.
+- **Atomic Operations**: Full native C implementation for `atomic.new`, `load`, `store`, `add`, `cas`, and `exchange`.
+- **Semaphores**: Integrated POSIX semaphores via native `sem.new`, `wait`, `post`, and `trywait`.
 
 ### 4. Sandboxing & Resource Control
 - **Security Flags**: Implemented `safe_mode` and `ffi_enabled` to restrict access to sensitive system modules.
