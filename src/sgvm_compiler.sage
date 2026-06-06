@@ -31,6 +31,7 @@ class SGVMCompiler:
         self.global_consts = []
         self.const_map = {} # New: Map of value to index for O(1) lookup
         self.local_to_global = []
+        self.local_to_global_raw = [] # Unmapped constants (preserves original names for properties)
         self.chunk_params = []
         self.current_chunk = -1
         self.utils = SGVMUtils()
@@ -150,10 +151,12 @@ class SGVMCompiler:
             elif line == "chunk":
                 self.current_chunk = self.current_chunk + 1
                 push(self.local_to_global, [])
+                push(self.local_to_global_raw, [])
                 push(self.chunk_params, [])
             elif line == "function":
                 self.current_chunk = self.current_chunk + 1
                 push(self.local_to_global, [])
+                push(self.local_to_global_raw, [])
                 push(self.chunk_params, [])
                 # Read params line
                 i = i + 1
@@ -169,16 +172,22 @@ class SGVMCompiler:
                     var p_name = ""
                     var k = 0
                     while k < plen:
-                        p_name = p_name + chr(self.utils.parse_hex_byte(hex, k*2))
+                        let k_times_2 = k * 2
+                        let byte_val = self.utils.parse_hex_byte(hex, k_times_2)
+                        p_name = p_name + chr(byte_val)
                         k = k + 1
-                    push(self.chunk_params[self.current_chunk], p_name)
+                    let params_arr = self.chunk_params[self.current_chunk]
+                    push(params_arr, p_name)
                     pidx = pidx + 1
             elif startswith(line, "constants "):
                 let count = self.utils.parse_int_field(line, 10)
                 # Dynamically size the local_to_global table for this chunk
+                let ltg_chunk = self.local_to_global[self.current_chunk]
+                let ltg_raw_chunk = self.local_to_global_raw[self.current_chunk]
                 var j = 0
                 while j < count:
-                    push(self.local_to_global[self.current_chunk], 0)
+                    push(ltg_chunk, 0)
+                    push(ltg_raw_chunk, 0)
                     j = j + 1
                 j = 0
                 while j < count:
@@ -187,7 +196,9 @@ class SGVMCompiler:
                     if startswith(cl, "number "):
                         let num_sub = self.utils.my_substr(cl, 7, len(cl))
                         let num_trimmed = self.utils.trim(num_sub)
-                        self.local_to_global[self.current_chunk][j] = self.add_const_num(tonumber(num_trimmed))
+                        let num_idx = self.add_const_num(tonumber(num_trimmed))
+                        ltg_chunk[j] = num_idx
+                        ltg_raw_chunk[j] = num_idx
                     elif startswith(cl, "string "):
                         let slen = self.utils.parse_int_field(cl, 7)
                         i = i + 1
@@ -195,8 +206,13 @@ class SGVMCompiler:
                         var s = ""
                         var k = 0
                         while k < slen:
-                            s = s + chr(self.utils.parse_hex_byte(hex, k*2))
+                            let k_times_2 = k * 2
+                            let byte_val = self.utils.parse_hex_byte(hex, k_times_2)
+                            s = s + chr(byte_val)
                             k = k + 1
+                        # Always store the raw (original name) mapping for property opcodes
+                        let raw_idx = self.add_const_str(s)
+                        ltg_raw_chunk[j] = raw_idx
                         # Check if this string matches a parameter name for current_chunk
                         var param_idx = -1
                         var pi = 0
@@ -208,9 +224,11 @@ class SGVMCompiler:
                             else:
                                 pi = pi + 1
                         if param_idx >= 0:
-                            s = "__arg" + str(param_idx)
-                        # print "Debug: Chunk " + str(self.current_chunk) + " Const " + str(j) + " mapped to: " + s
-                        self.local_to_global[self.current_chunk][j] = self.add_const_str(s)
+                            let arg_name = "__arg" + str(param_idx)
+                            let arg_idx = self.add_const_str(arg_name)
+                            ltg_chunk[j] = arg_idx
+                        else:
+                            ltg_chunk[j] = raw_idx
                     j = j + 1
             i = i + 1
 
@@ -249,50 +267,80 @@ class SGVMCompiler:
                     j = j + 2
                     if op == 0 or op == 5 or op == 6 or op == 7: # CONSTANT, GET_GLOBAL, DEFINE_GLOBAL, SET_GLOBAL
                         let v1 = self.utils.parse_hex_byte(hex, j)
-                        let v2 = self.utils.parse_hex_byte(hex, j+2)
-                        self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
+                        let j_plus_2 = j + 2
+                        let v2 = self.utils.parse_hex_byte(hex, j_plus_2)
+                        let local_idx = v1 * 256 + v2
+                        let chunk_map = self.local_to_global[self.current_chunk]
+                        let global_idx = chunk_map[local_idx]
+                        self.write_be16(global_idx)
                         j = j + 4
                     elif op == 8: # DEFINE_FUNCTION
                         let n1 = self.utils.parse_hex_byte(hex, j)
-                        let n2 = self.utils.parse_hex_byte(hex, j+2)
-                        self.write_be16(self.local_to_global[self.current_chunk][n1 * 256 + n2])
-                        let f1 = self.utils.parse_hex_byte(hex, j+4)
-                        let f2 = self.utils.parse_hex_byte(hex, j+6)
+                        let j_plus_2 = j + 2
+                        let n2 = self.utils.parse_hex_byte(hex, j_plus_2)
+                        let local_idx = n1 * 256 + n2
+                        let chunk_map_raw = self.local_to_global_raw[self.current_chunk]
+                        let global_idx = chunk_map_raw[local_idx]
+                        self.write_be16(global_idx)
+                        let j_plus_4 = j + 4
+                        let f1 = self.utils.parse_hex_byte(hex, j_plus_4)
+                        let j_plus_6 = j + 6
+                        let f2 = self.utils.parse_hex_byte(hex, j_plus_6)
                         self.write_be16(f1 * 256 + f2)
                         j = j + 8
                     elif op == 13: # LOAD_FUNCTION
                         let f1 = self.utils.parse_hex_byte(hex, j)
-                        let f2 = self.utils.parse_hex_byte(hex, j+2)
+                        let j_plus_2 = j + 2
+                        let f2 = self.utils.parse_hex_byte(hex, j_plus_2)
                         self.write_be16(f1 * 256 + f2)
                         j = j + 4
                     elif op == 53: # CLASS
                         let n1 = self.utils.parse_hex_byte(hex, j)
-                        let n2 = self.utils.parse_hex_byte(hex, j+2)
-                        self.write_be16(self.local_to_global[self.current_chunk][n1 * 256 + n2])
+                        let j_plus_2 = j + 2
+                        let n2 = self.utils.parse_hex_byte(hex, j_plus_2)
+                        let local_idx = n1 * 256 + n2
+                        let chunk_map_raw = self.local_to_global_raw[self.current_chunk]
+                        let global_idx = chunk_map_raw[local_idx]
+                        self.write_be16(global_idx)
                         j = j + 4
-                    elif op == 9 or op == 10 or op == 52 or op == 54: # GET_PROP, SET_PROP, IMPORT, METHOD
+                    elif op == 9 or op == 10 or op == 54: # GET_PROP, SET_PROP, METHOD — use raw names
                         let v1 = self.utils.parse_hex_byte(hex, j)
-                        let v2 = self.utils.parse_hex_byte(hex, j+2)
-                        self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
+                        let j_plus_2 = j + 2
+                        let v2 = self.utils.parse_hex_byte(hex, j_plus_2)
+                        let local_idx = v1 * 256 + v2
+                        let chunk_map_raw = self.local_to_global_raw[self.current_chunk]
+                        let global_idx = chunk_map_raw[local_idx]
+                        self.write_be16(global_idx)
+                        j = j + 4
+                    elif op == 52: # IMPORT — use raw name
+                        let v1 = self.utils.parse_hex_byte(hex, j)
+                        let j_plus_2 = j + 2
+                        let v2 = self.utils.parse_hex_byte(hex, j_plus_2)
+                        let local_idx = v1 * 256 + v2
+                        let chunk_map_raw = self.local_to_global_raw[self.current_chunk]
+                        let global_idx = chunk_map_raw[local_idx]
+                        self.write_be16(global_idx)
                         j = j + 4
                     elif op == 35 or op == 36 or op == 39 or op == 40 or op == 41 or op == 43 or op == 49 or op == 50 or op == 51 or op == 56: # JUMPS, COLLECTIONS, etc (2-byte operand)
                         let j1 = self.utils.parse_hex_byte(hex, j)
-                        let j2 = self.utils.parse_hex_byte(hex, j+2)
+                        let j_plus_2 = j + 2
+                        let j2 = self.utils.parse_hex_byte(hex, j_plus_2)
                         self.write_be16(j1 * 256 + j2)
                         j = j + 4
-                    elif op == 38: # CALL_METHOD
+                    elif op == 38: # CALL_METHOD — use raw name for method name
                         let v1 = self.utils.parse_hex_byte(hex, j)
-                        let v2 = self.utils.parse_hex_byte(hex, j+2)
-                        self.write_be16(self.local_to_global[self.current_chunk][v1 * 256 + v2])
-                        self.write_byte(self.utils.parse_hex_byte(hex, j+4))
+                        let j_plus_2 = j + 2
+                        let v2 = self.utils.parse_hex_byte(hex, j_plus_2)
+                        let local_idx = v1 * 256 + v2
+                        let chunk_map_raw = self.local_to_global_raw[self.current_chunk]
+                        let global_idx = chunk_map_raw[local_idx]
+                        self.write_be16(global_idx)
+                        let j_plus_4 = j + 4
+                        self.write_byte(self.utils.parse_hex_byte(hex, j_plus_4))
                         j = j + 6
                     elif op == 37 or op == 47: # CALL, DUP
                         self.write_byte(self.utils.parse_hex_byte(hex, j))
                         j = j + 2
-                    elif op >= 60 and op < 100: # GPU opcodes (0 operands)
-                        continue
-                    elif op == 0: # pass as no-op
-                        continue
-                    # No else needed, unknown opcodes just write the byte and loop
+                    # 0-operand opcodes: NIL, TRUE, FALSE, POP, ADD, SUB, etc. just fall through
             i = i + 1
         io.writebytes(output_file, self.output_bytes)

@@ -26,7 +26,7 @@ debug: bootstrap
 bootstrap:
 	@if [ ! -f "$(SAGE_DIR)/Makefile" ]; then \
 		echo "[BOOTSTRAP] Initializing SageLang submodule..."; \
-		git submodule update --init --recursive; \
+		git submodule update --init --no-recurse-submodules; \
 	fi
 
 	@if [ ! -d "$(SAGE_DIR)" ]; then \
