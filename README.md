@@ -56,6 +56,12 @@ chmod +x hello.sgvm
 - [Changelog](docs/CHANGELOG.md): History of changes and improvements.
 - [Roadmap](docs/ROADMAP.md): Features and library modules yet to be implemented.
 
+## Performance Benchmarks
+
+The project tracks performance across various benchmarks. A visual comparison between the current and baseline performance can be generated using the `report.py` tool.
+
+![Benchmark Comparison](testsuite/benchmarks/results/benchmark_comparison.png)
+
 ## Integration with SageLang
 
 This repository is intended to be used as a submodule within the main SageLang repository, typically located at `core/src/sage/vm-tools`.
