@@ -1,17 +1,21 @@
-# TODO: Standalone SGVM Toolchain
+# TODO: Standalone SGVM Toolchain (Revised)
 
-## Critical Issues (Runtime/Build)
-- [ ] **Bytecode Serialization Bug**: Investigate and fix OOB operand errors during `OP_CALL` bytecode verification in `sgvm`.
-- [ ] **Class Instantiation**: Resolve `no __class__ on instance` runtime errors for native class definitions.
-- [ ] **Python/SageLang Import Mismatch**: Finalize the `sgvmc` import logic to reliably find `sgvm_core` without requiring `PYTHONPATH` hacks.
-- [ ] **C Runtime Warnings**: Resolve overlong string constant warnings (`string length is greater than the length 4095`) in generated C code.
-- [ ] **Missing Native Modules**: Ensure `lib/` modules (e.g., `net`, `math`) are correctly available to the compiled VM artifacts.
+## Phase 1: Opcode Parity (Core Stability)
+- [ ] Implement missing control flow opcodes: `OP_BREAK`, `OP_CONTINUE`, `OP_PUSH_ENV`, `OP_POP_ENV`.
+- [ ] Implement robust stack frame management for `OP_CALL` and `OP_RETURN` (argument passing, local variables).
 
-## Implementation Tasks
-- [ ] **Hardened VM**: Complete the native implementation of `OP_TRY`/`OP_RAISE` in `src/sgvm_vm.sage`.
-- [ ] **Direct SGVM Backend**: Integrate a binary `.sgvm` emitter directly into the main SageLang compiler.
-- [ ] **Portable Distribution**: Create a `dist/` package containing the native `sgvm` binary and bytecode-compiled standard library.
+## Phase 2: Native Bridge Implementation
+- [ ] Define native function registry mapping function names to C pointers in `MetalVM`.
+- [ ] Implement opcode for invoking registered native C functions (`MetalValue` marshaling).
 
-## Verification
+## Phase 3: Object Compatibility (Minimal Runtime)
+- [ ] Implement static dictionary/object representation for `MetalVM` (non-GC managed).
+- [ ] Bridge static objects to minimal allocation needs for `sgvm` runtime functionality.
+
+## Phase 4: Verification and Incremental Integration
+- [ ] Implement unit tests for core opcodes and native bridge.
+- [ ] Incrementally integrate `SageLang` standard library components.
+
+## Verification (Post-Stabilization)
 - [ ] Run full test suite (`testsuite/`) using the standalone `sgvm` binary.
 - [ ] Benchmark performance improvements from AOT vs interpreted bytecode.
