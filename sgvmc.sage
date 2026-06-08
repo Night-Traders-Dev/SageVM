@@ -12,13 +12,15 @@ proc main():
         let a = args[i]
         if endswith(a, ".sage"):
             input_file = a
+        elif endswith(a, ".svm"):
+            input_file = a
         elif endswith(a, ".sgvm"):
             output_file = a
         elif a == "--shebang":
             use_shebang = true
         i = i + 1
     if input_file == "" or output_file == "":
-        print "Usage: sgvmc <input.sage> <output.sgvm> [--shebang]"
+        print "Usage: sgvmc <input.sage|.svm> <output.sgvm> [--shebang]"
         return
     
     let compiler = sgvm_compiler.SGVMCompiler()

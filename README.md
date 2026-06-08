@@ -4,7 +4,7 @@ This repository contains the SageLang ports of the SGVM (Sage General Virtual Ma
 
 ## Installation
 
-SageVM requires SageLang **v3.6.1** or higher for native feature support. The build system includes an automatic bootstrap process for the compiler.
+SageVM requires SageLang **v3.6.4** or higher for full feature parity (OOP, Exceptions, etc.). The build system includes an automatic bootstrap process for the compiler.
 
 To build and install the tools to your system:
 
@@ -14,6 +14,14 @@ sudo make install
 ```
 
 This will automatically initialize the SageLang submodule, build the `sage` compiler, and then compile `sgvm.sage` and `sgvmc.sage` into native binaries.
+
+## Features (v0.9.0)
+
+- **Full Opcode Parity**: Supports all opcodes from SageLang v3.6.4 `MetalVM`.
+- **OOP Engine**: Native support for classes, inheritance, and method dispatch.
+- **Exceptions**: VM-level support for `try/catch/finally` blocks.
+- **Optimized Compiler**: O(1) constant deduplication and smart operand packing.
+- **Standalone Mode**: Can compile `.sage` source directly to `.sgvm` binaries.
 
 ## Tools
 

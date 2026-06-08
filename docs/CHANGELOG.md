@@ -2,11 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] - 2026-06-06
+## [0.9.0] - 2026-06-08
 
 ### Added
-- **SGVM Toolchain**: Initiated work on a standalone, self-hosted distribution.
-- **Native Class Support**: Started hardening `sgvm` to support native class instantiation and method dispatch for full bytecode-based execution.
+- **Full Opcode Parity**: Synchronized all opcodes with SageLang v3.6.4, including support for classes, inheritance, exceptions, and GPU hot-path stubs.
+- **OOP Engine**: Implemented native class instantiation, method dispatch, and attribute access in `sgvm_vm.sage`.
+- **Exception Handling**: Full support for `try/catch/finally` and `raise` in the VM.
+- **Advanced Data Structures**: Added native support for `slice`, `tuple`, and complex `dict` operations.
+- **Flexible Compiler**: Upgraded `sgvmc.sage` to handle variable-length operands (1-4 bytes) and automatic `.sage` -> `.svm` -> `.sgvm` translation.
+
+### Changed
+- **Indentation-based Syntax**: Refactored all tools to strictly follow SageLang's indentation-based blocks, removing legacy `end` keywords.
+- **Search Path Precedence**: Updated module loader to prioritize local `lib/` directory relative to the executable for better development workflow.
+
+### Fixed
+- **Builtin Mapping**: Fixed AOT compilation issues by using name-based builtin mapping for native host functions.
+- **Argument Mapping**: Corrected argument ordering and `self` injection for method calls and constructors.
+
+### Removed
+- **Cruft Cleanup**: Aggressively removed legacy `.svm`, `.sgvm` artifacts and old debug drafts (`run_step_draft.sage`, etc.).
 
 ## [0.8.1] - 2026-06-06
 

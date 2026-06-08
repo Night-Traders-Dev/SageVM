@@ -1,4 +1,4 @@
-# Bytecode opcodes (Sync with bytecode.h)
+# Bytecode opcodes (Sync with bytecode.h and metal_vm.h)
 var OP_CONSTANT       = 0.0
 var OP_NIL            = 1.0
 var OP_TRUE           = 2.0
@@ -58,15 +58,46 @@ var OP_INHERIT        = 55.0
 var OP_SETUP_TRY      = 56.0
 var OP_END_TRY        = 57.0
 var OP_RAISE          = 58.0
+
+# GPU hot-path opcodes (Phase 16)
+var OP_GPU_POLL_EVENTS         = 59.0
+var OP_GPU_WINDOW_SHOULD_CLOSE = 60.0
+var OP_GPU_GET_TIME            = 61.0
+var OP_GPU_KEY_PRESSED         = 62.0
+var OP_GPU_KEY_DOWN            = 63.0
+var OP_GPU_MOUSE_POS           = 64.0
+var OP_GPU_MOUSE_DELTA         = 65.0
+var OP_GPU_UPDATE_INPUT        = 66.0
+var OP_GPU_BEGIN_COMMANDS      = 67.0
+var OP_GPU_END_COMMANDS        = 68.0
+var OP_GPU_CMD_BEGIN_RP        = 69.0
+var OP_GPU_CMD_END_RP          = 70.0
+var OP_GPU_CMD_DRAW            = 71.0
+var OP_GPU_CMD_BIND_GP         = 72.0
+var OP_GPU_CMD_BIND_DS         = 73.0
+var OP_GPU_CMD_SET_VP          = 74.0
+var OP_GPU_CMD_SET_SC          = 75.0
+var OP_GPU_CMD_BIND_VB         = 76.0
+var OP_GPU_CMD_BIND_IB         = 77.0
+var OP_GPU_CMD_DRAW_IDX        = 78.0
+var OP_GPU_SUBMIT_SYNC         = 79.0
+var OP_GPU_ACQUIRE_IMG         = 80.0
+var OP_GPU_PRESENT             = 81.0
+var OP_GPU_WAIT_FENCE          = 82.0
+var OP_GPU_RESET_FENCE         = 83.0
+var OP_GPU_UPDATE_UNIFORM      = 84.0
+var OP_GPU_CMD_PUSH_CONST      = 85.0
+var OP_GPU_CMD_DISPATCH         = 86.0
+
 var OP_HALT           = 255.0
 
 class SGVMUtils:
-    proc my_int(x):
+    proc my_int(self, x):
         if x == nil:
             return 0
-        return x >> 0
+        return int(x)
 
-    proc hex_to_byte(h):
+    proc hex_to_byte(self, h):
         let chars = "0123456789abcdef"
         var v1 = 0
         var v2 = 0
@@ -85,7 +116,7 @@ class SGVMUtils:
             i = i + 1
         return v1 * 16 + v2
 
-    proc split_lines(s):
+    proc split_lines(self, s):
         let lines = []
         var current = ""
         let nl = chr(10)
@@ -115,7 +146,7 @@ class SGVMUtils:
             push(lines, current)
         return lines
 
-    proc my_substr(s, start, length):
+    proc my_substr(self, s, start, length):
         var res = ""
         var i = 0
         while i < length:
@@ -152,32 +183,30 @@ class SGVMUtils:
                 break
         return self.my_substr(s, start, eidx - start)
 
-    proc read_be16(bs, off):
-        return bs[off] * 256 + bs[off+1]
+    proc read_be16(self, bs, off):
+        return self.my_int(bs[off]) * 256 + self.my_int(bs[off+1])
 
-    proc read_be32(bs, off):
-        if type(bs[off]) != "number" or type(bs[off+1]) != "number" or type(bs[off+2]) != "number" or type(bs[off+3]) != "number":
-            print "read_be32 error! off: " + str(off) + " types: " + str(type(bs[off])) + ", " + str(type(bs[off+1])) + ", " + str(type(bs[off+2])) + ", " + str(type(bs[off+3]))
-        return bs[off] * 16777216 + bs[off+1] * 65536 + bs[off+2] * 256 + bs[off+3]
+    proc read_be32(self, bs, off):
+        return self.my_int(bs[off]) * 16777216 + self.my_int(bs[off+1]) * 65536 + self.my_int(bs[off+2]) * 256 + self.my_int(bs[off+3])
 
-    proc unpack_double(bs, off):
-        var b0 = bs[off]
-        var b1 = bs[off+1]
-        var b2 = bs[off+2]
-        var b3 = bs[off+3]
-        var b4 = bs[off+4]
-        var b5 = bs[off+5]
-        var b6 = bs[off+6]
-        var b7 = bs[off+7]
+    proc unpack_double(self, bs, off):
+        var b0 = self.my_int(bs[off])
+        var b1 = self.my_int(bs[off+1])
+        var b2 = self.my_int(bs[off+2])
+        var b3 = self.my_int(bs[off+3])
+        var b4 = self.my_int(bs[off+4])
+        var b5 = self.my_int(bs[off+5])
+        var b6 = self.my_int(bs[off+6])
+        var b7 = self.my_int(bs[off+7])
         var sign = 1.0
-        if self.my_int(b0 / 128) == 1:
+        if int(b0 / 128) == 1:
             sign = -1.0
-        var exp = (self.my_int(b0 % 128) * 16) + self.my_int(b1 / 16)
+        var exp = (int(b0 % 128) * 16) + int(b1 / 16)
         var mantissa = 1.0
         if exp == 0:
             mantissa = 0.0
             exp = 1
-        mantissa = mantissa + (self.my_int(b1 % 16) / 16.0)
+        mantissa = mantissa + (int(b1 % 16) / 16.0)
         mantissa = mantissa + (b2 / 4096.0)
         mantissa = mantissa + (b3 / 1048576.0)
         mantissa = mantissa + (b4 / 268435456.0)

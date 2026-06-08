@@ -77,8 +77,11 @@ proc main():
         push(metal_vm.chunks, chunk_code)
         off = off + clen
         c = c + 1
+    if debug:
+        print "Functions count: " + str(function_count)
+        print "Chunks count: " + str(len(metal_vm.chunks))
     var idx = function_count
-    while idx < len(metal_vm.chunks) and not metal_vm.is_throwing and not metal_vm.halted:
+    while idx < len(metal_vm.chunks) and not metal_vm.is_throwing:
         metal_vm.run(metal_vm.chunks[idx])
         idx = idx + 1
 
