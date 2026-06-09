@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.1] - 2026-06-08
+
+### Added
+- **Delegation Bridge**: Implemented a "Guest-to-Host" bridge allowing SageVM to delegate GPU opcodes, native imports, and complex calls directly to the host SageLang interpreter.
+- **Unified Build System (SageMake)**: Replaced legacy `build.sh` with a modern, Python-based `sagemake` orchestrator using `rich` for visual feedback.
+- **Host Call API**: Integrated `sys.call` for dynamic invocation of host native functions from the guest VM.
+
+### Fixed
+- **Opcode Stability**: Converted opcode definitions to integer literals to ensure exact matching and reliable execution across all backends.
+- **Indentation Syntax**: Final cleanup of legacy `end` keywords and one-liner syntax to strictly adhere to SageLang's indentation-based blocks.
+
 ## [0.9.0] - 2026-06-08
 
 ### Added

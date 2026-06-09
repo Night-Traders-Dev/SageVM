@@ -7,6 +7,8 @@ import gpu
 import ml_native
 
 from sgvm_core import SGVMUtils
+from sgvm_core import OP_CONSTANT, OP_NIL, OP_TRUE, OP_FALSE, OP_POP, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_GET_INDEX, OP_SET_INDEX, OP_LOAD_FUNCTION, OP_SLICE, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD, OP_NEGATE, OP_EQUAL, OP_NOT_EQUAL, OP_GREATER, OP_GREATER_EQUAL, OP_LESS, OP_LESS_EQUAL, OP_BIT_AND, OP_BIT_OR, OP_BIT_XOR, OP_BIT_NOT, OP_SHIFT_LEFT, OP_SHIFT_RIGHT, OP_NOT, OP_TRUTHY, OP_JUMP, OP_JUMP_IF_FALSE, OP_CALL, OP_CALL_METHOD, OP_ARRAY, OP_TUPLE, OP_DICT, OP_PRINT, OP_EXEC_AST_STMT, OP_RETURN, OP_PUSH_ENV, OP_POP_ENV, OP_DUP, OP_ARRAY_LEN, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_INHERIT, OP_SETUP_TRY, OP_END_TRY, OP_RAISE, OP_HALT
+from sgvm_core import OP_GPU_POLL_EVENTS, OP_GPU_WINDOW_SHOULD_CLOSE, OP_GPU_GET_TIME, OP_GPU_KEY_PRESSED, OP_GPU_KEY_DOWN, OP_GPU_MOUSE_POS, OP_GPU_MOUSE_DELTA, OP_GPU_UPDATE_INPUT, OP_GPU_BEGIN_COMMANDS, OP_GPU_END_COMMANDS, OP_GPU_CMD_BEGIN_RP, OP_GPU_CMD_END_RP, OP_GPU_CMD_DRAW, OP_GPU_CMD_BIND_GP, OP_GPU_CMD_BIND_DS, OP_GPU_CMD_SET_VP, OP_GPU_CMD_SET_SC, OP_GPU_CMD_BIND_VB, OP_GPU_CMD_BIND_IB, OP_GPU_CMD_DRAW_IDX, OP_GPU_SUBMIT_SYNC, OP_GPU_ACQUIRE_IMG, OP_GPU_PRESENT, OP_GPU_WAIT_FENCE, OP_GPU_RESET_FENCE, OP_GPU_UPDATE_UNIFORM, OP_GPU_CMD_PUSH_CONST, OP_GPU_CMD_DISPATCH
 
 let g_gil = host_thread.mutex()
 
@@ -69,7 +71,7 @@ class MetalVM:
         if self.ip >= len(self.code):
             return false
         
-        let op = ut.my_int(self.code[self.ip])
+        let op = int(self.code[self.ip])
         if self.trace:
             print "IP: " + str(self.ip) + " OP: " + str(op) + " Stack: " + str(self.stack)
         
@@ -88,8 +90,7 @@ class MetalVM:
         elif op == 4: # OP_POP
             pop(self.stack)
         elif op == 47: # OP_DUP
-            let val = self.stack[len(self.stack)-1]
-            push(self.stack, val)
+            push(self.stack, self.stack[len(self.stack)-1])
         elif op == 5: # OP_GET_GLOBAL
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
@@ -99,10 +100,10 @@ class MetalVM:
             while si >= 0:
                 if dict_has(self.scopes[si], name):
                     push(self.stack, self.scopes[si][name])
-                    found = true
-                    si = -1
+                    let found = true
+                    let si = -1
                 else:
-                    si = si - 1
+                    let si = si - 1
             if not found:
                 if dict_has(self.globals, name):
                     push(self.stack, self.globals[name])
@@ -123,10 +124,10 @@ class MetalVM:
             while si >= 0:
                 if dict_has(self.scopes[si], name):
                     self.scopes[si][name] = val
-                    updated = true
-                    si = -1
+                    let updated = true
+                    let si = -1
                 else:
-                    si = si - 1
+                    let si = si - 1
             if not updated:
                 self.globals[name] = val
             push(self.stack, val)
@@ -220,11 +221,11 @@ class MetalVM:
             var j = 0
             while j < count:
                 push(arr, nil)
-                j = j + 1
+                let j = j + 1
             j = 0
             while j < count:
                 arr[count - 1 - j] = pop(self.stack)
-                j = j + 1
+                let j = j + 1
             push(self.stack, arr)
         elif op == 40: # OP_TUPLE
             let count = ut.read_be16(self.code, self.ip)
@@ -233,11 +234,11 @@ class MetalVM:
             var j = 0
             while j < count:
                 push(t, nil)
-                j = j + 1
+                let j = j + 1
             j = 0
             while j < count:
                 t[count - 1 - j] = pop(self.stack)
-                j = j + 1
+                let j = j + 1
             push(self.stack, t)
         elif op == 41: # OP_DICT
             let count = ut.read_be16(self.code, self.ip)
@@ -248,7 +249,7 @@ class MetalVM:
                 let val = pop(self.stack)
                 let key = pop(self.stack)
                 d[key] = val
-                j = j + 1
+                let j = j + 1
             push(self.stack, d)
         elif op == 11: # OP_GET_INDEX
             let idx = pop(self.stack)
@@ -261,13 +262,12 @@ class MetalVM:
             obj[idx] = val
             push(self.stack, val)
         elif op == 14: # OP_SLICE
-            let end_idx_val = pop(self.stack)
-            let start_idx_val = pop(self.stack)
-            let obj_val = pop(self.stack)
-            push(self.stack, slice(obj_val, start_idx_val, end_idx_val))
+            let end_idx = pop(self.stack)
+            let start_idx = pop(self.stack)
+            let obj = pop(self.stack)
+            push(self.stack, slice(obj, start_idx, end_idx))
         elif op == 48: # OP_ARRAY_LEN
-            let obj_len = pop(self.stack)
-            push(self.stack, len(obj_len))
+            push(self.stack, len(pop(self.stack)))
         elif op == 45: # OP_PUSH_ENV
             push(self.scopes, {})
         elif op == 46: # OP_POP_ENV
@@ -284,17 +284,17 @@ class MetalVM:
             self.ip = self.ip + 2
             push(self.stack, {"__type__": "function", "__chunk__": chunk_idx})
         elif op == 37: # OP_CALL
-            let argc = ut.my_int(self.code[self.ip])
+            let argc = int(self.code[self.ip])
             self.ip = self.ip + 1
             let args = []
             var j = 0
             while j < argc:
                 push(args, nil)
-                j = j + 1
+                let j = j + 1
             j = 0
             while j < argc:
                 args[argc - 1 - j] = pop(self.stack)
-                j = j + 1
+                let j = j + 1
             let callee = pop(self.stack)
             if type(callee) == "dict":
                 if dict_has(callee, "__type__"):
@@ -307,7 +307,7 @@ class MetalVM:
                         while j < argc:
                             let arg_name = "__arg" + str(j)
                             self.scopes[len(self.scopes)-1][arg_name] = args[j]
-                            j = j + 1
+                            let j = j + 1
                     elif callee["__type__"] == "class":
                         let instance = {"__type__": "instance", "__class__": callee}
                         if dict_has(callee["__methods__"], "init"):
@@ -322,9 +322,13 @@ class MetalVM:
                             while j < argc:
                                 let arg_name = "__arg" + str(j + 1)
                                 self.scopes[len(self.scopes)-1][arg_name] = args[j]
-                                j = j + 1
+                                let j = j + 1
                         else:
                             push(self.stack, instance)
+                    else:
+                        print "Error: Callee dict is not a function or class"
+                else:
+                    print "Error: Callee dict has no __type__"
             elif type(callee) == "string":
                 if callee == "__builtin_clock":
                     push(self.stack, clock())
@@ -356,18 +360,18 @@ class MetalVM:
                 print "Error: Callee not a function or builtin name"
         elif op == 38: # OP_CALL_METHOD
             let name_idx = ut.read_be16(self.code, self.ip)
-            let argc = ut.my_int(self.code[self.ip + 2])
+            let argc = int(self.code[self.ip + 2])
             self.ip = self.ip + 3
             let name = self.constants[name_idx]
             let args = []
             var j = 0
             while j < argc:
                 push(args, nil)
-                j = j + 1
+                let j = j + 1
             j = 0
             while j < argc:
                 args[argc - 1 - j] = pop(self.stack)
-                j = j + 1
+                let j = j + 1
             let obj = pop(self.stack)
             if type(obj) == "dict":
                 var method = nil
@@ -387,7 +391,7 @@ class MetalVM:
                     while j < argc:
                         let arg_name = "__arg" + str(j + 1)
                         self.scopes[len(self.scopes)-1][arg_name] = args[j]
-                        j = j + 1
+                        let j = j + 1
                 else:
                     # Try host method call bridge
                     if dict_has(obj, name):
@@ -469,7 +473,7 @@ class MetalVM:
                         let mname = keys[k]
                         if not dict_has(cls["__methods__"], mname):
                             cls["__methods__"][mname] = methods[mname]
-                        k = k + 1
+                        let k = k + 1
                 else:
                     # Host class inheritance bridge (copy host attributes)
                     let keys = dict_keys(parent)
@@ -478,7 +482,7 @@ class MetalVM:
                         let mname = keys[k]
                         if not dict_has(cls["__methods__"], mname):
                             cls["__methods__"][mname] = parent[mname]
-                        k = k + 1
+                        let k = k + 1
             push(self.stack, cls)
         elif op == 9: # OP_GET_PROPERTY
             let idx = ut.read_be16(self.code, self.ip)
