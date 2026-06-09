@@ -137,21 +137,8 @@ class SGVMCompiler:
         self.const_map[key] = idx
         return idx
 
-    proc compile(self, input_file, output_file, use_shebang):
+    proc first_pass(self, lines):
         let ut = self.utils
-        var svm_file = input_file
-        if endswith(input_file, ".sage"):
-            svm_file = input_file + ".svm"
-            let cmd = "sage --emit-vm " + input_file + " -o " + svm_file
-            sys_exec(cmd)
-        
-        let content = io_readfile(svm_file)
-        if content == nil:
-            print "Error: Could not read SVM file: " + svm_file
-            return
-        
-        let lines = ut.split_lines(content)
-        
         var i = 0
         var chunk_count = 0
         var function_count = 0
@@ -242,7 +229,10 @@ class SGVMCompiler:
                             ltg_chunk[j] = raw_idx
                     j = j + 1
             i = i + 1
-        
+        return [function_count, chunk_count]
+
+    proc second_pass(self, lines, function_count, chunk_count, use_shebang):
+        let ut = self.utils
         if use_shebang:
             self.write_string("#!/usr/bin/env sgvm\n")
         
@@ -265,7 +255,7 @@ class SGVMCompiler:
         self.write_be32(chunk_count + function_count)
         
         self.current_chunk = -1
-        i = 0
+        var i = 0
         while i < len(lines):
             let line = ut.trim(lines[i])
             if line == "chunk" or line == "function":
@@ -316,7 +306,27 @@ class SGVMCompiler:
                     elif op == 37: # CALL
                         self.write_byte(ut.parse_hex_byte(hex, j))
                         j = j + 2
-                end
             i = i + 1
+
+    proc compile(self, input_file, output_file, use_shebang):
+        let ut = self.utils
+        var svm_file = input_file
+        if endswith(input_file, ".sage"):
+            svm_file = input_file + ".svm"
+            let cmd = "sage --emit-vm " + input_file + " -o " + svm_file
+            sys_exec(cmd)
+        
+        let content = io_readfile(svm_file)
+        if content == nil:
+            print "Error: Could not read SVM file: " + svm_file
+            return
+        
+        let lines = ut.split_lines(content)
+        
+        let counts = self.first_pass(lines)
+        let function_count = counts[0]
+        let chunk_count = counts[1]
+        
+        self.second_pass(lines, function_count, chunk_count, use_shebang)
         
         io_writebytes(output_file, self.output_bytes)

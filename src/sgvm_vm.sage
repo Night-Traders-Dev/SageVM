@@ -77,21 +77,21 @@ class MetalVM:
         
         self.ip = self.ip + 1
 
-        if op == 0: # OP_CONSTANT
+        if op == OP_CONSTANT:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             push(self.stack, self.constants[idx])
-        elif op == 1: # OP_NIL
+        elif op == OP_NIL:
             push(self.stack, nil)
-        elif op == 2: # OP_TRUE
+        elif op == OP_TRUE:
             push(self.stack, true)
-        elif op == 3: # OP_FALSE
+        elif op == OP_FALSE:
             push(self.stack, false)
-        elif op == 4: # OP_POP
+        elif op == OP_POP:
             pop(self.stack)
-        elif op == 47: # OP_DUP
+        elif op == OP_DUP:
             push(self.stack, self.stack[len(self.stack)-1])
-        elif op == 5: # OP_GET_GLOBAL
+        elif op == OP_GET_GLOBAL:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
@@ -109,12 +109,12 @@ class MetalVM:
                     push(self.stack, self.globals[name])
                 else:
                     push(self.stack, nil)
-        elif op == 6: # OP_DEFINE_GLOBAL
+        elif op == OP_DEFINE_GLOBAL:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
             self.scopes[len(self.scopes)-1][name] = pop(self.stack)
-        elif op == 7: # OP_SET_GLOBAL
+        elif op == OP_SET_GLOBAL:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
@@ -131,90 +131,94 @@ class MetalVM:
             if not updated:
                 self.globals[name] = val
             push(self.stack, val)
-        elif op == 15: # OP_ADD
+        elif op == OP_ADD:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a + b)
-        elif op == 16: # OP_SUB
+        elif op == OP_SUB:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a - b)
-        elif op == 17: # OP_MUL
+        elif op == OP_MUL:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a * b)
-        elif op == 18: # OP_DIV
+        elif op == OP_DIV:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a / b)
-        elif op == 19: # OP_MOD
+        elif op == OP_MOD:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a % b)
-        elif op == 20: # OP_NEGATE
+        elif op == OP_NEGATE:
             push(self.stack, -pop(self.stack))
-        elif op == 21: # OP_EQUAL
+        elif op == OP_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a == b)
-        elif op == 22: # OP_NOT_EQUAL
+        elif op == OP_NOT_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a != b)
-        elif op == 23: # OP_GREATER
+        elif op == OP_GREATER:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a > b)
-        elif op == 24: # OP_GREATER_EQUAL
+        elif op == OP_GREATER_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a >= b)
-        elif op == 25: # OP_LESS
+        elif op == OP_LESS:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a < b)
-        elif op == 26: # OP_LESS_EQUAL
+        elif op == OP_LESS_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a <= b)
-        elif op == 27: # OP_BIT_AND
+        elif op == OP_BIT_AND:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a & b)
-        elif op == 28: # OP_BIT_OR
+        elif op == OP_BIT_OR:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a | b)
-        elif op == 29: # OP_BIT_XOR
+        elif op == OP_BIT_XOR:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a ^ b)
-        elif op == 30: # OP_BIT_NOT
+        elif op == OP_BIT_NOT:
             push(self.stack, ~pop(self.stack))
-        elif op == 31: # OP_SHIFT_LEFT
+        elif op == OP_SHIFT_LEFT:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a << b)
-        elif op == 32: # OP_SHIFT_RIGHT
+        elif op == OP_SHIFT_RIGHT:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a >> b)
-        elif op == 33: # OP_NOT
+        elif op == OP_NOT:
             push(self.stack, not pop(self.stack))
-        elif op == 34: # OP_TRUTHY
+        elif op == OP_TRUTHY:
             push(self.stack, not (not pop(self.stack)))
-        elif op == 35: # OP_JUMP
+        elif op == OP_JUMP:
             self.ip = ut.read_be16(self.code, self.ip)
-        elif op == 36: # OP_JUMP_IF_FALSE
+        elif op == OP_JUMP_IF_FALSE:
             let target = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
-            if not pop(self.stack):
+            let st = self.stack
+            let st_len = len(st)
+            let idx = st_len - 1
+            let cond = st[idx]
+            if not cond:
                 self.ip = target
-        elif op == 51: # OP_LOOP_BACK
+        elif op == OP_LOOP_BACK:
             self.ip = self.ip - ut.read_be16(self.code, self.ip)
-        elif op == 42: # OP_PRINT
+        elif op == OP_PRINT:
             print pop(self.stack)
-        elif op == 39: # OP_ARRAY
+        elif op == OP_ARRAY:
             let count = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let arr = []
@@ -227,7 +231,7 @@ class MetalVM:
                 arr[count - 1 - j] = pop(self.stack)
                 let j = j + 1
             push(self.stack, arr)
-        elif op == 40: # OP_TUPLE
+        elif op == OP_TUPLE:
             let count = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let t = []
@@ -240,7 +244,7 @@ class MetalVM:
                 t[count - 1 - j] = pop(self.stack)
                 let j = j + 1
             push(self.stack, t)
-        elif op == 41: # OP_DICT
+        elif op == OP_DICT:
             let count = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let d = {}
@@ -251,39 +255,39 @@ class MetalVM:
                 d[key] = val
                 let j = j + 1
             push(self.stack, d)
-        elif op == 11: # OP_GET_INDEX
+        elif op == OP_GET_INDEX:
             let idx = pop(self.stack)
             let obj = pop(self.stack)
             push(self.stack, obj[idx])
-        elif op == 12: # OP_SET_INDEX
+        elif op == OP_SET_INDEX:
             let val = pop(self.stack)
             let idx = pop(self.stack)
             let obj = pop(self.stack)
             obj[idx] = val
             push(self.stack, val)
-        elif op == 14: # OP_SLICE
+        elif op == OP_SLICE:
             let end_idx = pop(self.stack)
             let start_idx = pop(self.stack)
             let obj = pop(self.stack)
             push(self.stack, slice(obj, start_idx, end_idx))
-        elif op == 48: # OP_ARRAY_LEN
+        elif op == OP_ARRAY_LEN:
             push(self.stack, len(pop(self.stack)))
-        elif op == 45: # OP_PUSH_ENV
+        elif op == OP_PUSH_ENV:
             push(self.scopes, {})
-        elif op == 46: # OP_POP_ENV
+        elif op == OP_POP_ENV:
             pop(self.scopes)
-        elif op == 8: # OP_DEFINE_FUNCTION
+        elif op == OP_DEFINE_FUNCTION:
             let name_idx = ut.read_be16(self.code, self.ip)
             let chunk_idx = ut.read_be16(self.code, self.ip + 2)
             self.ip = self.ip + 4
             let name = self.constants[name_idx]
             let func_obj = {"__type__": "function", "__chunk__": chunk_idx, "__name__": name}
             self.scopes[len(self.scopes)-1][name] = func_obj
-        elif op == 13: # OP_LOAD_FUNCTION
+        elif op == OP_LOAD_FUNCTION:
             let chunk_idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             push(self.stack, {"__type__": "function", "__chunk__": chunk_idx})
-        elif op == 37: # OP_CALL
+        elif op == OP_CALL:
             let argc = int(self.code[self.ip])
             self.ip = self.ip + 1
             let args = []
@@ -298,7 +302,8 @@ class MetalVM:
             let callee = pop(self.stack)
             if type(callee) == "dict":
                 if dict_has(callee, "__type__"):
-                    if callee["__type__"] == "function":
+                    let ctype = callee["__type__"]
+                    if ctype == "function":
                         push(self.call_stack, {"ip": self.ip, "code": self.code})
                         self.code = self.chunks[callee["__chunk__"]]
                         self.ip = 0
@@ -308,7 +313,7 @@ class MetalVM:
                             let arg_name = "__arg" + str(j)
                             self.scopes[len(self.scopes)-1][arg_name] = args[j]
                             let j = j + 1
-                    elif callee["__type__"] == "class":
+                    elif ctype == "class":
                         let instance = {"__type__": "instance", "__class__": callee}
                         if dict_has(callee["__methods__"], "init"):
                             let init_func = callee["__methods__"]["init"]
@@ -326,7 +331,7 @@ class MetalVM:
                         else:
                             push(self.stack, instance)
                     else:
-                        print "Error: Callee dict is not a function or class"
+                        print "Error: Callee dict is not a function or class. callee=" + str(callee) + " type=" + str(ctype)
                 else:
                     print "Error: Callee dict has no __type__"
             elif type(callee) == "string":
@@ -355,10 +360,15 @@ class MetalVM:
                 elif argc == 3: push(self.stack, sys.call(callee, args[0], args[1], args[2]))
                 elif argc == 4: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3]))
                 elif argc == 5: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4]))
-                else: print "Error: Host call with >5 args not implemented"
+                elif argc == 6: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4], args[5]))
+                elif argc == 7: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4], args[5], args[6]))
+                elif argc == 8: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
+                else:
+                    print "Error: Host call with >8 args not implemented"
+                    push(self.stack, nil)
             else:
                 print "Error: Callee not a function or builtin name"
-        elif op == 38: # OP_CALL_METHOD
+        elif op == OP_CALL_METHOD:
             let name_idx = ut.read_be16(self.code, self.ip)
             let argc = int(self.code[self.ip + 2])
             self.ip = self.ip + 3
@@ -401,7 +411,14 @@ class MetalVM:
                              elif argc == 1: push(self.stack, sys.call(h_method, args[0]))
                              elif argc == 2: push(self.stack, sys.call(h_method, args[0], args[1]))
                              elif argc == 3: push(self.stack, sys.call(h_method, args[0], args[1], args[2]))
-                             else: print "Error: Host method call with >3 args not implemented"
+                             elif argc == 4: push(self.stack, sys.call(h_method, args[0], args[1], args[2], args[3]))
+                             elif argc == 5: push(self.stack, sys.call(h_method, args[0], args[1], args[2], args[3], args[4]))
+                             elif argc == 6: push(self.stack, sys.call(h_method, args[0], args[1], args[2], args[3], args[4], args[5]))
+                             elif argc == 7: push(self.stack, sys.call(h_method, args[0], args[1], args[2], args[3], args[4], args[5], args[6]))
+                             elif argc == 8: push(self.stack, sys.call(h_method, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
+                             else:
+                                 print "Error: Host method call with >8 args not implemented"
+                                 push(self.stack, nil)
                         else:
                              push(self.stack, h_method)
                     else:
@@ -415,7 +432,14 @@ class MetalVM:
                         elif argc == 1: push(self.stack, sys.call(val, args[0]))
                         elif argc == 2: push(self.stack, sys.call(val, args[0], args[1]))
                         elif argc == 3: push(self.stack, sys.call(val, args[0], args[1], args[2]))
-                        else: print "Error: Host module call with >3 args not implemented"
+                        elif argc == 4: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3]))
+                        elif argc == 5: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4]))
+                        elif argc == 6: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5]))
+                        elif argc == 7: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5], args[6]))
+                        elif argc == 8: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
+                        else:
+                            print "Error: Host module call with >8 args not implemented"
+                            push(self.stack, nil)
                     else:
                         push(self.stack, val)
                 else:
@@ -428,10 +452,18 @@ class MetalVM:
                         if argc == 0: push(self.stack, sys.call(val))
                         elif argc == 1: push(self.stack, sys.call(val, args[0]))
                         elif argc == 2: push(self.stack, sys.call(val, args[0], args[1]))
-                        else: print "Error: Host primitive method call with >2 args not implemented"
+                        elif argc == 3: push(self.stack, sys.call(val, args[0], args[1], args[2]))
+                        elif argc == 4: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3]))
+                        elif argc == 5: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4]))
+                        elif argc == 6: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5]))
+                        elif argc == 7: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5], args[6]))
+                        elif argc == 8: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
+                        else:
+                            print "Error: Host primitive method call with >8 args not implemented"
+                            push(self.stack, nil)
                     else:
                         push(self.stack, val)
-        elif op == 44: # OP_RETURN
+        elif op == OP_RETURN:
             let val = pop(self.stack)
             if len(self.call_stack) > 0:
                 pop(self.scopes)
@@ -445,23 +477,23 @@ class MetalVM:
             else:
                 self.halted = true
                 self.return_value = val
-        elif op == 255: # OP_HALT
+        elif op == OP_HALT:
             self.halted = true
-        elif op == 53: # OP_CLASS
+        elif op == OP_CLASS:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
             let cls = {"__type__": "class", "__name__": name, "__methods__": {}}
             self.scopes[len(self.scopes)-1][name] = cls
             push(self.stack, cls)
-        elif op == 54: # OP_METHOD
+        elif op == OP_METHOD:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
             let func = pop(self.stack)
             let cls = self.stack[len(self.stack)-1]
             cls["__methods__"][name] = func
-        elif op == 55: # OP_INHERIT
+        elif op == OP_INHERIT:
             let cls = pop(self.stack)
             let parent = pop(self.stack)
             if type(parent) == "dict":
@@ -484,7 +516,7 @@ class MetalVM:
                             cls["__methods__"][mname] = parent[mname]
                         let k = k + 1
             push(self.stack, cls)
-        elif op == 9: # OP_GET_PROPERTY
+        elif op == OP_GET_PROPERTY:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
@@ -501,7 +533,7 @@ class MetalVM:
             else:
                 # Host property access bridge
                 push(self.stack, obj[name])
-        elif op == 10: # OP_SET_PROPERTY
+        elif op == OP_SET_PROPERTY:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
@@ -513,7 +545,7 @@ class MetalVM:
                 # Host property set bridge
                 obj[name] = val
             push(self.stack, val)
-        elif op == 52: # OP_IMPORT
+        elif op == OP_IMPORT:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
@@ -530,13 +562,13 @@ class MetalVM:
                     push(self.stack, {"__type__": "module", "__name__": name})
             catch e:
                 push(self.stack, {"__type__": "module", "__name__": name})
-        elif op == 56: # OP_SETUP_TRY
+        elif op == OP_SETUP_TRY:
             let handler = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             push(self.handlers, {"ip": handler, "stack_size": len(self.stack)})
-        elif op == 57: # OP_END_TRY
+        elif op == OP_END_TRY:
             pop(self.handlers)
-        elif op == 58: # OP_RAISE
+        elif op == OP_RAISE:
             let val = pop(self.stack)
             self.exception_value = val
             self.is_throwing = true
@@ -550,23 +582,27 @@ class MetalVM:
             else:
                 print "Unhandled exception: " + str(val)
                 self.halted = true
-        elif op == 43: # OP_EXEC_AST_STMT
+        elif op == OP_EXEC_AST_STMT:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             print "Warning: OP_EXEC_AST_STMT delegation not implemented"
-        
-        # GPU Delegation Bridge (59-86)
-        elif op == 59: gpu.poll_events()
-        elif op == 60: push(self.stack, gpu.window_should_close())
-        elif op == 61: push(self.stack, gpu.get_time())
-        elif op == 62: push(self.stack, gpu.key_pressed(pop(self.stack)))
-        elif op == 63: push(self.stack, gpu.key_down(pop(self.stack)))
-        elif op == 64: push(self.stack, gpu.mouse_pos())
-        elif op == 65: push(self.stack, gpu.mouse_delta())
-        elif op == 66: gpu.update_input()
-        elif op == 67: push(self.stack, gpu.begin_commands(pop(self.stack)))
-        elif op == 68: push(self.stack, gpu.end_commands(pop(self.stack)))
-        elif op == 69:
+        elif op == OP_BREAK:
+            print "Error: Unexpected loop break opcode"
+            self.halted = true
+        elif op == OP_CONTINUE:
+            print "Error: Unexpected loop continue opcode"
+            self.halted = true
+        elif op == OP_GPU_POLL_EVENTS: gpu.poll_events()
+        elif op == OP_GPU_WINDOW_SHOULD_CLOSE: push(self.stack, gpu.window_should_close())
+        elif op == OP_GPU_GET_TIME: push(self.stack, gpu.get_time())
+        elif op == OP_GPU_KEY_PRESSED: push(self.stack, gpu.key_pressed(pop(self.stack)))
+        elif op == OP_GPU_KEY_DOWN: push(self.stack, gpu.key_down(pop(self.stack)))
+        elif op == OP_GPU_MOUSE_POS: push(self.stack, gpu.mouse_pos())
+        elif op == OP_GPU_MOUSE_DELTA: push(self.stack, gpu.mouse_delta())
+        elif op == OP_GPU_UPDATE_INPUT: gpu.update_input()
+        elif op == OP_GPU_BEGIN_COMMANDS: push(self.stack, gpu.begin_commands(pop(self.stack)))
+        elif op == OP_GPU_END_COMMANDS: push(self.stack, gpu.end_commands(pop(self.stack)))
+        elif op == OP_GPU_CMD_BEGIN_RP:
              let ca = pop(self.stack)
              let h = pop(self.stack)
              let w = pop(self.stack)
@@ -574,25 +610,25 @@ class MetalVM:
              let rp = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_begin_render_pass(cmd, rp, fb, w, h, ca)
-        elif op == 70: gpu.cmd_end_render_pass(pop(self.stack))
-        elif op == 71:
+        elif op == OP_GPU_CMD_END_RP: gpu.cmd_end_render_pass(pop(self.stack))
+        elif op == OP_GPU_CMD_DRAW:
              let fi = pop(self.stack)
              let fv = pop(self.stack)
              let inst = pop(self.stack)
              let verts = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_draw(cmd, verts, inst, fv, fi)
-        elif op == 72:
+        elif op == OP_GPU_CMD_BIND_GP:
              let gp = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_bind_graphics_pipeline(cmd, gp)
-        elif op == 73:
+        elif op == OP_GPU_CMD_BIND_DS:
              let bp = pop(self.stack)
              let set = pop(self.stack)
              let lay = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_bind_descriptor_set(cmd, lay, set, bp)
-        elif op == 74:
+        elif op == OP_GPU_CMD_SET_VP:
              let maxd = pop(self.stack)
              let mind = pop(self.stack)
              let vh = pop(self.stack)
@@ -601,22 +637,22 @@ class MetalVM:
              let vx = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_set_viewport(cmd, vx, vy, vw, vh, mind, maxd)
-        elif op == 75:
+        elif op == OP_GPU_CMD_SET_SC:
              let sh = pop(self.stack)
              let sw = pop(self.stack)
              let sy = pop(self.stack)
              let sx = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_set_scissor(cmd, sx, sy, sw, sh)
-        elif op == 76:
+        elif op == OP_GPU_CMD_BIND_VB:
              let buf = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_bind_vertex_buffer(cmd, buf)
-        elif op == 77:
+        elif op == OP_GPU_CMD_BIND_IB:
              let buf = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_bind_index_buffer(cmd, buf)
-        elif op == 78:
+        elif op == OP_GPU_CMD_DRAW_IDX:
              let fi = pop(self.stack)
              let vo = pop(self.stack)
              let fidx = pop(self.stack)
@@ -624,33 +660,33 @@ class MetalVM:
              let idxc = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_draw_indexed(cmd, idxc, inst, fidx, vo, fi)
-        elif op == 79:
+        elif op == OP_GPU_SUBMIT_SYNC:
              let f = pop(self.stack)
              let s = pop(self.stack)
              let w = pop(self.stack)
              let cmd = pop(self.stack)
              push(self.stack, gpu.submit_with_sync(cmd, w, s, f))
-        elif op == 80: push(self.stack, gpu.acquire_next_image(pop(self.stack)))
-        elif op == 81:
+        elif op == OP_GPU_ACQUIRE_IMG: push(self.stack, gpu.acquire_next_image(pop(self.stack)))
+        elif op == OP_GPU_PRESENT:
              let idx = pop(self.stack)
              let s = pop(self.stack)
              gpu.present(s, idx)
-        elif op == 82:
+        elif op == OP_GPU_WAIT_FENCE:
              let t = pop(self.stack)
              let f = pop(self.stack)
              gpu.wait_fence(f, t)
-        elif op == 83: gpu.reset_fence(pop(self.stack))
-        elif op == 84:
+        elif op == OP_GPU_RESET_FENCE: gpu.reset_fence(pop(self.stack))
+        elif op == OP_GPU_UPDATE_UNIFORM:
              let data = pop(self.stack)
              let h = pop(self.stack)
              gpu.update_uniform(h, data)
-        elif op == 85:
+        elif op == OP_GPU_CMD_PUSH_CONST:
              let data = pop(self.stack)
              let st = pop(self.stack)
              let lay = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_push_constants(cmd, lay, st, data)
-        elif op == 86:
+        elif op == OP_GPU_CMD_DISPATCH:
              let gz = pop(self.stack)
              let gy = pop(self.stack)
              let gx = pop(self.stack)

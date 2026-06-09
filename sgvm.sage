@@ -34,20 +34,35 @@ proc main():
     var metal_vm = sgvm_vm.MetalVM()
     metal_vm.trace = debug
     off = off + 6
+    if off + 4 > len(data):
+        print "Error: Truncated SGVM file header"
+        return
     var function_count = core_utils.my_int(core_utils.read_be16(data, off))
     off = off + 2
     var const_count = core_utils.my_int(core_utils.read_be16(data, off))
     off = off + 2
     var j = 0
     while j < const_count:
+        if off >= len(data):
+            print "Error: Truncated constant pool"
+            return
         var t = data[off]
         off = off + 1
         if t == 1:
+            if off + 8 > len(data):
+                print "Error: Truncated double constant"
+                return
             push(metal_vm.constants, core_utils.unpack_double(data, off))
             off = off + 8
         elif t == 3:
+            if off + 2 > len(data):
+                print "Error: Truncated string constant length"
+                return
             var slen = core_utils.my_int(core_utils.read_be16(data, off))
             off = off + 2
+            if off + slen > len(data):
+                print "Error: Truncated string constant value"
+                return
             var s = ""
             var k = 0
             while k < slen:
@@ -55,6 +70,9 @@ proc main():
                 k = k + 1
             push(metal_vm.constants, s)
             off = off + slen
+        else:
+            print "Error: Invalid constant type: " + str(t)
+            return
         j = j + 1
     if debug:
         print "Constants count: " + str(len(metal_vm.constants))
@@ -63,12 +81,21 @@ proc main():
             print "Const " + str(c_idx) + ": " + str(metal_vm.constants[c_idx])
             c_idx = c_idx + 1
         print "data len: " + str(len(data)) + " off: " + str(off)
+    if off + 4 > len(data):
+        print "Error: Truncated chunk count"
+        return
     var chunk_count = core_utils.my_int(core_utils.read_be32(data, off))
     off = off + 4
     var c = 0
     while c < chunk_count:
+        if off + 4 > len(data):
+            print "Error: Truncated chunk header"
+            return
         var clen = core_utils.my_int(core_utils.read_be32(data, off))
         off = off + 4
+        if off + clen > len(data):
+            print "Error: Truncated chunk data"
+            return
         var chunk_code = []
         var k = 0
         while k < clen:

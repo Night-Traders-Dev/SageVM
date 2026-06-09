@@ -17,7 +17,7 @@ from rich.text import Text
 from rich import box
 
 # Configuration
-VERSION = "0.9.0"
+VERSION = "0.9.3"
 if Path("VERSION").exists():
     VERSION = Path("VERSION").read_text().strip()
 

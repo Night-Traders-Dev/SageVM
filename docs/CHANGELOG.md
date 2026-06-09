@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.3] - 2026-06-09
+
+### Added
+- **Opcodes constants mapping**: Refactored interpreter's `run_step()` loop from magic numbers to named `OP_*` opcode constants.
+
+### Fixed
+- **Loop control safety**: Implemented explicit unexpected loop control error handling for `OP_BREAK` and `OP_CONTINUE` opcodes to match C VM behavior.
+- **Delegation bridge stack safety**: Expanded dynamic guest-to-host delegation call argument capacity up to 8 arguments and added fallback checks to prevent stack corruption on limit violations.
+- **Loader bounds checking**: Added robust bounds checking assertions when parsing headers, constants, string lengths, and chunk sizes to prevent out-of-bounds crashes on malformed/truncated binaries.
+
+### Changed
+- **Compiler Refactoring**: Restructured compiler's main entry point `compile()` into distinct helper methods (`first_pass()` and `second_pass()`) for a clean two-pass execution.
+
 ## [0.9.2] - 2026-06-08
 
 ### Added
