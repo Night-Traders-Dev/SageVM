@@ -1,49 +1,21 @@
 # ----------------------------------------------------------------------------
-# Configuration
+# SageVM Makefile (Orchestrator for sagemake)
 # ----------------------------------------------------------------------------
 
-SAGE_DIR  = .deps/SageLang
-SAGE_REPO = https://github.com/Night-Traders-Dev/SageLang.git
-SAGE_BIN  = $(SAGE_DIR)/core/sage
+all:
+	@python3 sagemake
 
-# ----------------------------------------------------------------------------
-# Targets
-# ----------------------------------------------------------------------------
+install:
+	@python3 sagemake --install
 
-all: bootstrap
-	@echo "[BUILD] Building SageVM..."
-	./build.sh
+debug:
+	@python3 sagemake --debug
 
-debug: SAGE_FLAGS = -DSAGE_DEBUG
-debug: bootstrap
-	@echo "[BUILD] Building SageVM in DEBUG mode..."
-	SAGE_CFLAGS="$(SAGE_FLAGS)" ./build.sh
+rebuild-host:
+	@python3 sagemake --rebuild-sage
 
-# ----------------------------------------------------------------------------
-# Bootstrap SageLang
-# ----------------------------------------------------------------------------
-
-bootstrap:
-	@if [ ! -f "$(SAGE_DIR)/Makefile" ]; then \
-		echo "[BOOTSTRAP] Initializing SageLang submodule..."; \
-		git submodule update --init --no-recurse-submodules; \
-	fi
-
-	@if [ ! -d "$(SAGE_DIR)" ]; then \
-		echo ""; \
-		echo "[ERROR] SageLang submodule missing."; \
-		echo "Run:"; \
-		echo "    git submodule add $(SAGE_REPO) $(SAGE_DIR)"; \
-		echo ""; \
-		exit 1; \
-	fi
-
-	@echo "[BOOTSTRAP] Building SageLang..."
-	@$(MAKE) -C $(SAGE_DIR) CFLAGS_EXTRA="$(SAGE_CFLAGS)"
-	@if [ ! -x "$(SAGE_BIN)" ]; then \
-		echo ""; \
-		echo "[ERROR] Sage binary not found:"; \
-		echo "        $(SAGE_BIN)"; \
-		echo ""; \
-		exit 1; \
+clean:
+	@rm -f sgvm sgvmc
+	@if [ -d ".deps/SageLang/core" ]; then \
+		$(MAKE) -C .deps/SageLang/core clean; \
 	fi

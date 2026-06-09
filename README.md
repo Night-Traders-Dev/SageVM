@@ -9,8 +9,7 @@ SageVM requires SageLang **v3.6.4** or higher for full feature parity (OOP, Exce
 To build and install the tools to your system:
 
 ```bash
-make
-sudo make install
+./sagemake --install
 ```
 
 This will automatically initialize the SageLang submodule, build the `sage` compiler, and then compile `sgvm.sage` and `sgvmc.sage` into native binaries.
