@@ -157,8 +157,8 @@ Python 3 build orchestrator using `rich` for UI. Pipeline:
 
 | Tool | LOC | Purpose |
 |------|-----|---------|
-| [sgvm_hexdump.py](file:///home/kraken/Devel/SageVM/tools/sgvm_hexdump.py) | 213 | Disassemble `.sgvm` binaries into human-readable instruction listings |
-| [diff_bytecode.py](file:///home/kraken/Devel/SageVM/tools/diff_bytecode.py) | 128 | Compare DIAG traces or hex-diff two `.sgvm` files |
+| [sgvm_hexdump.sage](file:///home/kraken/Devel/SageVM/tools/sgvm_hexdump.sage) | 343 | Disassemble `.sgvm` binaries into human-readable instruction listings |
+| [diff_bytecode.sage](file:///home/kraken/Devel/SageVM/tools/diff_bytecode.sage) | 245 | Compare DIAG traces or hex-diff two `.sgvm` files |
 
 These are well-documented and critical for debugging compiler/VM mismatches.
 

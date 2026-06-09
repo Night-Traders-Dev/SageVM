@@ -150,14 +150,31 @@ class SGVMCompiler:
                 chunk_count = ut.parse_int_field(line, 7)
             elif line == "chunk":
                 self.current_chunk = self.current_chunk + 1
-                push(self.local_to_global, [])
-                push(self.local_to_global_raw, [])
-                push(self.chunk_params, [])
+                let ltg = self.local_to_global
+                let empty_ltg = []
+                push(ltg, empty_ltg)
+                
+                let ltg_raw = self.local_to_global_raw
+                let empty_raw = []
+                push(ltg_raw, empty_raw)
+                
+                let params = self.chunk_params
+                let empty_params = []
+                push(params, empty_params)
             elif line == "function":
                 self.current_chunk = self.current_chunk + 1
-                push(self.local_to_global, [])
-                push(self.local_to_global_raw, [])
-                push(self.chunk_params, [])
+                let ltg = self.local_to_global
+                let empty_ltg = []
+                push(ltg, empty_ltg)
+                
+                let ltg_raw = self.local_to_global_raw
+                let empty_raw = []
+                push(ltg_raw, empty_raw)
+                
+                let params = self.chunk_params
+                let empty_params = []
+                push(params, empty_params)
+                
                 i = i + 1
                 let pline = ut.trim(lines[i])
                 let pcount = ut.parse_int_field(pline, 7)
@@ -172,7 +189,8 @@ class SGVMCompiler:
                     var k = 0
                     while k < plen:
                         let byte_val = ut.parse_hex_byte(hex, k * 2)
-                        p_name = p_name + chr(byte_val)
+                        let ch = chr(byte_val)
+                        p_name = p_name + ch
                         k = k + 1
                     
                     let params_arr = self.chunk_params[self.current_chunk]
@@ -193,9 +211,11 @@ class SGVMCompiler:
                     i = i + 1
                     let cl = ut.trim(lines[i])
                     if startswith(cl, "number "):
-                        let num_sub = ut.my_substr(cl, 7, len(cl))
+                        let cl_len = len(cl)
+                        let num_sub = ut.my_substr(cl, 7, cl_len)
                         let num_trimmed = ut.trim(num_sub)
-                        let num_idx = self.add_const_num(tonumber(num_trimmed))
+                        let num_val = tonumber(num_trimmed)
+                        let num_idx = self.add_const_num(num_val)
                         ltg_chunk[j] = num_idx
                         ltg_raw_chunk[j] = num_idx
                     elif startswith(cl, "string "):
@@ -206,7 +226,8 @@ class SGVMCompiler:
                         var k = 0
                         while k < slen:
                             let byte_val = ut.parse_hex_byte(hex, k * 2)
-                            s = s + chr(byte_val)
+                            let ch = chr(byte_val)
+                            s = s + ch
                             k = k + 1
                         
                         let raw_idx = self.add_const_str(s)
@@ -222,7 +243,8 @@ class SGVMCompiler:
                                 pi = pi + 1
                         
                         if param_idx >= 0:
-                            let arg_name = "__arg" + str(param_idx)
+                            let idx_str = str(param_idx)
+                            let arg_name = "__arg" + idx_str
                             let arg_idx = self.add_const_str(arg_name)
                             ltg_chunk[j] = arg_idx
                         else:
@@ -240,7 +262,8 @@ class SGVMCompiler:
         self.write_byte(0x01)
         self.write_byte(0x00)
         self.write_be16(function_count)
-        self.write_be16(len(self.global_consts))
+        let const_count = len(self.global_consts)
+        self.write_be16(const_count)
         var cidx = 0
         while cidx < len(self.global_consts):
             let c = self.global_consts[cidx]
@@ -248,7 +271,9 @@ class SGVMCompiler:
             if c["type"] == 1:
                 self.write_double(c["num"])
             else:
-                self.write_be16(len(c["str"]))
+                let s_val = c["str"]
+                let s_len = len(s_val)
+                self.write_be16(s_len)
                 self.write_string(c["str"])
             cidx = cidx + 1
         
@@ -274,13 +299,17 @@ class SGVMCompiler:
                         let v1 = ut.parse_hex_byte(hex, j)
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         let local_idx = v1 * 256 + v2
-                        self.write_be16(self.local_to_global[self.current_chunk][local_idx])
+                        let ltg = self.local_to_global[self.current_chunk]
+                        let val = ltg[local_idx]
+                        self.write_be16(val)
                         j = j + 4
                     elif op == 8: # DEFINE_FUNCTION
                         let v1 = ut.parse_hex_byte(hex, j)
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         let local_idx = v1 * 256 + v2
-                        self.write_be16(self.local_to_global_raw[self.current_chunk][local_idx])
+                        let ltg_raw = self.local_to_global_raw[self.current_chunk]
+                        let val = ltg_raw[local_idx]
+                        self.write_be16(val)
                         let f1 = ut.parse_hex_byte(hex, j + 4)
                         let f2 = ut.parse_hex_byte(hex, j + 6)
                         self.write_be16(f1 * 256 + f2)
@@ -289,7 +318,9 @@ class SGVMCompiler:
                         let v1 = ut.parse_hex_byte(hex, j)
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         let local_idx = v1 * 256 + v2
-                        self.write_be16(self.local_to_global_raw[self.current_chunk][local_idx])
+                        let ltg_raw = self.local_to_global_raw[self.current_chunk]
+                        let val = ltg_raw[local_idx]
+                        self.write_be16(val)
                         j = j + 4
                     elif op == 13 or op == 35 or op == 36 or op == 39 or op == 40 or op == 41 or op == 43 or op == 51 or op == 56:
                         let v1 = ut.parse_hex_byte(hex, j)
@@ -300,11 +331,15 @@ class SGVMCompiler:
                         let v1 = ut.parse_hex_byte(hex, j)
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         let local_idx = v1 * 256 + v2
-                        self.write_be16(self.local_to_global_raw[self.current_chunk][local_idx])
-                        self.write_byte(ut.parse_hex_byte(hex, j + 4))
+                        let ltg_raw = self.local_to_global_raw[self.current_chunk]
+                        let val = ltg_raw[local_idx]
+                        self.write_be16(val)
+                        let call_arg = ut.parse_hex_byte(hex, j + 4)
+                        self.write_byte(call_arg)
                         j = j + 6
                     elif op == 37: # CALL
-                        self.write_byte(ut.parse_hex_byte(hex, j))
+                        let call_val = ut.parse_hex_byte(hex, j)
+                        self.write_byte(call_val)
                         j = j + 2
             i = i + 1
 
@@ -312,8 +347,12 @@ class SGVMCompiler:
         let ut = self.utils
         var svm_file = input_file
         if endswith(input_file, ".sage"):
-            svm_file = input_file + ".svm"
-            let cmd = "sage --emit-vm " + input_file + " -o " + svm_file
+            let ext = ".svm"
+            svm_file = input_file + ext
+            var cmd = "sage --emit-vm "
+            cmd = cmd + input_file
+            cmd = cmd + " -o "
+            cmd = cmd + svm_file
             sys_exec(cmd)
         
         let content = io_readfile(svm_file)

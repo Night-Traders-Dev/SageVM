@@ -2,7 +2,7 @@
 
 These tools support Phase 2 (bytecode serialization debugging) and ongoing development.
 
-## diff_bytecode.py
+## diff_bytecode.sage
 
 Compares DIAG trace output from interpreted vs compiled `sgvmc` runs, or hex-diffs two `.sgvm` binary files.
 
@@ -15,12 +15,12 @@ sage src/sgvm_compiler_debug.sage testsuite/test_class.sage /tmp/interp.sgvm 2>/
 ./sgvmc_debug testsuite/test_class.sage /tmp/compiled.sgvm 2>/tmp/compiled.diag
 
 # 3. Diff the traces
-python3 tools/diff_bytecode.py /tmp/interp.diag /tmp/compiled.diag
+sage tools/diff_bytecode.sage /tmp/interp.diag /tmp/compiled.diag
 ```
 
 **Hex diff** of `.sgvm` output files:
 ```bash
-python3 tools/diff_bytecode.py --hex /tmp/interp.sgvm /tmp/compiled.sgvm
+sage tools/diff_bytecode.sage --hex /tmp/interp.sgvm /tmp/compiled.sgvm
 ```
 
 ### Reading the output
@@ -30,16 +30,16 @@ python3 tools/diff_bytecode.py --hex /tmp/interp.sgvm /tmp/compiled.sgvm
 - `j_after` mismatch → compiled binary is mis-advancing the stream pointer (likely an integer arithmetic issue in the compiled `parse_hex_byte` or `*256+` expression)
 - `global_idx` mismatch → const map lookup differs between modes
 
-## sgvm_hexdump.py
+## sgvm_hexdump.sage
 
 Human-readable disassembly of `.sgvm` bytecode files. Prints the header, constant pool, and per-chunk instruction listing with operands resolved to constant names.
 
 ```bash
-python3 tools/sgvm_hexdump.py hello.sgvm
-python3 tools/sgvm_hexdump.py /tmp/interp.sgvm
+sage tools/sgvm_hexdump.sage hello.sgvm
+sage tools/sgvm_hexdump.sage /tmp/interp.sgvm
 ```
 
-Use this alongside `diff_bytecode.py --hex` to understand what a zeroed class chunk actually looks like post-corruption.
+Use this alongside `diff_bytecode.sage --hex` to understand what a zeroed class chunk actually looks like post-corruption.
 
 ## src/sgvm_compiler_debug.sage
 

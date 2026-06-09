@@ -306,12 +306,34 @@ proc disassemble(path):
 proc main():
     let args = sys.args()
     var input_file = ""
+    
+    var is_interpreter = false
+    if args[0] == "sage":
+        is_interpreter = true
+    elif endswith(args[0], "/sage"):
+        is_interpreter = true
+    elif endswith(args[0], "\\sage"):
+        is_interpreter = true
+    elif endswith(args[0], "sage.exe"):
+        is_interpreter = true
+
+    var positional_args = []
     var i = 0
     while i < len(args):
         let a = args[i]
-        if endswith(a, ".sgvm"):
-            input_file = a
+        var should_skip = false
+        if i == 0:
+            should_skip = true
+        elif i == 1:
+            if is_interpreter:
+                should_skip = true
+        
+        if not should_skip:
+            push(positional_args, a)
         i = i + 1
+
+    if len(positional_args) > 0:
+        input_file = positional_args[0]
     
     if input_file == "":
         print "Usage: sage tools/sgvm_hexdump.sage <file.sgvm>"

@@ -197,19 +197,41 @@ proc main():
     var file_b = ""
     var hex_mode = false
     
+    var is_interpreter = false
+    if args[0] == "sage":
+        is_interpreter = true
+    elif endswith(args[0], "/sage"):
+        is_interpreter = true
+    elif endswith(args[0], "\\sage"):
+        is_interpreter = true
+    elif endswith(args[0], "sage.exe"):
+        is_interpreter = true
+
+    var positional_args = []
     var i = 0
     while i < len(args):
         let a = args[i]
+        var is_flag = false
         if a == "--hex":
             hex_mode = true
-        elif endswith(a, ".sage") or endswith(a, ".py"):
-            let dummy = 0
-        elif i > 0:
-            if file_a == "":
-                file_a = a
-            elif file_b == "":
-                file_b = a
+            is_flag = true
+        
+        if not is_flag:
+            var should_skip = false
+            if i == 0:
+                should_skip = true
+            elif i == 1:
+                if is_interpreter:
+                    should_skip = true
+            
+            if not should_skip:
+                push(positional_args, a)
         i = i + 1
+
+    if len(positional_args) > 0:
+        file_a = positional_args[0]
+    if len(positional_args) > 1:
+        file_b = positional_args[1]
         
     if file_a == "" or file_b == "":
         print "Usage: sage tools/diff_bytecode.sage <file_a> <file_b> [--hex]"
