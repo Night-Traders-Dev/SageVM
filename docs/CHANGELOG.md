@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **Execution Logic**: Robustly fixed chunk execution by scanning bytecode to correctly identify and skip function chunks.
 - **VM Fall-through**: Added missing `return true` handlers to `OP_CONSTANT`, `OP_NIL`, `OP_TRUE`, `OP_FALSE`, `OP_POP`, `OP_PRINT`, `OP_RETURN`, and `OP_HALT` to ensure proper instruction completion.
+- **Bytecode Serialization**: Reordered binary blob construction in the compiler to write constants before the main code, aligning with `MetalVM` loader expectations.
 
 ## [0.9.1] - 2026-06-08
 
