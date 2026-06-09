@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.2] - 2026-06-08
+
+### Added
+- **Native Bridge Modules**: Re-implemented and exposed `re`, `ffi`, `mem`, `struct`, and `gc` native modules to guest VM.
+- **AST Fallback**: Implemented `OP_EXEC_AST_STMT` to allow execution of non-lowered code via `sys.exec()`.
+
+### Fixed
+- **Execution Logic**: Robustly fixed chunk execution by scanning bytecode to correctly identify and skip function chunks.
+- **VM Fall-through**: Added missing `return true` handlers to `OP_CONSTANT`, `OP_NIL`, `OP_TRUE`, `OP_FALSE`, `OP_POP`, `OP_PRINT`, `OP_RETURN`, and `OP_HALT` to ensure proper instruction completion.
+
 ## [0.9.1] - 2026-06-08
 
 ### Added
