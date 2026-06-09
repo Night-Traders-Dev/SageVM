@@ -47,6 +47,22 @@ sgvmc <input.sage> <output.sgvm> [--shebang]
 **Options:**
 - `--shebang`: Prepend a shebang line (`#!/usr/bin/env sgvm`) to the output file, allowing it to be executed directly if the execute bit is set.
 
+### `sgvm_hexdump.sage` (Disassembler)
+A pure SageLang utility to disassemble `.sgvm` binaries into human-readable bytecode instructions, constant pools, and header metadata.
+
+**Usage:**
+```bash
+sage tools/sgvm_hexdump.sage <file.sgvm>
+```
+
+### `diff_bytecode.sage` (Diagnostic Diff Tool)
+A pure SageLang diagnostic utility to compare VM execution traces (DIAG output) or perform side-by-side hex diffs of `.sgvm` binary files.
+
+**Usage:**
+```bash
+sage tools/diff_bytecode.sage <file_a> <file_b> [--hex]
+```
+
 ## Executing .sgvm Files
 
 If a `.sgvm` file was compiled with the `--shebang` flag, you can run it directly from the console:

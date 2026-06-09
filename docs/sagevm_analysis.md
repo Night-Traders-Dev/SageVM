@@ -1,6 +1,6 @@
 # SageVM Codebase Analysis
 
-**Version**: 0.9.2 · **Total LOC**: ~1,300 (SageLang core) + 750 (tooling/tests) · **Language**: SageLang (self-hosted), Python (build/tools)
+**Version**: 0.9.3 · **Total LOC**: ~1,300 (SageLang core) + 750 (tooling/tests) · **Language**: SageLang (self-hosted), Python (build/tools)
 
 ---
 
