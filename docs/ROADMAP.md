@@ -13,6 +13,7 @@ This document outlines the features and standard library modules currently unsup
 - **Multi-threading**: Full support for `thread` module with a Global Interpreter Lock (GIL) and result capturing.
 - **FFI & Memory Interop**: Safe bridging to host C libraries via `ffi`, `mem`, and `struct` modules.
 - **Resource Management**: Guest memory tracking and limits (`mem.limit`), plus GC control primitives.
+- **GPU Hot-Paths**: Implementation of the `BC_OP_GPU_*` opcodes for Vulkan/OpenGL acceleration via host delegation.
 
 ## 🟡 Medium Difficulty (Native Bridging)
 (All tasks currently completed)
@@ -20,7 +21,6 @@ This document outlines the features and standard library modules currently unsup
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.
 
-- **GPU Hot-Paths**: Implementation of the `BC_OP_GPU_*` opcodes for Vulkan/OpenGL acceleration. This requires a handle-based resource manager within the VM.
 - **Networking**: Full implementation of `net`, `socket`, and `http` modules, requiring a safe abstraction of the host's networking stack.
 
 ## 🟣 Research / Future

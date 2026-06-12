@@ -65,6 +65,34 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_SETUP_TRY | 56 | Push an exception handler |
 | OP_END_TRY | 57 | Pop the current exception handler |
 | OP_RAISE | 58 | Raise an exception |
+| OP_GPU_POLL_EVENTS | 59 | gpu.poll_events() |
+| OP_GPU_WINDOW_SHOULD_CLOSE | 60 | gpu.window_should_close() -> bool |
+| OP_GPU_GET_TIME | 61 | gpu.get_time() -> number |
+| OP_GPU_KEY_PRESSED | 62 | gpu.key_pressed(key) -> bool |
+| OP_GPU_KEY_DOWN | 63 | gpu.key_down(key) -> bool |
+| OP_GPU_MOUSE_POS | 64 | gpu.mouse_pos() -> dict{x,y} |
+| OP_GPU_MOUSE_DELTA | 65 | gpu.mouse_delta() -> dict{x,y} |
+| OP_GPU_UPDATE_INPUT | 66 | gpu.update_input() |
+| OP_GPU_BEGIN_COMMANDS | 67 | gpu.begin_commands(cmd) |
+| OP_GPU_END_COMMANDS | 68 | gpu.end_commands(cmd) |
+| OP_GPU_CMD_BEGIN_RP | 69 | gpu.cmd_begin_render_pass(cmd, rp, fb, w, h, clear) |
+| OP_GPU_CMD_END_RP | 70 | gpu.cmd_end_render_pass(cmd) |
+| OP_GPU_CMD_DRAW | 71 | gpu.cmd_draw(cmd, verts, inst, first_v, first_i) |
+| OP_GPU_CMD_BIND_GP | 72 | gpu.cmd_bind_graphics_pipeline(cmd, pipe) |
+| OP_GPU_CMD_BIND_DS | 73 | gpu.cmd_bind_descriptor_set(cmd, layout, set, bp) |
+| OP_GPU_CMD_SET_VP | 74 | gpu.cmd_set_viewport(cmd, x, y, w, h, mind, maxd) |
+| OP_GPU_CMD_SET_SC | 75 | gpu.cmd_set_scissor(cmd, x, y, w, h) |
+| OP_GPU_CMD_BIND_VB | 76 | gpu.cmd_bind_vertex_buffer(cmd, buf) |
+| OP_GPU_CMD_BIND_IB | 77 | gpu.cmd_bind_index_buffer(cmd, buf) |
+| OP_GPU_CMD_DRAW_IDX | 78 | gpu.cmd_draw_indexed(cmd, idx_count, ...) |
+| OP_GPU_SUBMIT_SYNC | 79 | gpu.submit_with_sync(cmd, wait, signal, fence) |
+| OP_GPU_ACQUIRE_IMG | 80 | gpu.acquire_next_image(sem) -> number |
+| OP_GPU_PRESENT | 81 | gpu.present(sem, img_idx) |
+| OP_GPU_WAIT_FENCE | 82 | gpu.wait_fence(fence, timeout) |
+| OP_GPU_RESET_FENCE | 83 | gpu.reset_fence(fence) |
+| OP_GPU_UPDATE_UNIFORM | 84 | gpu.update_uniform(handle, data) |
+| OP_GPU_CMD_PUSH_CONST | 85 | gpu.cmd_push_constants(cmd, layout, stages, data) |
+| OP_GPU_CMD_DISPATCH | 86 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
 | OP_HALT | 0xFF | Halt execution |
 
 ## Native Bridge
