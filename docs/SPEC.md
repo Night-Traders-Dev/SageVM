@@ -17,6 +17,7 @@ Before execution, SGVM bytecode MUST pass a verification pass that ensures:
 - **Type Safety**: Operations are performed on valid operand types.
 - **Boundary Checks**: No out-of-bounds access to memory or object arenas.
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions.
+- **GPU Resource Safety**: GPU opcodes must use valid handle-based resources and remain within command buffer boundaries.
 
 ## 4. Execution Modes
 SGVM supports multiple execution strategies:

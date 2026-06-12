@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.4] - 2026-06-12
+
+### Added
+- **GPU Hot-Path Opcodes**: Synchronized with SageLang v3.6.9, adding opcodes 59-86 for hardware-accelerated graphics and compute (Vulkan/OpenGL).
+- **Networking Delegation**: Exposed the `net` module via the delegation bridge, allowing guest bytecode to perform socket and HTTP operations.
+- **ML Native Bridge**: Integrated `ml_native` module for hardware-accelerated machine learning operations.
+
+### Changed
+- **Extended Module Delegation**: Updated `OP_IMPORT` and `OP_CALL_METHOD` to support seamless delegation for `gpu`, `net`, and `ml_native` modules.
+
 ## [0.9.3] - 2026-06-09
 
 ### Added

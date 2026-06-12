@@ -65,6 +65,34 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_SETUP_TRY | 56 | Push an exception handler |
 | OP_END_TRY | 57 | Pop the current exception handler |
 | OP_RAISE | 58 | Raise an exception |
+| OP_GPU_POLL_EVENTS | 59 | Poll GPU events |
+| OP_GPU_WINDOW_SHOULD_CLOSE | 60 | Check if GPU window should close |
+| OP_GPU_GET_TIME | 61 | Get GPU time |
+| OP_GPU_KEY_PRESSED | 62 | Check if key was pressed |
+| OP_GPU_KEY_DOWN | 63 | Check if key is down |
+| OP_GPU_MOUSE_POS | 64 | Get mouse position |
+| OP_GPU_MOUSE_DELTA | 65 | Get mouse delta |
+| OP_GPU_UPDATE_INPUT | 66 | Update GPU input state |
+| OP_GPU_BEGIN_COMMANDS | 67 | Begin GPU command recording |
+| OP_GPU_END_COMMANDS | 68 | End GPU command recording |
+| OP_GPU_CMD_BEGIN_RP | 69 | Begin GPU render pass |
+| OP_GPU_CMD_END_RP | 70 | End GPU render pass |
+| OP_GPU_CMD_DRAW | 71 | GPU draw call |
+| OP_GPU_CMD_BIND_GP | 72 | Bind GPU graphics pipeline |
+| OP_GPU_CMD_BIND_DS | 73 | Bind GPU descriptor set |
+| OP_GPU_CMD_SET_VP | 74 | Set GPU viewport |
+| OP_GPU_CMD_SET_SC | 75 | Set GPU scissor |
+| OP_GPU_CMD_BIND_VB | 76 | Bind GPU vertex buffer |
+| OP_GPU_CMD_BIND_IB | 77 | Bind GPU index buffer |
+| OP_GPU_CMD_DRAW_IDX | 78 | GPU indexed draw call |
+| OP_GPU_SUBMIT_SYNC | 79 | Submit GPU commands with sync |
+| OP_GPU_ACQUIRE_IMG | 80 | Acquire next GPU image |
+| OP_GPU_PRESENT | 81 | Present GPU image |
+| OP_GPU_WAIT_FENCE | 82 | Wait for GPU fence |
+| OP_GPU_RESET_FENCE | 83 | Reset GPU fence |
+| OP_GPU_UPDATE_UNIFORM | 84 | Update GPU uniform buffer |
+| OP_GPU_CMD_PUSH_CONST | 85 | Push GPU constants |
+| OP_GPU_CMD_DISPATCH | 86 | GPU compute dispatch |
 | OP_HALT | 0xFF | Halt execution |
 
 ## Native Bridge
@@ -81,6 +109,9 @@ The following modules are currently bridged:
 - **mem**: `alloc()`, `free()`, `read()`, `write()`, `size()`, `usage()`, `limit()`.
 - **struct**: `def()`, `new()`, `get()`, `set()`, `size()`.
 - **gc**: `collect()`, `stats()`, `enable()`, `disable()`.
+- **net**: `socket`, `http`, `server` (Delegated to host).
+- **gpu**: Full Vulkan/OpenGL acceleration API (Delegated to host).
+- **ml_native**: Hardware-accelerated machine learning ops (Delegated to host).
 
 Native bridging is implemented by tagging objects and function-like dictionaries with a `__native__` property. The `OP_CALL` and `OP_CALL_METHOD` opcodes detect these tags and dispatch execution to the VM's `call_native()` handler.
 
