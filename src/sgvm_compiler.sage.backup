@@ -17,7 +17,7 @@ from sgvm_core import OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_L
 from sgvm_core import OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT
 from sgvm_core import OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK
 from sgvm_core import OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY
-from sgvm_core import OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM
+from sgvm_core import OP_CALL_METHOD, OP_CALL, OP_DUP
 
 class SGVMCompiler:
     proc init(self):

@@ -89,7 +89,6 @@ let OP_GPU_UPDATE_UNIFORM      = 84
 let OP_GPU_CMD_PUSH_CONST      = 85
 let OP_GPU_CMD_DISPATCH         = 86
 
-let OP_MATH_PRINTM    = 87
 let OP_HALT           = 255
 
 class SGVMUtils:
