@@ -15,7 +15,10 @@ rebuild-host:
 	@python3 sagemake --rebuild-sage
 
 clean:
-	@rm -f sgvm sgvmc
+	@rm -f sgvm sgvmc tests/*.sgvm
 	@if [ -d ".deps/SageLang/core" ]; then \
 		$(MAKE) -C .deps/SageLang/core clean; \
 	fi
+
+test: all
+	@python3 tests/run_tests.py
