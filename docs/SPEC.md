@@ -12,7 +12,9 @@ SageLang code follows a strictly defined path to execution:
 5. **Runtime Execution**: Execution by the MetalVM engine.
 
 ## 3. Bytecode Verification
-Before execution, SGVM bytecode MUST pass a verification pass that ensures:
+(Note: Full bytecode verification is currently a roadmap item for the SageLang-based interpreter.)
+
+Before execution, production SGVM bytecode MUST pass a verification pass that ensures:
 - **Control Flow Integrity**: No illegal jumps or recursive depth violations.
 - **Type Safety**: Operations are performed on valid operand types.
 - **Boundary Checks**: No out-of-bounds access to memory or object arenas.

@@ -93,6 +93,7 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_GPU_UPDATE_UNIFORM | 84 | gpu.update_uniform(handle, data) |
 | OP_GPU_CMD_PUSH_CONST | 85 | gpu.cmd_push_constants(cmd, layout, stages, data) |
 | OP_GPU_CMD_DISPATCH | 86 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
+| OP_MATH_PRINTM | 87 | math.printm(matrix) [NEW] |
 | OP_HALT | 0xFF | Halt execution |
 
 ## Native Bridge
@@ -100,15 +101,15 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 SGVM provides a high-performance native bridge to the host SageLang environment. This allows guest bytecode to call standard library functions directly without the overhead of guest-side implementations.
 
 The following modules are currently bridged:
-- **math**: `sqrt`, `sin`, `cos`, `tan`, `floor`, `ceil`, `abs`, `pow`.
-- **io**: `read` (maps to `readfile`), `write` (maps to `writefile`).
-- **sys**: `args()`, `getenv()`, `clock()`, `exit()`.
-- **re**: `search()`, `match()` (full match), `test()`.
-- **thread**: `spawn()`, `join()`, `mutex()`, `lock()`, `unlock()`, `sleep()`.
-- **ffi**: `open()`, `call()`, `close()`.
-- **mem**: `alloc()`, `free()`, `read()`, `write()`, `size()`, `usage()`, `limit()`.
-- **struct**: `def()`, `new()`, `get()`, `set()`, `size()`.
-- **gc**: `collect()`, `stats()`, `enable()`, `disable()`.
+- **math**: Native SageLang `math` module.
+- **io**: Native SageLang `io` module.
+- **sys**: Native SageLang `sys` module.
+- **net**: Native SageLang `net` module.
+- **thread**: Native SageLang `thread` module (host-level threading).
+- **gpu**: Native SageLang `gpu` module (Vulkan/OpenGL acceleration).
+- **ml_native**: Native SageLang `ml_native` module (Machine Learning acceleration).
+
+*Note: Modules like `re`, `ffi`, `mem`, `struct`, and `gc` are not currently exposed through the guest-to-host bridge in this implementation.*
 
 Native bridging is implemented by tagging objects and function-like dictionaries with a `__native__` property. The `OP_CALL` and `OP_CALL_METHOD` opcodes detect these tags and dispatch execution to the VM's `call_native()` handler.
 
@@ -120,10 +121,9 @@ To maintain consistency within the SageLang-based interpreter, a **Global Interp
 
 ## Sandboxing & Isolation
 
-For high-isolation environments, `MetalVM` provides several security features:
-- **safe_mode**: When enabled, access to sensitive modules (`ffi`, `mem`, `struct`, `io`) is restricted.
-- **ffi_enabled**: A dedicated flag to toggle FFI support independently of other security settings.
-- **Resource Limits**: The `mem.limit()` function allows the host to cap the amount of raw memory the guest can allocate.
+For high-isolation environments, SGVM provides several security features:
+- **Resource Limits**: The host environment can enforce memory allocation limits on the guest VM.
+- **Module Restriction**: Access to sensitive host modules can be restricted by omitting them from the global scope during VM initialization.
 
 ## Function Arguments
 
@@ -137,10 +137,11 @@ The SGVM binary format consists of:
 0. Optional Shebang: `#!/usr/bin/env sgvm\n` (added by `sgvmc --shebang`)
 1. Header: "SGVM" (4 bytes)
 2. Version: 0x01 0x00 (2 bytes)
-3. Constant Pool:
+3. Function Count: (2 bytes, big-endian) — Total number of function chunks.
+4. Constant Pool:
    - Count (2 bytes, big-endian)
    - Constants (Type, then value)
-4. Chunk Count (4 bytes, big-endian)
-5. Chunks:
+5. Chunk Count: (4 bytes, big-endian) — Total number of chunks (including functions).
+6. Chunks:
    - Length (4 bytes, big-endian)
    - Code (Byte array)
