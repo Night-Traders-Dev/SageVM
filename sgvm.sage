@@ -3,6 +3,14 @@ import io
 import sgvm_vm
 from sgvm_core import SGVMUtils
 
+proc print_usage():
+    print "Usage: sgvm <file.sgvm> [options]"
+    print ""
+    print "Options:"
+    print "  --debug        Enable diagnostic output and bytecode trace"
+    print "  -h, --help     Show this help message"
+    print "  -v, --version  Show version information"
+
 proc main():
     var args = sys.args()
     var input_file = ""
@@ -26,6 +34,12 @@ proc main():
         if a == "--debug":
             debug = true
             is_flag = true
+        elif a == "--help" or a == "-h":
+            print_usage()
+            return
+        elif a == "--version" or a == "-v":
+            print "sgvm v0.9.3"
+            return
         
         if not is_flag:
             var should_skip = false
@@ -43,11 +57,11 @@ proc main():
         input_file = positional_args[0]
 
     if input_file == "":
-        print "Usage: sgvm <file.sgvm> [--debug]"
+        print_usage()
         return
     var data = io.readbytes(input_file)
     if data == nil:
-        print "Error: Could not read file"
+        print "❌ Error: Could not read file: " + input_file
         return
     var off = 0
     let core_utils = SGVMUtils()
@@ -57,13 +71,15 @@ proc main():
         if off < len(data):
             off = off + 1
     if len(data) - off < 4 or core_utils.my_int(data[off]) != 83 or core_utils.my_int(data[off+1]) != 71 or core_utils.my_int(data[off+2]) != 86 or core_utils.my_int(data[off+3]) != 77:
-        print "Error: Invalid SGVM header"
+        print "❌ Error: Invalid SGVM header in " + input_file
+        sys.exit(1)
         return
     var metal_vm = sgvm_vm.MetalVM()
     metal_vm.trace = debug
     off = off + 6
     if off + 4 > len(data):
-        print "Error: Truncated SGVM file header"
+        print "❌ Error: Truncated SGVM file header in " + input_file
+        sys.exit(1)
         return
     var function_count = core_utils.my_int(core_utils.read_be16(data, off))
     off = off + 2
@@ -72,7 +88,8 @@ proc main():
     var j = 0
     while j < const_count:
         if off >= len(data):
-            print "Error: Truncated constant pool"
+            print "❌ Error: Truncated constant pool in " + input_file
+            sys.exit(1)
             return
         var t = data[off]
         off = off + 1
@@ -84,12 +101,14 @@ proc main():
             off = off + 8
         elif t == 3:
             if off + 2 > len(data):
-                print "Error: Truncated string constant length"
+                print "❌ Error: Truncated string constant length in " + input_file
+                sys.exit(1)
                 return
             var slen = core_utils.my_int(core_utils.read_be16(data, off))
             off = off + 2
             if off + slen > len(data):
-                print "Error: Truncated string constant value"
+                print "❌ Error: Truncated string constant value in " + input_file
+                sys.exit(1)
                 return
             var s = ""
             var k = 0
@@ -99,7 +118,8 @@ proc main():
             push(metal_vm.constants, s)
             off = off + slen
         else:
-            print "Error: Invalid constant type: " + str(t)
+            print "❌ Error: Invalid constant type: " + str(t)
+            sys.exit(1)
             return
         j = j + 1
     if debug:
@@ -110,19 +130,22 @@ proc main():
             c_idx = c_idx + 1
         print "data len: " + str(len(data)) + " off: " + str(off)
     if off + 4 > len(data):
-        print "Error: Truncated chunk count"
+        print "❌ Error: Truncated chunk count in " + input_file
+        sys.exit(1)
         return
     var chunk_count = core_utils.my_int(core_utils.read_be32(data, off))
     off = off + 4
     var c = 0
     while c < chunk_count:
         if off + 4 > len(data):
-            print "Error: Truncated chunk header"
+            print "❌ Error: Truncated chunk header in " + input_file
+            sys.exit(1)
             return
         var clen = core_utils.my_int(core_utils.read_be32(data, off))
         off = off + 4
         if off + clen > len(data):
-            print "Error: Truncated chunk data"
+            print "❌ Error: Truncated chunk data in " + input_file
+            sys.exit(1)
             return
         var chunk_code = []
         var k = 0

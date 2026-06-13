@@ -2,6 +2,14 @@ import sys
 import io
 import sgvm_compiler
 
+proc print_usage():
+    print "Usage: sgvmc <input.sage|.svm> <output.sgvm> [options]"
+    print ""
+    print "Options:"
+    print "  --shebang      Prepend a shebang line to the output"
+    print "  -h, --help     Show this help message"
+    print "  -v, --version  Show version information"
+
 proc main():
     let args = sys.args()
     var input_file = ""
@@ -26,6 +34,12 @@ proc main():
         if a == "--shebang":
             use_shebang = true
             is_flag = true
+        elif a == "--help" or a == "-h":
+            print_usage()
+            return
+        elif a == "--version" or a == "-v":
+            print "sgvmc v0.9.3"
+            return
         
         if not is_flag:
             var should_skip = false
@@ -45,11 +59,14 @@ proc main():
         output_file = positional_args[1]
 
     if input_file == "" or output_file == "":
-        print "Usage: sgvmc <input.sage|.svm> <output.sgvm> [--shebang]"
+        print_usage()
         return
     
     let compiler = sgvm_compiler.SGVMCompiler()
-    compiler.compile(input_file, output_file, use_shebang)
-    print "Compilation complete."
+    if compiler.compile(input_file, output_file, use_shebang):
+        print "✨ Compilation complete."
+    else:
+        print "❌ Compilation failed."
+        sys.exit(1)
 
 main()

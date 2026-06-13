@@ -1,6 +1,5 @@
 import io
 import math
-print "DEBUG: math module loaded from: " + str(math)
 import net
 import thread as host_thread
 import sys

@@ -353,12 +353,15 @@ class SGVMCompiler:
             cmd = cmd + input_file
             cmd = cmd + " -o "
             cmd = cmd + svm_file
-            sys_exec(cmd)
+            let status = sys_exec(cmd)
+            if status != 0:
+                print "Error: Failed to generate SVM from " + input_file
+                return false
         
         let content = io_readfile(svm_file)
         if content == nil:
             print "Error: Could not read SVM file: " + svm_file
-            return
+            return false
         
         let lines = ut.split_lines(content)
         
@@ -369,3 +372,4 @@ class SGVMCompiler:
         self.second_pass(lines, function_count, chunk_count, use_shebang)
         
         io_writebytes(output_file, self.output_bytes)
+        return true
