@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.4] - 2026-06-13
+
+### Added
+- **Matrix Visualization**: Implemented `OP_MATH_PRINTM` for high-performance matrix and multi-dimensional array printing.
+- **Native Bridge Expansion**: Added guest-to-host delegation support for `net`, `gpu`, and `ml_native` host modules.
+
+### Changed
+- **Documentation Sync**: Performed a comprehensive audit and synchronization of `ARCHITECTURE.md`, `SPEC.md`, `ROADMAP.md`, and `CHANGELOG.md` against the latest implementation.
+- **Binary Format Spec**: Corrected the binary format specification in documentation to include the mandatory `Function Count` field and clarified chunk indexing.
+
+### Fixed
+- **Opcode Table Accuracy**: Synchronized the documentation's opcode table with the implementation in `src/sgvm_core.sage`.
+
 ## [0.9.3] - 2026-06-09
 
 ### Added
