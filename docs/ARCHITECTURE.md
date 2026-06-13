@@ -1,5 +1,11 @@
 # SGVM Sage Documentation
 
+> [!CAUTION]
+> **BINARY COMPATIBILITY RISK**: There is a significant encoding mismatch between this implementation and the authoritative `bytecode.h` from the main SageLang repository.
+> - `OP_MATH_PRINTM` is defined as **45** in `bytecode.h` but as **87** here.
+> - This causes a -1 shift for all subsequent opcodes (e.g., `OP_PUSH_ENV` is 46 in `bytecode.h` but 45 here).
+> - Binaries compiled with `sgvmc` are **not compatible** with the core `MetalVM` C implementation.
+
 ## Opcodes
 
 The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
