@@ -30,9 +30,11 @@ class MetalVM:
         self.trace = false
         self.modules = {}
         self.utils = SGVMUtils()
+        # Security: Limits to prevent Denial of Service (DoS) via resource exhaustion
         self.max_stack_depth = 65536
         self.call_depth = 0
         self.max_call_depth = 1024
+        self.max_handler_depth = 1024
         self.return_value = nil
         self.returning = false
         self.call_stack = []
@@ -72,6 +74,12 @@ class MetalVM:
         if self.ip >= len(self.code):
             return false
         
+        # Security: Prevent stack-based memory exhaustion (DoS)
+        if len(self.stack) > self.max_stack_depth:
+            print "Error: Stack overflow"
+            self.halted = true
+            return false
+
         let op = int(self.code[self.ip])
         if self.trace:
             print "IP: " + str(self.ip) + " OP: " + str(op) + " Stack: " + str(self.stack)
@@ -331,6 +339,11 @@ class MetalVM:
                 if dict_has(callee, "__type__"):
                     let ctype = callee["__type__"]
                     if ctype == "function":
+                        # Security: Prevent infinite recursion from exhausting host resources (DoS)
+                        if len(self.call_stack) >= self.max_call_depth:
+                            print "Error: Call depth limit exceeded"
+                            self.halted = true
+                            return false
                         push(self.call_stack, {"ip": self.ip, "code": self.code})
                         self.code = self.chunks[callee["__chunk__"]]
                         self.ip = 0
@@ -344,6 +357,11 @@ class MetalVM:
                         let instance = {"__type__": "instance", "__class__": callee}
                         if dict_has(callee["__methods__"], "init"):
                             let init_func = callee["__methods__"]["init"]
+                            # Security: Prevent infinite recursion from exhausting host resources (DoS)
+                            if len(self.call_stack) >= self.max_call_depth:
+                                print "Error: Call depth limit exceeded"
+                                self.halted = true
+                                return false
                             push(self.call_stack, {"ip": self.ip, "code": self.code, "__is_constructor__": true, "__instance__": instance})
                             self.code = self.chunks[init_func["__chunk__"]]
                             self.ip = 0
@@ -418,6 +436,11 @@ class MetalVM:
                     method = obj["__class__"]["__methods__"][name]
                 
                 if method != nil:
+                    # Security: Prevent infinite recursion from exhausting host resources (DoS)
+                    if len(self.call_stack) >= self.max_call_depth:
+                        print "Error: Call depth limit exceeded"
+                        self.halted = true
+                        return false
                     push(self.call_stack, {"ip": self.ip, "code": self.code})
                     self.code = self.chunks[method["__chunk__"]]
                     self.ip = 0
@@ -592,6 +615,11 @@ class MetalVM:
         elif op == OP_SETUP_TRY:
             let handler = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
+            # Security: Prevent nested handlers from exhausting VM memory (DoS)
+            if len(self.handlers) >= self.max_handler_depth:
+                print "Error: Handler depth limit exceeded"
+                self.halted = true
+                return false
             push(self.handlers, {"ip": handler, "stack_size": len(self.stack)})
         elif op == OP_END_TRY:
             pop(self.handlers)
