@@ -11,10 +11,14 @@ import argparse
 import time
 import shutil
 from pathlib import Path
-from rich.console import Console
-from rich.panel import Panel
-from rich.text import Text
-from rich import box
+try:
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich import box
+    HAS_RICH = True
+except ImportError:
+    HAS_RICH = False
 
 # Configuration
 VERSION = "0.9.3"
@@ -24,23 +28,25 @@ if Path("VERSION").exists():
 SAGE_BIN = Path(".deps/SageLang/core/sage")
 SAGE_LIB = Path(".deps/SageLang/core/lib")
 
-console = Console()
-
-def banner(title):
-    console.print(Panel(Text(title, style="bold cyan", justify="center"), border_style="cyan", box=box.ROUNDED))
-
-def section(title):
-    console.print(f"\n [bold cyan]→[/bold cyan] [bold]{title}[/bold]")
-
-def step(message):
-    console.print(f"  [yellow]⚙[/yellow] {message: <45}", end="")
-
-def step_ok(detail="done"):
-    console.print(f" [bold green]✓[/bold green] [green]done[/green] [dim]({detail})[/dim]")
-
-def step_fail(detail="failed"):
-    console.print(f" [bold red]✗[/bold red] [red]{detail}[/red]")
-    sys.exit(1)
+if HAS_RICH:
+    console = Console()
+    def banner(title):
+        console.print(Panel(Text(title, style="bold cyan", justify="center"), border_style="cyan", box=box.ROUNDED))
+    def section(title):
+        console.print(f"\n [bold cyan]→[/bold cyan] [bold]{title}[/bold]")
+    def step(message):
+        console.print(f"  [yellow]⚙[/yellow] {message: <45}", end="")
+    def step_ok(detail="done"):
+        console.print(f" [bold green]✓[/bold green] [green]done[/green] [dim]({detail})[/dim]")
+    def step_fail(detail="failed"):
+        console.print(f" [bold red]✗[/bold red] [red]{detail}[/red]")
+        sys.exit(1)
+else:
+    def banner(t): print(f"\n{'='*78}\n{t.center(78)}\n{'='*78}")
+    def section(t): print(f"\n--> {t}")
+    def step(m): print(f"  * {m: <45}", end="", flush=True)
+    def step_ok(d="done"): print(f" [OK] ({d})")
+    def step_fail(d="failed"): print(f" [FAIL] {d}"); sys.exit(1)
 
 def run_cmd(cmd, cwd=None, capture_output=True, shell=False, env=None):
     try:
