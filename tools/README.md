@@ -30,9 +30,13 @@ sage tools/diff_bytecode.sage --hex /tmp/interp.sgvm /tmp/compiled.sgvm
 - `j_after` mismatch → compiled binary is mis-advancing the stream pointer (likely an integer arithmetic issue in the compiled `parse_hex_byte` or `*256+` expression)
 - `global_idx` mismatch → const map lookup differs between modes
 
-## sgvm_hexdump.sage
+## sgvm_disassembler.sage
 
-Human-readable disassembly of `.sgvm` bytecode files. Prints the header, constant pool, and per-chunk instruction listing with operands resolved to constant names.
+Disassembles `.sgvm` bytecode files into human-readable `.sage` source code.
+
+```bash
+sage tools/sgvm_disassembler.sage <file.sgvm>
+```
 
 ```bash
 sage tools/sgvm_hexdump.sage hello.sgvm

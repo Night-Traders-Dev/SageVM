@@ -1,4 +1,8 @@
-# SGVM Sage Documentation
+## Tools
+- `sgvmc.sage`: Bytecode compiler.
+- `sgvm.sage`: Bytecode interpreter.
+- `sgvm_hexdump.sage`: Low-level bytecode binary inspector.
+- `sgvm_disassembler.sage`: High-level bytecode to source code reconstruction tool.
 
 > [!CAUTION]
 > **BINARY COMPATIBILITY RISK**: There is a significant encoding mismatch between this implementation and the authoritative `bytecode.h` from the main SageLang repository.
