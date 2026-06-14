@@ -116,7 +116,9 @@ class SGVMCompiler:
             byte_idx = byte_idx + 1
 
     proc add_const_num(self, d):
-        let key = "n" + str(d)
+        # Standardize number key
+        let s_val = str(d)
+        let key = "n" + s_val
         if dict_has(self.const_map, key):
             return self.const_map[key]
         
@@ -287,6 +289,7 @@ class SGVMCompiler:
                 self.current_chunk = self.current_chunk + 1
             elif startswith(line, "code "):
                 let clen = ut.parse_int_field(line, 5)
+                # print "DEBUG: Chunk " + str(self.current_chunk) + " code len " + str(clen)
                 self.write_be32(clen)
                 i = i + 1
                 let hex = ut.trim(lines[i])
@@ -301,6 +304,7 @@ class SGVMCompiler:
                         let local_idx = v1 * 256 + v2
                         let ltg = self.local_to_global[self.current_chunk]
                         let val = ltg[local_idx]
+                        # print "DEBUG: Chunk " + str(self.current_chunk) + " op " + str(op) + " mapping local " + str(local_idx) + " to global " + str(val)
                         self.write_be16(val)
                         j = j + 4
                     elif op == 8: # DEFINE_FUNCTION
@@ -327,6 +331,10 @@ class SGVMCompiler:
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         self.write_be16(v1 * 256 + v2)
                         j = j + 4
+                    elif op == 37 or op == 47: # CALL or DUP
+                        let val = ut.parse_hex_byte(hex, j)
+                        self.write_byte(val)
+                        j = j + 2
                     elif op == 38: # CALL_METHOD
                         let v1 = ut.parse_hex_byte(hex, j)
                         let v2 = ut.parse_hex_byte(hex, j + 2)
@@ -337,10 +345,6 @@ class SGVMCompiler:
                         let call_arg = ut.parse_hex_byte(hex, j + 4)
                         self.write_byte(call_arg)
                         j = j + 6
-                    elif op == 37: # CALL
-                        let call_val = ut.parse_hex_byte(hex, j)
-                        self.write_byte(call_val)
-                        j = j + 2
             i = i + 1
 
     proc compile(self, input_file, output_file, use_shebang):

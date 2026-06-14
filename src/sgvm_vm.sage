@@ -57,6 +57,7 @@ class MetalVM:
         self.globals["len"] = "__builtin_len"
         self.globals["print"] = "__builtin_print"
         self.globals["range"] = "__builtin_range"
+        self.globals["type"] = "__builtin_type"
 
     proc run(self, code):
         self.code = code
@@ -98,24 +99,32 @@ class MetalVM:
         elif op == OP_POP:
             pop(self.stack)
         elif op == OP_DUP:
-            push(self.stack, self.stack[len(self.stack)-1])
+            let distance = int(self.code[self.ip])
+            self.ip = self.ip + 1
+            push(self.stack, self.stack[len(self.stack)-1-distance])
         elif op == OP_GET_GLOBAL:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
+            if self.trace: print "DEBUG: GET_GLOBAL " + name
             var found = false
             var si = len(self.scopes) - 1
             while si >= 0:
                 if dict_has(self.scopes[si], name):
-                    push(self.stack, self.scopes[si][name])
-                    let found = true
-                    let si = -1
+                    let val = self.scopes[si][name]
+                    if self.trace: print "DEBUG: Found " + name + " in scope " + str(si) + ": " + str(val)
+                    push(self.stack, val)
+                    found = true
+                    si = -1
                 else:
-                    let si = si - 1
+                    si = si - 1
             if not found:
                 if dict_has(self.globals, name):
-                    push(self.stack, self.globals[name])
+                    let val = self.globals[name]
+                    if self.trace: print "DEBUG: Found " + name + " in globals: " + str(val)
+                    push(self.stack, val)
                 else:
+                    if self.trace: print "DEBUG: Not found " + name
                     push(self.stack, nil)
         elif op == OP_DEFINE_GLOBAL:
             let idx = ut.read_be16(self.code, self.ip)
@@ -132,10 +141,10 @@ class MetalVM:
             while si >= 0:
                 if dict_has(self.scopes[si], name):
                     self.scopes[si][name] = val
-                    let updated = true
-                    let si = -1
+                    updated = true
+                    si = -1
                 else:
-                    let si = si - 1
+                    si = si - 1
             if not updated:
                 self.globals[name] = val
             push(self.stack, val)
@@ -394,8 +403,11 @@ class MetalVM:
                     push(self.stack, nil)
                 elif callee == "__builtin_range":
                     push(self.stack, range(args[0]))
+                elif callee == "__builtin_type":
+                    push(self.stack, type(args[0]))
                 else:
                     print "Error: Unknown builtin: " + callee
+                    push(self.stack, nil)
             elif type(callee) == "function" or type(callee) == "native fn":
                 # Delegation Bridge: using sys.call to avoid AOT tracing issues
                 if argc == 0: push(self.stack, sys.call(callee))
@@ -429,8 +441,10 @@ class MetalVM:
             let obj = pop(self.stack)
             if type(obj) == "dict":
                 var method = nil
+                var is_class_call = false
                 if dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
                     method = obj["__methods__"][name]
+                    is_class_call = true
                 elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
                     method = obj["__class__"]["__methods__"][name]
                 
@@ -444,13 +458,23 @@ class MetalVM:
                     self.code = self.chunks[method["__chunk__"]]
                     self.ip = 0
                     push(self.scopes, {})
-                    # Pass self as __arg0
-                    self.scopes[len(self.scopes)-1]["__arg0"] = obj
-                    j = 0
-                    while j < argc:
-                        let arg_name = "__arg" + str(j + 1)
-                        self.scopes[len(self.scopes)-1][arg_name] = args[j]
-                        j = j + 1
+                    
+                    if is_class_call:
+                        # Direct class method call (e.g. Base.init(self, name))
+                        j = 0
+                        while j < argc:
+                            let arg_name = "__arg" + str(j)
+                            self.scopes[len(self.scopes)-1][arg_name] = args[j]
+                            j = j + 1
+                    else:
+                        # Instance method call (e.g. obj.greet())
+                        # Pass self as __arg0
+                        self.scopes[len(self.scopes)-1]["__arg0"] = obj
+                        j = 0
+                        while j < argc:
+                            let arg_name = "__arg" + str(j + 1)
+                            self.scopes[len(self.scopes)-1][arg_name] = args[j]
+                            j = j + 1
                 else:
                     # Try host method call bridge
                     if dict_has(obj, name):
@@ -608,11 +632,26 @@ class MetalVM:
             let name = self.constants[idx]
             # Delegation Bridge: check host first for native modules
             try:
-                if name == "math": push(self.stack, math)
+                if name == "math":
+                    let m = {"pi": 3.141592653589793, "e": 2.718281828459045}
+                    m["abs"] = math.abs
+                    m["sqrt"] = math.sqrt
+                    m["sin"] = math.sin
+                    m["cos"] = math.cos
+                    push(self.stack, m)
                 elif name == "io": push(self.stack, io)
-                elif name == "sys": push(self.stack, sys)
+                elif name == "sys":
+                    let s = {"args": sys.args()}
+                    s["exec"] = sys.exec
+                    s["exit"] = sys.exit
+                    push(self.stack, s)
                 elif name == "net": push(self.stack, net)
-                elif name == "gpu": push(self.stack, gpu)
+                elif name == "gpu":
+                    let g = {}
+                    g["poll_events"] = gpu.poll_events
+                    g["get_time"] = gpu.get_time
+                    g["mouse_pos"] = gpu.mouse_pos
+                    push(self.stack, g)
                 elif name == "ml_native": push(self.stack, ml_native)
                 elif name == "thread": push(self.stack, host_thread)
                 else:
