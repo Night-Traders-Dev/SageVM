@@ -4,7 +4,7 @@ This repository contains the SageLang ports of the SGVM (Sage General Virtual Ma
 
 ## Installation
 
-SageVM requires SageLang **v3.7.5** or higher for full feature parity (OOP, Exceptions, Delegation Bridge). The project uses a unified Python-based build system.
+SageVM requires SageLang **v3.7.6** or higher for full feature parity (OOP, Exceptions, Delegation Bridge). The project uses a unified Python-based build system.
 
 To build and install the tools to your system:
 
@@ -17,7 +17,7 @@ This will automatically initialize the SageLang submodule, build the `sage` comp
 ## Features (v0.9.3)
 
 - **Delegation Bridge**: Full guest-to-host delegation for GPU, I/O, and native modules.
-- **Full Opcode Parity**: Supports all opcodes from SageLang v3.7.5 `MetalVM`.
+- **Full Opcode Parity**: Supports all opcodes from SageLang v3.7.6 `MetalVM`.
 - **OOP Engine**: Native support for classes, inheritance, and method dispatch.
 - **Exceptions**: VM-level support for `try/catch/finally` blocks.
 - **Unified Build System**: Modern orchestrator using `sagemake` with `rich` UI.
