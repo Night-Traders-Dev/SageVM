@@ -55,7 +55,7 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_TUPLE | 40 | Create a tuple |
 | OP_DICT | 41 | Create a dictionary |
 | OP_PRINT | 42 | Print a value |
-| OP_EXEC_AST_STMT | 43 | Execute an AST statement (fallback) |
+| OP_EXEC_AST_STMT | 43 | Execute an AST statement (fallback) [NEW] |
 | OP_RETURN | 44 | Return from a function |
 | OP_PUSH_ENV | 45 | Push a new environment scope |
 | OP_POP_ENV | 46 | Pop an environment scope |
@@ -130,6 +130,10 @@ To maintain consistency within the SageLang-based interpreter, a **Global Interp
 For high-isolation environments, SGVM provides several security features:
 - **Resource Limits**: The host environment can enforce memory allocation limits on the guest VM.
 - **Module Restriction**: Access to sensitive host modules can be restricted by omitting them from the global scope during VM initialization.
+- **Internal Execution Limits**: To prevent Denial of Service (DoS) via resource exhaustion, the VM enforces the following internal limits:
+  - **Maximum Stack Depth**: 65,536 (Maximum depth of the operand stack).
+  - **Maximum Call Depth**: 1,024 (Maximum recursion depth for function calls).
+  - **Maximum Handler Depth**: 1,024 (Maximum nesting depth for exception handlers).
 
 ## Function Arguments
 

@@ -14,7 +14,7 @@ This document outlines the features and standard library modules currently unsup
 - **AST Delegation**: Full implementation of `OP_EXEC_AST_STMT` to allow execution of non-lowered code via `sys.exec()`.
 
 ## 🟡 Medium Difficulty (Native Bridging)
-- **Native Bridge Modules**: Re-implement and expose `ffi`, `mem`, `struct`, and `gc` native modules to guest VM (restoration of missing functionality).
+- **Native Bridge Modules**: Re-implement and expose `re`, `json`, `ffi`, `mem`, `struct`, and `gc` native modules to guest VM (restoration of missing functionality).
 - **Security Sandboxing**: Implement `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
 
 ## 🔴 High Difficulty (Complex Systems)
