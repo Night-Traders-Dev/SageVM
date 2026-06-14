@@ -75,6 +75,8 @@ proc main():
         sys.exit(1)
         return
     var metal_vm = sgvm_vm.MetalVM()
+    if debug:
+        metal_vm.trace = true
     metal_vm.trace = debug
     off = off + 6
     if off + 4 > len(data):

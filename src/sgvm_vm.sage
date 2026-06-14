@@ -10,10 +10,24 @@ from sgvm_core import SGVMUtils
 from sgvm_core import OP_CONSTANT, OP_NIL, OP_TRUE, OP_FALSE, OP_POP, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_GET_INDEX, OP_SET_INDEX, OP_LOAD_FUNCTION, OP_SLICE, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD, OP_NEGATE, OP_EQUAL, OP_NOT_EQUAL, OP_GREATER, OP_GREATER_EQUAL, OP_LESS, OP_LESS_EQUAL, OP_BIT_AND, OP_BIT_OR, OP_BIT_XOR, OP_BIT_NOT, OP_SHIFT_LEFT, OP_SHIFT_RIGHT, OP_NOT, OP_TRUTHY, OP_JUMP, OP_JUMP_IF_FALSE, OP_CALL, OP_CALL_METHOD, OP_ARRAY, OP_TUPLE, OP_DICT, OP_PRINT, OP_EXEC_AST_STMT, OP_RETURN, OP_MATH_PRINTM, OP_PUSH_ENV, OP_POP_ENV, OP_DUP, OP_ARRAY_LEN, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_INHERIT, OP_SETUP_TRY, OP_END_TRY, OP_RAISE, OP_HALT
 from sgvm_core import OP_GPU_POLL_EVENTS, OP_GPU_WINDOW_SHOULD_CLOSE, OP_GPU_GET_TIME, OP_GPU_KEY_PRESSED, OP_GPU_KEY_DOWN, OP_GPU_MOUSE_POS, OP_GPU_MOUSE_DELTA, OP_GPU_UPDATE_INPUT, OP_GPU_BEGIN_COMMANDS, OP_GPU_END_COMMANDS, OP_GPU_CMD_BEGIN_RP, OP_GPU_CMD_END_RP, OP_GPU_CMD_DRAW, OP_GPU_CMD_BIND_GP, OP_GPU_CMD_BIND_DS, OP_GPU_CMD_SET_VP, OP_GPU_CMD_SET_SC, OP_GPU_CMD_BIND_VB, OP_GPU_CMD_BIND_IB, OP_GPU_CMD_DRAW_IDX, OP_GPU_SUBMIT_SYNC, OP_GPU_ACQUIRE_IMG, OP_GPU_PRESENT, OP_GPU_WAIT_FENCE, OP_GPU_RESET_FENCE, OP_GPU_UPDATE_UNIFORM, OP_GPU_CMD_PUSH_CONST, OP_GPU_CMD_DISPATCH
 
+proc gc_collect():
+    return nil
+proc gc_stats():
+    return {"num_objects": 0}
+proc gc_enable():
+    return nil
+proc gc_disable():
+    return nil
+proc reflect_get_methods(obj):
+    return []
+proc reflect_get_class(obj):
+    return nil
+
 let g_gil = host_thread.mutex()
 
 class MetalVM:
     proc init(self):
+        print "DEBUG: MetalVM.init called"
         self.stack = []
         self.constants = []
         self.chunks = []
@@ -27,6 +41,7 @@ class MetalVM:
         self.is_throwing = false
         self.exception_value = nil
         self.trace = false
+        print "DEBUG: VM initialized, trace=" + str(self.trace)
         self.modules = {}
         self.utils = SGVMUtils()
         # Security: Limits to prevent Denial of Service (DoS) via resource exhaustion
@@ -36,18 +51,29 @@ class MetalVM:
         self.max_handler_depth = 1024
         self.return_value = nil
         self.returning = false
-        self.call_stack = []
+        self.call_stack = [{"ip": 0, "code": [], "constants": []}]
         self.setup_builtins()
 
     proc setup_builtins(self):
         # Native Bridge: Expose host standard library to guest VM
-        self.globals["math"] = math
-        self.globals["io"] = io
-        self.globals["sys"] = sys
-        self.globals["net"] = net
-        self.globals["thread"] = host_thread
-        self.globals["gpu"] = gpu
-        self.globals["ml_native"] = ml_native
+        self.globals["math"] = {"__host_mod__": math}
+        self.globals["io"] = {"__host_mod__": io}
+        self.globals["sys"] = {"__host_mod__": sys}
+        self.globals["net"] = {"__host_mod__": net}
+        self.globals["thread"] = {"__host_mod__": host_thread}
+        self.globals["gpu"] = {"__host_mod__": gpu}
+        self.globals["ml_native"] = {"__host_mod__": ml_native}
+        
+        self.globals["gc"] = {"__host_mod__": "gc"}
+        self.globals["gc"]["collect"] = "__builtin_gc_collect"
+        self.globals["gc"]["stats"] = "__builtin_gc_stats"
+        self.globals["gc"]["enable"] = "__builtin_gc_enable"
+        self.globals["gc"]["disable"] = "__builtin_gc_disable"
+
+        self.globals["reflect"] = {"__host_mod__": "reflect"}
+        self.globals["reflect"]["get_methods"] = "__builtin_reflect_get_methods"
+        self.globals["reflect"]["get_class"] = "__builtin_reflect_get_class"
+
 
         # Core builtins
         self.globals["clock"] = "__builtin_clock"
@@ -58,6 +84,16 @@ class MetalVM:
         self.globals["print"] = "__builtin_print"
         self.globals["range"] = "__builtin_range"
         self.globals["type"] = "__builtin_type"
+        
+        # Advanced GC builtins
+        self.globals["gc_collect"] = "__builtin_gc_collect"
+        self.globals["gc_stats"] = "__builtin_gc_stats"
+        self.globals["gc_enable"] = "__builtin_gc_enable"
+        self.globals["gc_disable"] = "__builtin_gc_disable"
+        
+        # Reflection builtins
+        self.globals["reflect_get_methods"] = "__builtin_reflect_get_methods"
+        self.globals["reflect_get_class"] = "__builtin_reflect_get_class"
 
     proc run(self, code):
         self.code = code
@@ -439,8 +475,13 @@ class MetalVM:
                 args[argc - 1 - j] = pop(self.stack)
                 j = j + 1
             let obj = pop(self.stack)
-            if type(obj) == "dict":
-                var method = nil
+            if self.trace:
+                let keys = []
+                if type(obj) == "dict": keys = dict_keys(obj)
+                print "DEBUG: CALL_METHOD name=" + name + " argc=" + str(argc) + " obj keys=" + str(keys)
+
+            # First try VM objects (dict-based)
+
                 var is_class_call = false
                 if dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
                     method = obj["__methods__"][name]
