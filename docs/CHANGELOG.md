@@ -53,7 +53,7 @@ All notable changes to this project will be documented in this file.
 ## [0.9.0] - 2026-06-08
 
 ### Added
-- **Full Opcode Parity**: Synchronized all opcodes with SageLang v3.6.4, including support for classes, inheritance, exceptions, and GPU hot-path stubs.
+- **Full Opcode Parity**: Synchronized all opcodes with SageLang v3.7.5, including support for classes, inheritance, exceptions, and GPU hot-path stubs.
 - **OOP Engine**: Implemented native class instantiation, method dispatch, and attribute access in `sgvm_vm.sage`.
 - **Exception Handling**: Full support for `try/catch/finally` and `raise` in the VM.
 - **Advanced Data Structures**: Added native support for `slice`, `tuple`, and complex `dict` operations.
