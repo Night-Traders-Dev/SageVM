@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.5] - 2026-06-14
+
+### Added
+- **Internal Security Limits**: Implemented mandatory runtime limits for stack depth (65,536), call depth (1,024), and exception handler nesting (1,024) to prevent Denial of Service (DoS).
+- **CLI UX Standard**: Unified `-h/--help` and `-v/--version` flag support across `sgvm` and `sgvmc` with consistent formatting and version reporting.
+- **ML Native Bridge**: Integrated `ml_native` module into the native delegation bridge.
+
+### Fixed
+- **Native Bridge Regressions**: Flagged missing support for `re` and `json` modules in the roadmap for future restoration.
+
 ## [0.9.4] - 2026-06-14
 
 ### Added

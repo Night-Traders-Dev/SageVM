@@ -4,7 +4,7 @@ This repository contains the SageLang ports of the SGVM (Sage General Virtual Ma
 
 ## Installation
 
-SageVM requires SageLang **v3.7.6** or higher for full feature parity (OOP, Exceptions, Delegation Bridge). The project uses a unified Python-based build system.
+SageVM requires SageLang **v3.7.7** or higher for full feature parity (OOP, Exceptions, Delegation Bridge). The project uses a unified Python-based build system.
 
 To build and install the tools to your system:
 
@@ -14,7 +14,7 @@ To build and install the tools to your system:
 
 This will automatically initialize the SageLang submodule, build the `sage` compiler, and then compile `sgvm.sage` and `sgvmc.sage` into native binaries.
 
-## Features (v0.9.4)
+## Features (v0.9.5)
 
 - **Delegation Bridge**: Full guest-to-host delegation for GPU, I/O, and native modules.
 - **Full Opcode Parity**: Supports all opcodes from SageLang v3.7.6 `MetalVM`.
@@ -30,22 +30,26 @@ A pure SageLang implementation of the SGVM interpreter. It can execute compiled 
 
 **Usage:**
 ```bash
-sgvm <file.sgvm> [--debug]
+sgvm <file.sgvm> [options]
 ```
 
 **Options:**
 - `--debug`: Enable diagnostic output, including constant pool entries, data offsets, and a full bytecode trace during execution.
+- `-h, --help`: Show help message.
+- `-v, --version`: Show version information.
 
 ### `sgvmc` (Compiler)
 A pure SageLang bytecode compiler/linker. It takes the intermediate VM output from the main SageLang compiler and packs it into a binary `.sgvm` artifact.
 
 **Usage:**
 ```bash
-sgvmc <input.sage> <output.sgvm> [--shebang]
+sgvmc <input.sage|.svm> <output.sgvm> [options]
 ```
 
 **Options:**
 - `--shebang`: Prepend a shebang line (`#!/usr/bin/env sgvm`) to the output file, allowing it to be executed directly if the execute bit is set.
+- `-h, --help`: Show help message.
+- `-v, --version`: Show version information.
 
 ### `sgvm_hexdump.sage` (Disassembler)
 A pure SageLang utility to disassemble `.sgvm` binaries into human-readable bytecode instructions, constant pools, and header metadata.
