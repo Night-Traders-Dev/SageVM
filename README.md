@@ -4,7 +4,7 @@ This repository contains the SageLang ports of the SGVM (Sage General Virtual Ma
 
 ## Installation
 
-SageVM requires SageLang **v3.6.5** or higher for full feature parity (OOP, Exceptions, Delegation Bridge). The project uses a unified Python-based build system.
+SageVM requires SageLang **v3.7.4** or higher for full feature parity (OOP, Exceptions, Delegation Bridge). The project uses a unified Python-based build system.
 
 To build and install the tools to your system:
 
