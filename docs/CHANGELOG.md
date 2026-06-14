@@ -2,18 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.9.4] - 2026-06-13
+## [0.9.4] - 2026-06-14
 
 ### Added
-- **Matrix Visualization**: Implemented `OP_MATH_PRINTM` for high-performance matrix and multi-dimensional array printing.
-- **Native Bridge Expansion**: Added guest-to-host delegation support for `net`, `gpu`, and `ml_native` host modules.
+- **SageLang v3.7.7 Support**: Updated the core compiler submodule and synchronized VM logic with the latest language specifications.
+- **AST Execution Bridge**: Implemented `OP_EXEC_AST_STMT` delegation to the host `sys.exec`, enabling execution of non-lowered code segments within the VM.
+- **Expanded Native Library Access**: Broadened the delegation bridge in `OP_IMPORT` to include `json` and `re` (regex) modules from the host standard library.
 
 ### Changed
-- **Documentation Sync**: Performed a comprehensive audit and synchronization of `ARCHITECTURE.md`, `SPEC.md`, `ROADMAP.md`, and `CHANGELOG.md` against the latest implementation.
-- **Binary Format Spec**: Corrected the binary format specification in documentation to include the mandatory `Function Count` field and clarified chunk indexing.
+- **Compiler Refactoring**: Cleaned up the VM implementation, removing legacy `end` keywords and standardizing loop increment logic for better performance on modern Sage backends.
 
 ### Fixed
-- **Opcode Table Accuracy**: Synchronized the documentation's opcode table with the implementation in `src/sgvm_core.sage`.
+- **Critical Exception Handler Leak**: Fixed a major architectural bug where exception handlers were not properly scoped to their call frames, leading to "leaked" handlers that erroneously caught exceptions in parent frames after a function returned.
+- **Stack & Scope Unwinding**: Improved `OP_RAISE` to perform a full unwinding of the call stack, local scopes, and operand stack to correctly restore the VM state at the catch site.
+- **Opcode Documentation Parity**: Performed a comprehensive audit and synchronization of the documentation website's opcode tables against the core implementation.
 
 ## [0.9.3] - 2026-06-09
 

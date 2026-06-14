@@ -11,9 +11,10 @@ This document outlines the features and standard library modules currently unsup
 - **Multi-threading**: Full support for `thread` module with a Global Interpreter Lock (GIL) and result capturing.
 - **Resource Management**: Guest memory tracking and enforcement via host-provided limits.
 - **GPU Hot-Paths**: Implementation of the `BC_OP_GPU_*` opcodes for Vulkan/OpenGL acceleration via host delegation.
+- **AST Delegation**: Full implementation of `OP_EXEC_AST_STMT` to allow execution of non-lowered code via `sys.exec()`.
 
 ## 🟡 Medium Difficulty (Native Bridging)
-- **Native Bridge Modules**: Re-implement and expose `re`, `ffi`, `mem`, `struct`, and `gc` native modules to guest VM (restoration of missing functionality).
+- **Native Bridge Modules**: Re-implement and expose `ffi`, `mem`, `struct`, and `gc` native modules to guest VM (restoration of missing functionality).
 - **Security Sandboxing**: Implement `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
 
 ## 🔴 High Difficulty (Complex Systems)
@@ -25,4 +26,3 @@ These tasks involve significant architectural additions or complex resource mana
 - **JIT/AOT Compilation**: Transitioning from a pure interpreter to a system that emits native machine code for the target architecture.
 - **Formal Verification**: Tools to mathematically prove the safety of a `.sgvm` binary before execution (as mentioned in `SPEC.md`).
 - **Bytecode Verifier**: Pre-execution verification for constant references and jump targets in `MetalVM` (restoration of missing functionality).
-- **AST Delegation**: Full implementation of `OP_EXEC_AST_STMT` to allow execution of non-lowered code via `sys.exec()`.

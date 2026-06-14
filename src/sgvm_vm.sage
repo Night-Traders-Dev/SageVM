@@ -259,11 +259,11 @@ class MetalVM:
             var j = 0
             while j < count:
                 push(arr, nil)
-                let j = j + 1
+                j = j + 1
             j = 0
             while j < count:
                 arr[count - 1 - j] = pop(self.stack)
-                let j = j + 1
+                j = j + 1
             push(self.stack, arr)
         elif op == OP_TUPLE:
             let count = ut.read_be16(self.code, self.ip)
@@ -272,11 +272,11 @@ class MetalVM:
             var j = 0
             while j < count:
                 push(t, nil)
-                let j = j + 1
+                j = j + 1
             j = 0
             while j < count:
                 t[count - 1 - j] = pop(self.stack)
-                let j = j + 1
+                j = j + 1
             push(self.stack, t)
         elif op == OP_DICT:
             let count = ut.read_be16(self.code, self.ip)
@@ -287,7 +287,7 @@ class MetalVM:
                 let val = pop(self.stack)
                 let key = pop(self.stack)
                 d[key] = val
-                let j = j + 1
+                j = j + 1
             push(self.stack, d)
         elif op == OP_GET_INDEX:
             let idx = pop(self.stack)
@@ -328,11 +328,11 @@ class MetalVM:
             var j = 0
             while j < argc:
                 push(args, nil)
-                let j = j + 1
+                j = j + 1
             j = 0
             while j < argc:
                 args[argc - 1 - j] = pop(self.stack)
-                let j = j + 1
+                j = j + 1
             let callee = pop(self.stack)
             if type(callee) == "dict":
                 if dict_has(callee, "__type__"):
@@ -351,7 +351,7 @@ class MetalVM:
                         while j < argc:
                             let arg_name = "__arg" + str(j)
                             self.scopes[len(self.scopes)-1][arg_name] = args[j]
-                            let j = j + 1
+                            j = j + 1
                     elif ctype == "class":
                         let instance = {"__type__": "instance", "__class__": callee}
                         if dict_has(callee["__methods__"], "init"):
@@ -371,7 +371,7 @@ class MetalVM:
                             while j < argc:
                                 let arg_name = "__arg" + str(j + 1)
                                 self.scopes[len(self.scopes)-1][arg_name] = args[j]
-                                let j = j + 1
+                                j = j + 1
                         else:
                             push(self.stack, instance)
                     else:
@@ -421,11 +421,11 @@ class MetalVM:
             var j = 0
             while j < argc:
                 push(args, nil)
-                let j = j + 1
+                j = j + 1
             j = 0
             while j < argc:
                 args[argc - 1 - j] = pop(self.stack)
-                let j = j + 1
+                j = j + 1
             let obj = pop(self.stack)
             if type(obj) == "dict":
                 var method = nil
@@ -450,7 +450,7 @@ class MetalVM:
                     while j < argc:
                         let arg_name = "__arg" + str(j + 1)
                         self.scopes[len(self.scopes)-1][arg_name] = args[j]
-                        let j = j + 1
+                        j = j + 1
                 else:
                     # Try host method call bridge
                     if dict_has(obj, name):
@@ -514,6 +514,14 @@ class MetalVM:
                         push(self.stack, val)
         elif op == OP_RETURN:
             let val = pop(self.stack)
+            # Security: Pop exception handlers belonging to the current frame to prevent leaks
+            while len(self.handlers) > 0:
+                let h = self.handlers[len(self.handlers)-1]
+                if h["call_depth"] >= len(self.call_stack):
+                    pop(self.handlers)
+                else:
+                    break
+            
             if len(self.call_stack) > 0:
                 pop(self.scopes)
                 let frame = pop(self.call_stack)
@@ -554,7 +562,7 @@ class MetalVM:
                         let mname = keys[k]
                         if not dict_has(cls["__methods__"], mname):
                             cls["__methods__"][mname] = methods[mname]
-                        let k = k + 1
+                        k = k + 1
                 else:
                     # Host class inheritance bridge (copy host attributes)
                     let keys = dict_keys(parent)
@@ -563,7 +571,7 @@ class MetalVM:
                         let mname = keys[k]
                         if not dict_has(cls["__methods__"], mname):
                             cls["__methods__"][mname] = parent[mname]
-                        let k = k + 1
+                        k = k + 1
             push(self.stack, cls)
         elif op == OP_GET_PROPERTY:
             let idx = ut.read_be16(self.code, self.ip)
@@ -598,7 +606,7 @@ class MetalVM:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
-            # Delegation Bridge: check host first
+            # Delegation Bridge: check host first for native modules
             try:
                 if name == "math": push(self.stack, math)
                 elif name == "io": push(self.stack, io)
@@ -608,6 +616,7 @@ class MetalVM:
                 elif name == "ml_native": push(self.stack, ml_native)
                 elif name == "thread": push(self.stack, host_thread)
                 else:
+                    # TODO: Implement full .sgvm dynamic loading
                     push(self.stack, {"__type__": "module", "__name__": name})
             catch e:
                 push(self.stack, {"__type__": "module", "__name__": name})
@@ -619,7 +628,14 @@ class MetalVM:
                 print "Error: Handler depth limit exceeded"
                 self.halted = true
                 return false
-            push(self.handlers, {"ip": handler, "stack_size": len(self.stack)})
+            # Store context for unwinding: ip, stack size, call depth, scopes depth, and current code chunk
+            push(self.handlers, {
+                "ip": handler, 
+                "stack_size": len(self.stack),
+                "call_depth": len(self.call_stack),
+                "scopes_len": len(self.scopes),
+                "code": self.code
+            })
         elif op == OP_END_TRY:
             pop(self.handlers)
         elif op == OP_RAISE:
@@ -628,9 +644,25 @@ class MetalVM:
             self.is_throwing = true
             if len(self.handlers) > 0:
                 let h = pop(self.handlers)
+                
+                # Unwind call stack to the frame where the handler was defined
+                while len(self.call_stack) > h["call_depth"]:
+                    pop(self.scopes)
+                    pop(self.call_stack)
+                
+                # Unwind local scopes within that frame
+                while len(self.scopes) > h["scopes_len"]:
+                    pop(self.scopes)
+                
+                # Restore execution state
+                self.code = h["code"]
                 self.ip = h["ip"]
+                
+                # Clear operand stack to the state when the handler was established
                 while len(self.stack) > h["stack_size"]:
                     pop(self.stack)
+                
+                # Push the exception value for the catch block
                 push(self.stack, self.exception_value)
                 self.is_throwing = false
             else:
@@ -639,7 +671,12 @@ class MetalVM:
         elif op == OP_EXEC_AST_STMT:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
-            print "Warning: OP_EXEC_AST_STMT delegation not implemented"
+            let ast_code = self.constants[idx]
+            if type(ast_code) == "string":
+                # Fallback: Use host execution engine for non-lowered code
+                sys.exec(ast_code)
+            else:
+                print "Error: OP_EXEC_AST_STMT requires a string constant"
         elif op == OP_BREAK:
             print "Error: Unexpected loop break opcode"
             self.halted = true

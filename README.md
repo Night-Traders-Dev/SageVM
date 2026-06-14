@@ -14,7 +14,7 @@ To build and install the tools to your system:
 
 This will automatically initialize the SageLang submodule, build the `sage` compiler, and then compile `sgvm.sage` and `sgvmc.sage` into native binaries.
 
-## Features (v0.9.3)
+## Features (v0.9.4)
 
 - **Delegation Bridge**: Full guest-to-host delegation for GPU, I/O, and native modules.
 - **Full Opcode Parity**: Supports all opcodes from SageLang v3.7.6 `MetalVM`.
