@@ -57,6 +57,8 @@ proc main():
         input_file = positional_args[0]
 
     if input_file == "":
+        print "❌ Error: No input file specified"
+        print ""
         print_usage()
         return
     var data = io.readbytes(input_file)

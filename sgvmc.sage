@@ -59,6 +59,8 @@ proc main():
         output_file = positional_args[1]
 
     if input_file == "" or output_file == "":
+        print "❌ Error: Input and output files must be specified"
+        print ""
         print_usage()
         return
     
