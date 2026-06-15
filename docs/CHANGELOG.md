@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.7] - 2026-06-16
+
+### Added
+- **Opcode Conformance Sync**: Performed a comprehensive synchronization with the authoritative `bytecode.h` from the SageLang repository.
+
+### Changed
+- **Documentation Maintenance**: Updated `ARCHITECTURE.md` and `ROADMAP.md` to reflect the current opcode alignment, removing stale warnings about `OP_MATH_PRINTM` index drift (now resolved in upstream).
+- **Opcode Status**: Formally classified `OP_MATH_PRINTM` (87) and `OP_HALT` (255) as intentional SageVM-only extensions.
+
+### Fixed
+- **Collision Clarification**: Explicitly documented that the `OP_RAISE` / `OP_GPU_END_COMMANDS` encoding collision is a compiler-specific mapping bug in `sgvmc` and does not affect the core VM definition.
+
 ## [0.9.6] - 2026-06-15
 
 ### Added

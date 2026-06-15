@@ -17,13 +17,13 @@ This document outlines the features and standard library modules currently unsup
 - **Native Bridge Modules**: Re-implement and expose `re`, `json`, `ffi`, `mem`, `struct`, and `gc` native modules to guest VM (restoration of missing functionality).
 - **Security Sandboxing**: Implement `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
 - **Opcode Handling**: Implement missing handlers for `OP_BREAK` and `OP_CONTINUE` in the `MetalVM` interpreter loop.
-- **Compiler Instruction Set**: Implement binary emission for `OP_MATH_PRINTM` (87) in `sgvm_compiler.sage`.
+- **Compiler Instruction Set**: Implement binary emission for `OP_MATH_PRINTM` (87) in `sgvm_compiler.sage`. (Note: `OP_MATH_PRINTM` is a SageVM-only extension).
 
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.
 
 - **Networking**: Full implementation of `net`, `socket`, and `http` modules, requiring a safe abstraction of the host's networking stack.
-- **Opcode Re-alignment**: Fix the `OP_RAISE` / `OP_GPU_END_COMMANDS` encoding collision (both using 68) in the compiler and core definitions.
+- **Opcode Re-alignment**: Fix the `OP_RAISE` / `OP_GPU_END_COMMANDS` encoding collision (both using 68) in the `sgvmc` compiler mapping.
 
 ## 🟣 Research / Future
 - **JIT/AOT Compilation**: Transitioning from a pure interpreter to a system that emits native machine code for the target architecture.
