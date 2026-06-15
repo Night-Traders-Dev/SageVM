@@ -368,6 +368,27 @@ class SGVMCompiler:
 
     proc compile(self, input_file, output_file, use_shebang):
         let ut = self.utils
+
+        # Security: Prevent command injection via shell metacharacters in file paths
+        # Space is allowed. Shell metacharacters and quotes are forbidden.
+        let forbidden = "; & | $ ( ) ` > < \\ \n ' \""
+
+        var fi = 0
+        while fi < len(input_file):
+            let c = input_file[fi]
+            if c != " " and contains(forbidden, c):
+                print "Error: Illegal character in input path: " + c
+                return false
+            fi = fi + 1
+
+        var fo = 0
+        while fo < len(output_file):
+            let c = output_file[fo]
+            if c != " " and contains(forbidden, c):
+                print "Error: Illegal character in output path: " + c
+                return false
+            fo = fo + 1
+
         var svm_file = input_file
         if endswith(input_file, ".sage"):
             let ext = ".svm"
