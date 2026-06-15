@@ -15,9 +15,9 @@ SageLang code follows a strictly defined path to execution:
 (Note: Full static bytecode verification is currently a roadmap item for the SageLang-based interpreter. Runtime enforcement is currently used to ensure safety.)
 
 Before and during execution, production SGVM bytecode MUST pass verification and runtime checks that ensure:
-- **Control Flow Integrity**: No illegal jumps; recursive depth is limited to 1,024 frames.
+- **Control Flow Integrity**: No illegal jumps; recursive depth is limited to 1,024 frames (`max_call_depth`).
 - **Type Safety**: Operations are performed on valid operand types.
-- **Boundary Checks**: No out-of-bounds access to memory or object arenas. Operand stack depth is limited to 65,536 entries. Exception handler nesting is limited to 1,024 levels.
+- **Boundary Checks**: No out-of-bounds access to memory or object arenas. Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions.
 
 ## 4. Execution Modes
