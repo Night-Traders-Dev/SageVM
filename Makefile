@@ -21,4 +21,4 @@ clean:
 	fi
 
 test: all
-	@python3 testing/run_suite.py
+	@python3 tests/run_tests.py
