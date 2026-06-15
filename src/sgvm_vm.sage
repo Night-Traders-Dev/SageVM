@@ -482,12 +482,13 @@ class MetalVM:
 
             # First try VM objects (dict-based)
 
-                var is_class_call = false
-                if dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
-                    method = obj["__methods__"][name]
-                    is_class_call = true
-                elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
-                    method = obj["__class__"]["__methods__"][name]
+            var is_class_call = false
+            var method = nil
+            if dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
+                method = obj["__methods__"][name]
+                is_class_call = true
+            elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
+                method = obj["__class__"]["__methods__"][name]
                 
                 if method != nil:
                     # Security: Prevent infinite recursion from exhausting host resources (DoS)

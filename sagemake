@@ -116,6 +116,9 @@ def build_sagevm(args):
     if res and res.returncode == 0:
         step_ok("native")
     else:
+        if res:
+            print(f"\n[DEBUG] stdout: {res.stdout}")
+            print(f"[DEBUG] stderr: {res.stderr}")
         step_fail("sgvm compilation failed")
 
     # Build sgvmc
@@ -124,6 +127,9 @@ def build_sagevm(args):
     if res and res.returncode == 0:
         step_ok("native")
     else:
+        if res:
+            print(f"\n[DEBUG] stdout: {res.stdout}")
+            print(f"[DEBUG] stderr: {res.stderr}")
         step_fail("sgvmc compilation failed")
 
 def perform_install(args):
