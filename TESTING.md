@@ -17,5 +17,7 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 2. Runs the compiled bytecode using `./sgvm`.
 3. Compares the output against the corresponding `.expected` file.
 
+Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification.
+
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
