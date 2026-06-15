@@ -5,12 +5,10 @@
 - `sgvm_disassembler.sage`: High-level bytecode to source code reconstruction tool.
 
 > [!CAUTION]
-> **BINARY COMPATIBILITY RISK**: There is a significant encoding mismatch between this implementation and the authoritative `bytecode.h` from the main SageLang repository.
-> - `OP_MATH_PRINTM` is defined as **45** in `bytecode.h` but as **87** here.
-> - `OP_RAISE` is defined as **58** in `bytecode.h` and this implementation's core, but the **compiler (sgvmc) incorrectly maps it to 68**.
-> - **Encoding Collision**: Opcode **68** is used for both `OP_RAISE` (by the compiler) and `OP_GPU_END_COMMANDS` (by the VM core), leading to undefined behavior when executing raised exceptions in GPU-enabled binaries.
-> - This causes a -1 shift for all subsequent opcodes (e.g., `OP_PUSH_ENV` is 46 in `bytecode.h` but 45 here).
-> - Binaries compiled with `sgvmc` are **not compatible** with the core `MetalVM` C implementation.
+> **BINARY COMPATIBILITY RISK**: The `sgvmc` compiler (SageVM toolset) currently has a known opcode mapping bug.
+> - `OP_RAISE` is defined as **58** in the authoritative `bytecode.h` and SageVM core, but the **compiler (sgvmc) incorrectly maps it to 68**.
+> - **Encoding Collision**: Opcode **68** is used for both `OP_RAISE` (by the compiler) and `OP_GPU_END_COMMANDS` (by the VM core).
+> - Binaries compiled with `sgvmc` containing exception handling are **not compatible** with the core `MetalVM` C implementation or GPU-enabled execution environments.
 
 ## Opcodes
 
@@ -105,8 +103,8 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_GPU_UPDATE_UNIFORM | 84 | gpu.update_uniform(handle, data) |
 | OP_GPU_CMD_PUSH_CONST | 85 | gpu.cmd_push_constants(cmd, layout, stages, data) |
 | OP_GPU_CMD_DISPATCH | 86 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
-| OP_MATH_PRINTM | 87 | math.printm(matrix) [NEW] |
-| OP_HALT | 0xFF | Halt execution |
+| OP_MATH_PRINTM | 87 | math.printm(matrix) [SageVM Extension] |
+| OP_HALT | 0xFF | Halt execution [SageVM Extension] |
 
 ## Native Bridge
 
