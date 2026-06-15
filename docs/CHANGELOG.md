@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.6] - 2026-06-15
+
+### Added
+- **Core Builtins**: Exposed common host-level functions (`clock`, `str`, `int`, `tonumber`, `len`, `print`, `range`, `type`) to the guest global scope.
+- **Experimental Native Modules**: Added `gc` and `reflect` modules as experimental stubs in the native bridge.
+
+### Fixed
+- **Opcode Encoding Audit**: Flagged a critical encoding collision where `OP_RAISE` (58) is incorrectly mapped to 68 (shared with `OP_GPU_END_COMMANDS`) by the `sgvmc` compiler.
+- **Compiler Instruction Gaps**: Identified missing implementation for `OP_MATH_PRINTM` (87) in the compiler's binary emission pass.
+- **VM Control Flow Gaps**: Identified missing handler implementations for `OP_BREAK` and `OP_CONTINUE` in the `MetalVM` interpreter.
+
+### Changed
+- **Documentation Parity**: Synchronized technical specifications with the current implementation, including explicit runtime safety limits and updated native bridge coverage.
+
 ## [0.9.5] - 2026-06-14
 
 ### Added

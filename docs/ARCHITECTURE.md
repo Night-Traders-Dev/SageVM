@@ -7,6 +7,8 @@
 > [!CAUTION]
 > **BINARY COMPATIBILITY RISK**: There is a significant encoding mismatch between this implementation and the authoritative `bytecode.h` from the main SageLang repository.
 > - `OP_MATH_PRINTM` is defined as **45** in `bytecode.h` but as **87** here.
+> - `OP_RAISE` is defined as **58** in `bytecode.h` and this implementation's core, but the **compiler (sgvmc) incorrectly maps it to 68**.
+> - **Encoding Collision**: Opcode **68** is used for both `OP_RAISE` (by the compiler) and `OP_GPU_END_COMMANDS` (by the VM core), leading to undefined behavior when executing raised exceptions in GPU-enabled binaries.
 > - This causes a -1 shift for all subsequent opcodes (e.g., `OP_PUSH_ENV` is 46 in `bytecode.h` but 45 here).
 > - Binaries compiled with `sgvmc` are **not compatible** with the core `MetalVM` C implementation.
 
@@ -118,10 +120,27 @@ The following modules are currently bridged:
 - **thread**: Native SageLang `thread` module (host-level threading).
 - **gpu**: Native SageLang `gpu` module (Vulkan/OpenGL acceleration).
 - **ml_native**: Native SageLang `ml_native` module (Machine Learning acceleration).
+- **gc**: (Experimental stub) Native SageLang garbage collector interface.
+- **reflect**: (Experimental stub) Native SageLang reflection interface.
 
-*Note: Modules like `re`, `ffi`, `mem`, `struct`, and `gc` are not currently exposed through the guest-to-host bridge in this implementation.*
+*Note: Modules like `re`, `ffi`, `mem`, and `struct` are not currently exposed through the guest-to-host bridge in this implementation.*
 
 Native bridging is implemented by tagging objects and function-like dictionaries with a `__native__` property. The `OP_CALL` and `OP_CALL_METHOD` opcodes detect these tags and dispatch execution to the VM's `call_native()` handler.
+
+## Core Builtins
+
+SGVM exposes several host-level functions directly in the global scope for performance and parity with the SageLang environment:
+
+| Builtin | Description |
+|---------|-------------|
+| `clock()` | Returns the current system clock time. |
+| `str(val)` | Converts a value to its string representation. |
+| `int(val)` | Converts a value to an integer. |
+| `tonumber(val)` | Converts a string to a number. |
+| `len(obj)` | Returns the length of an array, dictionary, or string. |
+| `print(val)` | Prints a value to standard output. |
+| `range(n)` | Generates a range object from 0 to n-1. |
+| `type(val)` | Returns the type name of a value. |
 
 ## Multi-threading & GIL
 
