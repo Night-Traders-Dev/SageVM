@@ -1,11 +1,12 @@
 import sys
+import io
 import sgvm_runner
 import sgvm_compiler
 import sgvm_disassembler_logic
 import sgvm_hexdump_logic
 import srvm_runner
 import srvm_compiler
-import io
+from sgvm_compiler import sys_exec, io_readfile, io_writebytes
 
 proc print_help():
     print "Usage: sagevm <command> [options]"
@@ -25,6 +26,8 @@ class SGVMCLI:
         return nil
 
     proc run(self):
+        # In compiled binary, sys might be shadowed or nil in some scopes
+        # Try to use it directly
         let args = sys.args()
         var cmd = ""
         if len(args) >= 2:
@@ -125,16 +128,7 @@ class SGVMCLI:
                 let rv_compiler = srvm_compiler.SGRVCompiler()
                 let sgrv_data = rv_compiler.compile(svm_data)
                 if sgrv_data != nil:
-                    # Workaround for io.writebytes bug in compiled binary
-                    var cmd = "python3 -c 'import sys; open(sys.argv[1], \"wb\").write(bytes(["
-                    var ci = 0
-                    while ci < len(sgrv_data):
-                        cmd = cmd + str(int(sgrv_data[ci]))
-                        if ci < len(sgrv_data) - 1:
-                            cmd = cmd + ","
-                        ci = ci + 1
-                    cmd = cmd + "]))' \"" + output_file + "\""
-                    sgvm_compiler.sys_exec(cmd)
+                    io_writebytes(output_file, sgrv_data)
                     print "✨ RISC-V translation complete."
                 else:
                     print "❌ RISC-V translation failed."

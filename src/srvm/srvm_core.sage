@@ -185,36 +185,65 @@ class RVEncoder:
         return nil
 
     proc encode_r(self, opcode, f3, f7, rd, rs1, rs2):
-        return (opcode & 0x7F) | ((rd & 0x1F) << 7) | ((f3 & 0x07) << 12) | ((rs1 & 0x1F) << 15) | ((rs2 & 0x1F) << 20) | ((f7 & 0x7F) << 25)
+        let o = int(opcode)
+        let f_3 = int(f3)
+        let f_7 = int(f7)
+        let r_d = int(rd)
+        let r_s1 = int(rs1)
+        let r_s2 = int(rs2)
+        return (o & 0x7F) | ((r_d & 0x1F) << 7) | ((f_3 & 0x07) << 12) | ((r_s1 & 0x1F) << 15) | ((r_s2 & 0x1F) << 20) | ((f_7 & 0x7F) << 25)
 
     proc encode_i(self, opcode, f3, rd, rs1, imm):
-        let i_imm = imm & 0xFFF
-        return (opcode & 0x7F) | ((rd & 0x1F) << 7) | ((f3 & 0x07) << 12) | ((rs1 & 0x1F) << 15) | (i_imm << 20)
+        let o = int(opcode)
+        let f = int(f3)
+        let r_d = int(rd)
+        let r_s1 = int(rs1)
+        let i = int(imm)
+        let i_imm = i & 0xFFF
+        var res = o & 0x7F
+        res = res | ((r_d & 0x1F) << 7)
+        res = res | ((f & 0x07) << 12)
+        res = res | ((r_s1 & 0x1F) << 15)
+        res = res | (i_imm << 20)
+        return res
 
     proc encode_s(self, opcode, f3, rs1, rs2, imm):
-        let i = imm & 0xFFF
+        let o = int(opcode)
+        let f = int(f3)
+        let r_s1 = int(rs1)
+        let r_s2 = int(rs2)
+        let i = int(imm) & 0xFFF
         let imm_4_0 = i & 0x1F
         let imm_11_5 = (i >> 5) & 0x7F
-        return (opcode & 0x7F) | (imm_4_0 << 7) | ((f3 & 0x07) << 12) | ((rs1 & 0x1F) << 15) | ((rs2 & 0x1F) << 20) | (imm_11_5 << 25)
+        return (o & 0x7F) | (imm_4_0 << 7) | ((f & 0x07) << 12) | ((r_s1 & 0x1F) << 15) | ((r_s2 & 0x1F) << 20) | (imm_11_5 << 25)
 
     proc encode_b(self, opcode, f3, rs1, rs2, imm):
-        let i = imm & 0x1FFF
+        let o = int(opcode)
+        let f = int(f3)
+        let r_s1 = int(rs1)
+        let r_s2 = int(rs2)
+        let i = int(imm) & 0x1FFF
         let b12 = (i >> 12) & 0x01
         let b11 = (i >> 11) & 0x01
         let b10_5 = (i >> 5) & 0x3F
         let b4_1 = (i >> 1) & 0x0F
-        return (opcode & 0x7F) | (b11 << 7) | (b4_1 << 8) | ((f3 & 0x07) << 12) | ((rs1 & 0x1F) << 15) | ((rs2 & 0x1F) << 20) | (b10_5 << 25) | (b12 << 31)
+        return (o & 0x7F) | (b11 << 7) | (b4_1 << 8) | ((f & 0x07) << 12) | ((r_s1 & 0x1F) << 15) | ((r_s2 & 0x1F) << 20) | (b10_5 << 25) | (b12 << 31)
 
     proc encode_u(self, opcode, rd, imm):
-        return (opcode & 0x7F) | ((rd & 0x1F) << 7) | (imm & 0xFFFFF000)
+        let o = int(opcode)
+        let r_d = int(rd)
+        let i = int(imm)
+        return (o & 0x7F) | ((r_d & 0x1F) << 7) | (i & 0xFFFFF000)
 
     proc encode_j(self, opcode, rd, imm):
-        let i = imm & 0x1FFFFF
+        let o = int(opcode)
+        let r_d = int(rd)
+        let i = int(imm) & 0x1FFFFF
         let b20 = (i >> 20) & 0x01
         let b19_12 = (i >> 12) & 0xFF
         let b11 = (i >> 11) & 0x01
         let b10_1 = (i >> 1) & 0x3FF
-        return (opcode & 0x7F) | ((rd & 0x1F) << 7) | (b19_12 << 12) | (b11 << 20) | (b10_1 << 21) | (b20 << 31)
+        return (o & 0x7F) | ((r_d & 0x1F) << 7) | (b19_12 << 12) | (b11 << 20) | (b10_1 << 21) | (b20 << 31)
 
 class SRVMUtils:
     proc init(self):

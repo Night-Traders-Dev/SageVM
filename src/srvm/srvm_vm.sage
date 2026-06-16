@@ -29,6 +29,7 @@ class SageVMState:
         
         self.heap = {} 
         self.call_stack = [] # Stack of [chunk_idx, pc, ra]
+        self.try_stack = [] # Stack of [catch_pc, call_stack_depth]
         
         # Register x2 is typically stack pointer (sp)
         self.x[2] = len(self.stack)
@@ -164,7 +165,9 @@ class SRVM:
         let rs1_val = self.state.x[instr.rs1]
         let imm = instr.imm_i
         let f3 = instr.funct3
-        if f3 == srvm_core.F3_ADDI: self.state.x[instr.rd] = rs1_val + imm
+        if f3 == srvm_core.F3_ADDI:
+            if imm == 0: self.state.x[instr.rd] = rs1_val
+            else: self.state.x[instr.rd] = rs1_val + imm
         elif f3 == srvm_core.F3_SLTI:
             if rs1_val < imm: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
@@ -194,7 +197,8 @@ class SRVM:
             return
 
         if f3 == srvm_core.F3_ADD:
-            if f7 == 0x00: self.state.x[instr.rd] = rs1_val + rs2_val
+            if f7 == 0x00: 
+                self.state.x[instr.rd] = rs1_val + rs2_val
             elif f7 == 0x20: self.state.x[instr.rd] = rs1_val - rs2_val
         elif f3 == srvm_core.F3_SLL: self.state.x[instr.rd] = rs1_val << (rs2_val & 0x3F)
         elif f3 == srvm_core.F3_SLT:
@@ -210,25 +214,35 @@ class SRVM:
 
     proc handle_vmsys(self, instr):
         let f3 = instr.funct3
-        let f7 = instr.funct7
+        let sub_op = instr.rs1
         
         if f3 == srvm_core.F3_VM_OPS:
-            if f7 == srvm_core.VMO_HALT:
+            if sub_op == srvm_core.VMO_HALT:
                 self.state.running = false
-            elif f7 == srvm_core.VMO_PRINT:
-                print str(self.state.x[instr.rs1])
-            elif f7 == srvm_core.VMO_PRINTM:
-                print str(self.state.x[instr.rs1])
-            elif f7 == srvm_core.VMO_PUSH_ENV:
+            elif sub_op == srvm_core.VMO_PRINT:
+                print str(self.state.x[10]) # Use a0
+            elif sub_op == srvm_core.VMO_PRINTM:
+                print str(self.state.x[10])
+            elif sub_op == srvm_core.VMO_PUSH_ENV:
                 push(self.state.call_stack, self.state.heap)
                 self.state.heap = {}
-            elif f7 == srvm_core.VMO_POP_ENV:
-                self.state.heap = pop(self.state.call_stack)
-            elif f7 == srvm_core.VMO_CALL:
-                let func_obj = self.state.x[instr.rs1]
+            elif sub_op == srvm_core.VMO_POP_ENV:
+                if len(self.state.call_stack) > 0:
+                    self.state.heap = pop(self.state.call_stack)
+            elif sub_op == srvm_core.VMO_CALL:
+                let func_obj = self.state.x[instr.rs2] # rs2 is the function object
+                # print "DEBUG: VMO_CALL func_obj=" + str(func_obj) + " type=" + type(func_obj)
                 var target_chunk = -1
                 if type(func_obj) == "number": target_chunk = int(func_obj)
-                elif type(func_obj) == "dict": target_chunk = int(func_obj["chunk_idx"])
+                elif type(func_obj) == "dict" and dict_has(func_obj, "chunk_idx"): target_chunk = int(func_obj["chunk_idx"])
+                elif type(func_obj) == "dict" and dict_has(func_obj, "__builtin__"):
+                    let b_name = func_obj["__builtin__"]
+                    if b_name == "str":
+                        self.state.x[10] = str(self.state.x[10]) # Result in a0
+                    elif b_name == "int":
+                        self.state.x[10] = int(self.state.x[10])
+                    self.state.pc = self.state.pc + 4
+                    return
                 
                 if target_chunk >= 0 and target_chunk < len(self.state.chunks):
                     push(self.state.call_stack, [self.state.current_chunk_idx, self.state.pc + 4, self.state.x[1]])
@@ -237,57 +251,85 @@ class SRVM:
                     self.state.pc = 0
                     self.state.x[1] = 0
                     return
-            elif f7 == srvm_core.VMO_ARRAY_LEN:
-                let obj = self.state.x[instr.rs1]
+            elif sub_op == srvm_core.VMO_ARRAY_LEN:
+                let obj = self.state.x[instr.rs2]
                 if type(obj) == "list": self.state.x[instr.rd] = len(obj)
                 elif type(obj) == "dict": self.state.x[instr.rd] = len(obj)
                 else: self.state.x[instr.rd] = 0
+            elif sub_op == srvm_core.VMO_SETUP_TRY:
+                let catch_offset = instr.imm_i
+                push(self.state.try_stack, [self.state.pc + catch_offset, len(self.state.call_stack)])
+            elif sub_op == srvm_core.VMO_END_TRY:
+                if len(self.state.try_stack) > 0:
+                    pop(self.state.try_stack)
+            elif sub_op == srvm_core.VMO_RAISE:
+                let exc_obj = self.state.x[10] # a0
+                if len(self.state.try_stack) > 0:
+                    let handler = pop(self.state.try_stack)
+                    let catch_pc = handler[0]
+                    let target_call_depth = handler[1]
+                    while len(self.state.call_stack) > target_call_depth:
+                        pop(self.state.call_stack)
+                    self.state.pc = catch_pc
+                    self.state.x[10] = exc_obj
+                    return
+                else:
+                    print "Unhandled exception: " + str(exc_obj)
+                    self.state.running = false
+                    return
         elif f3 == srvm_core.F3_OBJ_OPS:
-            if f7 == srvm_core.OBJ_GET_GLOBAL:
-                let idx = int(self.state.x[instr.rs1])
+            if sub_op == srvm_core.OBJ_GET_GLOBAL:
+                let idx = int(self.state.x[10]) # a0
                 let name = self.state.constants[idx]
-                self.state.x[instr.rd] = self.state.heap[name]
-            elif f7 == srvm_core.OBJ_SET_GLOBAL:
-                let idx = int(self.state.x[instr.rs1])
-                let val = self.state.x[instr.rs2]
+                if dict_has(self.state.heap, name):
+                    self.state.x[instr.rd] = self.state.heap[name]
+                elif name == "str":
+                    self.state.x[instr.rd] = {"__builtin__": "str"}
+                elif name == "int":
+                    self.state.x[instr.rd] = {"__builtin__": "int"}
+                else:
+                    self.state.x[instr.rd] = nil
+            elif sub_op == srvm_core.OBJ_SET_GLOBAL:
+                let idx = int(self.state.x[10]) # a0
+                let val = self.state.x[11] # a1
                 let name = self.state.constants[idx]
                 self.state.heap[name] = val
-            elif f7 == srvm_core.OBJ_GET_PROP:
-                let obj = self.state.x[instr.rs1]
-                let name_idx = int(self.state.x[instr.rs2])
+            elif sub_op == srvm_core.OBJ_GET_PROP:
+                let obj = self.state.x[instr.rs2]
+                let name_idx = int(self.state.x[10])
                 let name = self.state.constants[name_idx]
                 if type(obj) == "dict": self.state.x[instr.rd] = obj[name]
                 else: self.state.x[instr.rd] = nil
-            elif f7 == srvm_core.OBJ_SET_PROP:
-                let obj = self.state.x[instr.rs1]
-                let name_idx = int(self.state.x[instr.rs2])
+            elif sub_op == srvm_core.OBJ_SET_PROP:
+                let obj = self.state.x[instr.rs2]
+                let name_idx = int(self.state.x[10])
+                let val = self.state.x[11]
                 let name = self.state.constants[name_idx]
-                let val = self.state.x[10] # a0
                 if type(obj) == "dict": obj[name] = val
-            elif f7 == srvm_core.OBJ_NEW_FUNC:
-                let chunk_idx = self.state.x[instr.rs1]
+            elif sub_op == srvm_core.OBJ_NEW_FUNC:
+                let chunk_idx = int(self.state.x[10])
                 self.state.x[instr.rd] = {"type": "function", "chunk_idx": chunk_idx}
-            elif f7 == srvm_core.OBJ_ARRAY_NEW:
-                let size = int(self.state.x[instr.rs1])
-                let init_val = self.state.x[instr.rs2]
+            elif sub_op == srvm_core.OBJ_ARRAY_NEW:
+                let size = int(self.state.x[10])
+                let init_val = self.state.x[11]
                 var arr = []
                 var i = 0
                 while i < size:
                     push(arr, init_val)
                     i = i + 1
                 self.state.x[instr.rd] = arr
-            elif f7 == srvm_core.OBJ_GET_INDEX:
-                let obj = self.state.x[instr.rs1]
-                let idx = int(self.state.x[instr.rs2])
+            elif sub_op == srvm_core.OBJ_GET_INDEX:
+                let obj = self.state.x[instr.rs2]
+                let idx = int(self.state.x[10])
                 if type(obj) == "list" and idx >= 0 and idx < len(obj):
                     self.state.x[instr.rd] = obj[idx]
                 elif type(obj) == "dict":
                     self.state.x[instr.rd] = obj[idx]
                 else: self.state.x[instr.rd] = nil
-            elif f7 == srvm_core.OBJ_SET_INDEX:
-                let obj = self.state.x[instr.rs1]
-                let idx = int(self.state.x[instr.rs2])
-                let val = self.state.x[10] # a0
+            elif sub_op == srvm_core.OBJ_SET_INDEX:
+                let obj = self.state.x[instr.rs2]
+                let idx = int(self.state.x[10])
+                let val = self.state.x[11]
                 if type(obj) == "list" and idx >= 0 and idx < len(obj):
                     obj[idx] = val
                 elif type(obj) == "dict":
