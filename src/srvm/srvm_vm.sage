@@ -132,7 +132,7 @@ class SRVM:
             self.state.running = false
 
     proc handle_ldc(self, instr):
-        let idx = (instr.imm_u >> 12) & 0xFFFFF
+        let idx = (instr.decode_u_imm() >> 12) & 0xFFFFF
         if idx >= 0 and idx < len(self.state.constants):
             self.state.x[instr.rd] = self.state.constants[idx]
         else:
@@ -256,6 +256,8 @@ class SRVM:
                         self.state.x[10] = str(self.state.x[10]) # Result in a0
                     elif b_name == "int":
                         self.state.x[10] = int(self.state.x[10])
+                    elif b_name == "slice":
+                        self.state.x[10] = slice(self.state.x[10], self.state.x[11], self.state.x[12])
                     self.state.pc = self.state.pc + 4
                     return
                 
@@ -302,6 +304,8 @@ class SRVM:
                     self.state.x[instr.rd] = {"__builtin__": "str"}
                 elif name == "int":
                     self.state.x[instr.rd] = {"__builtin__": "int"}
+                elif name == "slice":
+                    self.state.x[instr.rd] = {"__builtin__": "slice"}
                 else:
                     self.state.x[instr.rd] = nil
             elif sub_op == srvm_core.OBJ_SET_GLOBAL:

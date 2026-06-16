@@ -91,6 +91,7 @@ class MetalVM:
         self.globals["print"] = "__builtin_print"
         self.globals["range"] = "__builtin_range"
         self.globals["type"] = "__builtin_type"
+        self.globals["slice"] = "__builtin_slice"
         
         # Advanced GC builtins
         self.globals["gc_collect"] = "__builtin_gc_collect"
@@ -149,6 +150,8 @@ class MetalVM:
             return range(args[0])
         elif callee == "__builtin_type":
             return type(args[0])
+        elif callee == "__builtin_slice":
+            return slice(args[0], args[1], args[2])
         elif callee == "__builtin_math_printm":
             let matrix = args[0]
             if type(matrix) != "array":

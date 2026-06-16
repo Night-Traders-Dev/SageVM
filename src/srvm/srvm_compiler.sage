@@ -152,6 +152,20 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_XORI, rd, rs1, -1))
                 push(self.reg_stack, rd)
 
+            elif op == sgvm_core.OP_SHIFT_LEFT:
+                let rs2 = pop(self.reg_stack)
+                let rs1 = pop(self.reg_stack)
+                let rd = self.alloc_reg()
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_SLL, 0, rd, rs1, rs2))
+                push(self.reg_stack, rd)
+
+            elif op == sgvm_core.OP_SHIFT_RIGHT:
+                let rs2 = pop(self.reg_stack)
+                let rs1 = pop(self.reg_stack)
+                let rd = self.alloc_reg()
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_SRL, 0, rd, rs1, rs2))
+                push(self.reg_stack, rd)
+
             elif op == sgvm_core.OP_EQUAL:
                 let rs2 = pop(self.reg_stack)
                 let rs1 = pop(self.reg_stack)
@@ -413,8 +427,8 @@ class StackToRiscVTranslator:
         return self.output_bytes
 
 class SGRVCompiler:
-    proc init(self, constants):
-        self.translator = StackToRiscVTranslator(constants)
+    proc init(self):
+        self.translator = StackToRiscVTranslator(nil)
         self.utils = srvm_core.SRVMUtils()
 
     proc compile(self, sgvm_data):
