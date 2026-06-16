@@ -41,6 +41,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
 - **Control Flow Integrity**: No illegal jumps; recursive depth is limited to 1,024 frames (`max_call_depth`).
 - **Type Safety**: Operations are performed on valid operand types.
 - **Boundary Checks**: No out-of-bounds access to memory or object arenas. Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
+- **Path Sanitization**: Compiler validates input and output file paths against shell metacharacters to prevent command injection.
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions.
 
 ## 4. Execution Modes
@@ -58,3 +59,18 @@ The kernel interacts with SGVM via the following internal interfaces:
 
 ## 6. Object System & GC
 SGVM features a reference-tracked object system with a built-in Mark-and-Sweep garbage collector. Objects (primarily Arrays and Dictionaries) are capability-tagged and reside in dedicated memory arenas.
+
+---
+
+## 7. Opcode Conformance
+
+### 7.1 SageVM Extensions
+The following opcodes are SageVM-specific extensions not found in the core `bytecode.h`:
+- `OP_MATH_PRINTM` (87): Native matrix visualization.
+- `OP_GET_LOCAL` (88): Optimized local variable access (Roadmap).
+- `OP_SET_LOCAL` (89): Optimized local variable assignment (Roadmap).
+- `OP_HALT` (255): Unconditional VM termination.
+
+### 7.2 Known Incompatibilities
+- **GPU Instruction Set**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes (59-86) in the core spec.
+- **Raise Encoding**: The `sgvmc` compiler (SVM) currently expects an incorrect encoding (`0x44`) for `OP_RAISE`, which conflicts with `OP_GPU_END_COMMANDS` in the authoritative spec.

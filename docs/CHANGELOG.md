@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.8] - 2026-06-17
+
+### Added
+- **Local Variable Constants**: Added `OP_GET_LOCAL` (88) and `OP_SET_LOCAL` (89) constants to `sgvm_core.sage`.
+- **Path Sanitization**: Implemented strict validation of input/output file paths in the compiler to prevent shell command injection.
+
+### Changed
+- **CLI Documentation**: Synchronized `README.md` with the current CLI flags (`--safe`, `--no-ffi`).
+- **Version Alignment**: Updated reported version to `0.9.8` in documentation to match `sgvm_cli.sage`.
+
 ## [0.9.7] - 2026-06-16
 
 ### Added

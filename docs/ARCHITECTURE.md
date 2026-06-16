@@ -26,10 +26,41 @@ This pipeline ensures that developers can inspect the low-level structure of the
 (Refer to `SPEC.md` for the complete opcode table.)
 
 ### Custom VMSYS Opcodes
-SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM-specific system functionality:
-- `funct3 = 000` (VM Operations): HALT, PRINT, PRINTM, CALL, PUSH_ENV, POP_ENV, SETUP_TRY, END_TRY, RAISE.
-- `funct3 = 001` (GPU Operations): Standard 28 GPU opcodes.
-- `funct3 = 010` (Object Operations): GET_GLOBAL, SET_GLOBAL, GET_PROP, SET_PROP, ARRAY_NEW, etc.
+SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM-specific system functionality. The specific operation is determined by the `funct7` field:
+
+- **funct3 = 000 (VM Operations)**:
+  - `0x00`: NOP
+  - `0x01`: HALT
+  - `0x02`: PUSH_ENV
+  - `0x03`: POP_ENV
+  - `0x04`: CALL
+  - `0x05`: SETUP_TRY
+  - `0x06`: END_TRY
+  - `0x07`: RAISE
+  - `0x08`: IMPORT
+  - `0x09`: PRINT
+  - `0x0A`: ARRAY_LEN
+  - `0x0B`: PRINTM
+  - `0x0C`: EXEC_AST
+
+- **funct3 = 001 (GPU Operations)**:
+  - > ⚠️ **Encoding Mismatch**: SRVM currently utilizes a legacy 2D-accelerated GPU instruction set (POLL_EVENTS to BUFFER_CREATE) which is incompatible with the Vulkan-like `BC_OP_GPU_*` opcodes defined in the authoritative `bytecode.h`.
+
+- **funct3 = 010 (Object Operations)**:
+  - `0x00`: GET_GLOBAL
+  - `0x01`: SET_GLOBAL
+  - `0x02`: NEW_CLASS
+  - `0x03`: INHERIT
+  - `0x04`: METHOD_BIND
+  - `0x05`: GET_PROP
+  - `0x06`: SET_PROP
+  - `0x07`: NEW_FUNC
+  - `0x08`: ARRAY_NEW
+  - `0x09`: DICT_NEW
+  - `0x0A`: TUPLE_NEW
+  - `0x0B`: GET_INDEX
+  - `0x0C`: SET_INDEX
+  - `0x0D`: SLICE
 
 ---
 [Existing Content...]
@@ -128,6 +159,8 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_GPU_CMD_PUSH_CONST | 85 | gpu.cmd_push_constants(cmd, layout, stages, data) |
 | OP_GPU_CMD_DISPATCH | 86 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
 | OP_MATH_PRINTM | 87 | math.printm(matrix) [SageVM Extension] |
+| OP_GET_LOCAL | 88 | Get a local variable value |
+| OP_SET_LOCAL | 89 | Set a local variable value |
 | OP_HALT | 0xFF | Halt execution [SageVM Extension] |
 
 ## Native Bridge
