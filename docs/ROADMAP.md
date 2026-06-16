@@ -23,6 +23,7 @@ These tasks involve significant architectural additions or complex resource mana
 
 - **Networking**: Full implementation of `socket` and `http` modules, requiring a safe abstraction of the host's networking stack.
 - **Bytecode Verifier**: Pre-execution verification for constant pool integrity and jump target validity.
+- **Recursion/Stack Depth**: 🟡 SRVM currently has limited call stack depth for deep recursion (e.g., recursive Fibonacci > 20).
 
 ## 🟣 Research / Future
 - **JIT/AOT Compilation**: 🟡 Currently in progress (Phase 4: JIT Compilation Target). Infrastructure (Memory Manager, RISC-V Emitter) and OSR hooks implemented.
