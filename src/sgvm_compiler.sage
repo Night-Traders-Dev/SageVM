@@ -306,7 +306,7 @@ class SGVMCompiler:
                     elif op == 0x37: op = 55 # BC_OP_INHERIT
                     elif op == 0x38: op = 56 # BC_OP_SETUP_TRY
                     elif op == 0x39: op = 57 # BC_OP_END_TRY
-                    elif op == 0x44: op = 68 # BC_OP_RAISE
+                    elif op == 0x44: op = 58 # BC_OP_RAISE
                     elif op == 0x08: op = 8  # BC_OP_DEFINE_FUNCTION (aligned)
                     elif op == 0x09: op = 9  # BC_OP_GET_PROPERTY
                     elif op == 0x0a: op = 10 # BC_OP_SET_PROPERTY

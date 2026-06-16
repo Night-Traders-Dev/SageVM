@@ -27,7 +27,6 @@ let g_gil = host_thread.mutex()
 
 class MetalVM:
     proc init(self):
-        print "DEBUG: MetalVM.init called"
         self.stack = []
         self.constants = []
         self.chunks = []
@@ -41,7 +40,6 @@ class MetalVM:
         self.is_throwing = false
         self.exception_value = nil
         self.trace = false
-        print "DEBUG: VM initialized, trace=" + str(self.trace)
         self.modules = {}
         self.utils = SGVMUtils()
         # Security: Limits to prevent Denial of Service (DoS) via resource exhaustion
@@ -56,7 +54,7 @@ class MetalVM:
 
     proc setup_builtins(self):
         # Native Bridge: Expose host standard library to guest VM
-        self.globals["math"] = {"__host_mod__": math}
+        self.globals["math"] = {"__host_mod__": math, "printm": "__builtin_math_printm"}
         self.globals["io"] = {"__host_mod__": io}
         self.globals["sys"] = {"__host_mod__": sys}
         self.globals["net"] = {"__host_mod__": net}
@@ -441,6 +439,28 @@ class MetalVM:
                     push(self.stack, range(args[0]))
                 elif callee == "__builtin_type":
                     push(self.stack, type(args[0]))
+                elif callee == "__builtin_math_printm":
+                    let matrix = args[0]
+                    if type(matrix) != "array":
+                        print "Error: math.printm() expects an array"
+                        push(self.stack, nil)
+                    else:
+                        print "["
+                        var mi = 0
+                        while mi < len(matrix):
+                            let row = matrix[mi]
+                            if type(row) == "array":
+                                var parts = []
+                                var mj = 0
+                                while mj < len(row):
+                                    push(parts, str(row[mj]))
+                                    mj = mj + 1
+                                print "  [" + join(parts, ", ") + "]"
+                            else:
+                                print "  " + str(row)
+                            mi = mi + 1
+                        print "]"
+                        push(self.stack, nil)
                 else:
                     print "Error: Unknown builtin: " + callee
                     push(self.stack, nil)
@@ -475,12 +495,6 @@ class MetalVM:
                 args[argc - 1 - j] = pop(self.stack)
                 j = j + 1
             let obj = pop(self.stack)
-            if self.trace:
-                let keys = []
-                if type(obj) == "dict": keys = dict_keys(obj)
-                print "DEBUG: CALL_METHOD name=" + name + " argc=" + str(argc) + " obj keys=" + str(keys)
-
-            # First try VM objects (dict-based)
 
             var is_class_call = false
             var method = nil
@@ -489,55 +503,34 @@ class MetalVM:
                 is_class_call = true
             elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
                 method = obj["__class__"]["__methods__"][name]
+            
+            if method != nil:
+                # Security: Prevent infinite recursion from exhausting host resources (DoS)
+                if len(self.call_stack) >= self.max_call_depth:
+                    print "Error: Call depth limit exceeded"
+                    self.halted = true
+                    return false
+                push(self.call_stack, {"ip": self.ip, "code": self.code})
+                self.code = self.chunks[method["__chunk__"]]
+                self.ip = 0
+                push(self.scopes, {})
                 
-                if method != nil:
-                    # Security: Prevent infinite recursion from exhausting host resources (DoS)
-                    if len(self.call_stack) >= self.max_call_depth:
-                        print "Error: Call depth limit exceeded"
-                        self.halted = true
-                        return false
-                    push(self.call_stack, {"ip": self.ip, "code": self.code})
-                    self.code = self.chunks[method["__chunk__"]]
-                    self.ip = 0
-                    push(self.scopes, {})
-                    
-                    if is_class_call:
-                        # Direct class method call (e.g. Base.init(self, name))
-                        j = 0
-                        while j < argc:
-                            let arg_name = "__arg" + str(j)
-                            self.scopes[len(self.scopes)-1][arg_name] = args[j]
-                            j = j + 1
-                    else:
-                        # Instance method call (e.g. obj.greet())
-                        # Pass self as __arg0
-                        self.scopes[len(self.scopes)-1]["__arg0"] = obj
-                        j = 0
-                        while j < argc:
-                            let arg_name = "__arg" + str(j + 1)
-                            self.scopes[len(self.scopes)-1][arg_name] = args[j]
-                            j = j + 1
+                if is_class_call:
+                    # Direct class method call (e.g. Base.init(self, name))
+                    j = 0
+                    while j < argc:
+                        let arg_name = "__arg" + str(j)
+                        self.scopes[len(self.scopes)-1][arg_name] = args[j]
+                        j = j + 1
                 else:
-                    # Try host method call bridge
-                    if dict_has(obj, name):
-                        let h_method = obj[name]
-                        if type(h_method) == "function" or type(h_method) == "native fn":
-                             if argc == 0: push(self.stack, sys.call(h_method))
-                             elif argc == 1: push(self.stack, sys.call(h_method, args[0]))
-                             elif argc == 2: push(self.stack, sys.call(h_method, args[0], args[1]))
-                             elif argc == 3: push(self.stack, sys.call(h_method, args[0], args[1], args[2]))
-                             elif argc == 4: push(self.stack, sys.call(h_method, args[0], args[1], args[2], args[3]))
-                             elif argc == 5: push(self.stack, sys.call(h_method, args[0], args[1], args[2], args[3], args[4]))
-                             elif argc == 6: push(self.stack, sys.call(h_method, args[0], args[1], args[2], args[3], args[4], args[5]))
-                             elif argc == 7: push(self.stack, sys.call(h_method, args[0], args[1], args[2], args[3], args[4], args[5], args[6]))
-                             elif argc == 8: push(self.stack, sys.call(h_method, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
-                             else:
-                                 print "Error: Host method call with >8 args not implemented"
-                                 push(self.stack, nil)
-                        else:
-                             push(self.stack, h_method)
-                    else:
-                        print "Error: Method " + name + " not found"
+                    # Instance method call (e.g. obj.greet())
+                    # Pass self as __arg0
+                    self.scopes[len(self.scopes)-1]["__arg0"] = obj
+                    j = 0
+                    while j < argc:
+                        let arg_name = "__arg" + str(j + 1)
+                        self.scopes[len(self.scopes)-1][arg_name] = args[j]
+                        j = j + 1
             elif type(obj) == "module":
                 # Host module method/attribute access
                 if dict_has(obj, name):
@@ -560,7 +553,7 @@ class MetalVM:
                 else:
                     print "Error: Module attribute " + name + " not found"
             else:
-                # Host primitive method call bridge (e.g. strings)
+                # Host primitive or object method call bridge
                 if dict_has(obj, name):
                     let val = obj[name]
                     if type(val) == "function" or type(val) == "native fn":
@@ -574,10 +567,33 @@ class MetalVM:
                         elif argc == 7: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5], args[6]))
                         elif argc == 8: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
                         else:
-                            print "Error: Host primitive method call with >8 args not implemented"
+                            print "Error: Host method call with >8 args not implemented"
                             push(self.stack, nil)
+                    elif val == "__builtin_math_printm":
+                        let matrix = args[0]
+                        if type(matrix) != "array":
+                            print "Error: math.printm() expects an array"
+                        else:
+                            print "["
+                            var mi = 0
+                            while mi < len(matrix):
+                                let row = matrix[mi]
+                                if type(row) == "array":
+                                    var parts = []
+                                    var mj = 0
+                                    while mj < len(row):
+                                        push(parts, str(row[mj]))
+                                        mj = mj + 1
+                                    print "  [" + join(parts, ", ") + "]"
+                                else:
+                                    print "  " + str(row)
+                                mi = mi + 1
+                            print "]"
+                        push(self.stack, nil)
                     else:
                         push(self.stack, val)
+                else:
+                    print "Error: Method " + name + " not found"
         elif op == OP_RETURN:
             let val = pop(self.stack)
             # Security: Pop exception handlers belonging to the current frame to prevent leaks
@@ -589,7 +605,8 @@ class MetalVM:
                     break
             
             if len(self.call_stack) > 0:
-                pop(self.scopes)
+                if len(self.scopes) > 1:
+                    pop(self.scopes)
                 let frame = pop(self.call_stack)
                 self.ip = frame["ip"]
                 self.code = frame["code"]
@@ -680,6 +697,7 @@ class MetalVM:
                     m["sqrt"] = math.sqrt
                     m["sin"] = math.sin
                     m["cos"] = math.cos
+                    m["printm"] = "__builtin_math_printm"
                     push(self.stack, m)
                 elif name == "io": push(self.stack, io)
                 elif name == "sys":
