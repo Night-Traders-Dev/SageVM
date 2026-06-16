@@ -110,27 +110,24 @@ def build_sagevm(args):
     if args.debug:
         env["CFLAGS_EXTRA"] += " -DSAGE_DEBUG"
 
-    # Build sgvm
-    step("Compiling sgvm.sage")
-    res = run_cmd([str(SAGE_BIN), "--compile", "sgvm.sage", "-o", "sgvm"], env=env)
+    # Build sagevm
+    step("Compiling sagevm.sage")
+    res = run_cmd([str(SAGE_BIN), "--compile", "sagevm.sage", "-o", "sagevm"], env=env)
     if res and res.returncode == 0:
         step_ok("native")
     else:
         if res:
             print(f"\n[DEBUG] stdout: {res.stdout}")
             print(f"[DEBUG] stderr: {res.stderr}")
-        step_fail("sgvm compilation failed")
-
-    # Build sgvmc
-    step("Compiling sgvmc.sage")
-    res = run_cmd([str(SAGE_BIN), "--compile", "sgvmc.sage", "-o", "sgvmc"], env=env)
-    if res and res.returncode == 0:
-        step_ok("native")
-    else:
-        if res:
-            print(f"\n[DEBUG] stdout: {res.stdout}")
-            print(f"[DEBUG] stderr: {res.stderr}")
-        step_fail("sgvmc compilation failed")
+        step_fail("sagevm compilation failed")
+    
+    # Symlinks for backward compatibility
+    step("Creating backward compatibility symlinks")
+    for b in ["sgvm", "sgvmc"]:
+        if os.path.exists(b):
+            os.remove(b)
+        os.symlink("sagevm", b)
+    step_ok("done")
 
 def perform_install(args):
     if not args.install:
@@ -140,7 +137,7 @@ def perform_install(args):
     section("Installing SageVM system-wide")
     
     # Simple install logic: copy binaries to /usr/local/bin
-    bins = ["sgvm", "sgvmc"]
+    bins = ["sagevm"]
     for b in bins:
         step(f"Installing {b}")
         res = run_cmd(["sudo", "cp", b, f"/usr/local/bin/{b}"])

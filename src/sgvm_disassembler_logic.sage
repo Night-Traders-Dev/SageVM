@@ -49,8 +49,10 @@ class SGVMDisassembler:
         # Magic "SGVM"
         if len(self.data) - self.pos < 4: return false
         var magic = ""
-        for i in range(4):
-            magic = magic + chr(self.ut.my_int(self.data[self.pos + i]))
+        var mi = 0
+        while mi < 4:
+            magic = magic + chr(self.ut.my_int(self.data[self.pos + mi]))
+            mi = mi + 1
         self.pos = self.pos + 4
         if magic != "SGVM":
             print "ERROR: Bad magic " + magic
@@ -68,7 +70,8 @@ class SGVMDisassembler:
         self.pos = self.pos + 2
         
         # Parse constants
-        for ci in range(self.const_count):
+        var ci = 0
+        while ci < self.const_count:
             let ctype = self.ut.my_int(self.data[self.pos])
             self.pos = self.pos + 1
             if ctype == 1: # Number
@@ -79,19 +82,23 @@ class SGVMDisassembler:
                 let slen = self.ut.read_be16(self.data, self.pos)
                 self.pos = self.pos + 2
                 var s = ""
-                for k in range(slen):
+                var k = 0
+                while k < slen:
                     s = s + chr(self.ut.my_int(self.data[self.pos + k]))
+                    k = k + 1
                 self.pos = self.pos + slen
                 push(self.consts, {"type": "string", "value": s})
             else:
                 push(self.consts, {"type": "unknown", "value": nil})
+            ci = ci + 1
         
         # Chunk total (BE32)
         self.chunk_total = self.ut.read_be32(self.data, self.pos)
         self.pos = self.pos + 4
         
         # Parse chunks
-        for chunk_idx in range(self.chunk_total):
+        var chunk_idx = 0
+        while chunk_idx < self.chunk_total:
             let chunk_len = self.ut.read_be32(self.data, self.pos)
             self.pos = self.pos + 4
             let end_pos = self.pos + chunk_len
@@ -129,6 +136,9 @@ class SGVMDisassembler:
                 
                 push(instructions, instr)
             push(self.chunks, instructions)
+            chunk_idx = chunk_idx + 1
+        
+        return true
         
         return true
 
@@ -221,28 +231,3 @@ class SGVMDisassembler:
         let high = int(val / 16) % 16
         let low = int(val) % 16
         return chars[high] + chars[low]
-
-proc main():
-    let args = sys.args()
-    var input_file = ""
-    var mode = "sage"
-
-    for i in range(len(args)):
-        if i == 0: continue
-        let a = args[i]
-        if a == "--svm": mode = "svm"
-        elif a == "--sage": mode = "sage"
-        else: input_file = a
-
-    if input_file == "":
-        print "Usage: sage tools/sgvm_disassembler.sage <file.sgvm> [--svm | --sage]"
-        return
-
-    let dis = SGVMDisassembler(input_file)
-    if dis.disassemble():
-        if mode == "svm":
-            print dis.generate_svm()
-        else:
-            print dis.generate_sage()
-
-main()
