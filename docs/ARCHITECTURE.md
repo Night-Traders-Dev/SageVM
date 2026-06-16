@@ -1,11 +1,37 @@
-## Tools
-- **`sagevm`**: The unified entry point for all operations.
-- `sgvmc.sage` (Logic): Compiled into `sagevm compile`.
-- `sgvm.sage` (Logic): Compiled into `sagevm run`.
-- `sgvm_hexdump.sage` (Logic): Compiled into `sagevm hex`.
-- `sgvm_disassembler.sage` (Logic): Compiled into `sagevm dis`.
+# SageVM Architecture
 
-The project provides symlinks (`sgvm`, `sgvmc`) to the `sagevm` binary for backward compatibility.
+SageVM implements a dual-VM architecture, supporting both a traditional stack-based virtual machine (SVM) and a register-based virtual machine (SRVM).
+
+## 1. SVM (Stack Virtual Machine)
+The traditional SGVM architecture optimized for code density. Uses variable-length bytecode and a stack-based operand model.
+
+## 2. SRVM (RISC-V Register Virtual Machine)
+A modern, register-based architecture mapped to the RV64I specification.
+- **Register File**: 32 x 64-bit general-purpose registers (x0-x31).
+- **Instruction Encoding**: Fixed 32-bit width for efficient decoding.
+- **Addressing**: Load-Store architecture separating computation from memory.
+
+### SRVM Binary Format (.sgrv)
+The `.sgrv` format is a chunk-based binary format:
+1. **Header**: "SGRV" (4 bytes), Version (2 bytes).
+2. **Constant Pool**: Typed constant array for global data.
+3. **Chunk Table**: A count of total function chunks.
+4. **Chunks**: Each chunk contains:
+    - Length (4 bytes, big-endian)
+    - Code (Array of 32-bit instructions)
+
+## 3. Opcodes & System Calls
+
+(Refer to `SPEC.md` for the complete opcode table.)
+
+### Custom VMSYS Opcodes
+SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM-specific system functionality:
+- `funct3 = 000` (VM Operations): HALT, PRINT, PRINTM, CALL, PUSH_ENV, POP_ENV, SETUP_TRY, END_TRY, RAISE.
+- `funct3 = 001` (GPU Operations): Standard 28 GPU opcodes.
+- `funct3 = 010` (Object Operations): GET_GLOBAL, SET_GLOBAL, GET_PROP, SET_PROP, ARRAY_NEW, etc.
+
+---
+[Existing Content...]
 
 ## Opcodes
 

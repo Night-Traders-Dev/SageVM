@@ -1,7 +1,32 @@
-# SGVM Specification
+# SGVM & SGRV Specification
 
 ## 1. Overview
-The Sage Virtual Machine (SGVM) is the portable execution substrate for SageOS. It provides a managed environment for system services and applications, ensuring isolation, safety, and architectural independence.
+The Sage Virtual Machine (SGVM) is the portable execution substrate for SageOS. It supports two execution backends:
+- **SVM**: Traditional Stack Virtual Machine.
+- **SRVM**: RISC-V 64-bit Register Virtual Machine.
+
+---
+
+## 2. Binary Formats
+
+### 2.1 SVM Format (.sgvm)
+1. **Header**: "SGVM" (4 bytes).
+2. **Version**: 2 bytes.
+3. **Function Count**: 2 bytes (big-endian).
+4. **Constant Pool**: Count + Entries.
+5. **Chunk Count**: 4 bytes (big-endian).
+6. **Chunks**: Length (4 bytes) + Code (Variable length).
+
+### 2.2 SGRV Format (.sgrv)
+1. **Header**: "SGRV" (4 bytes).
+2. **Version**: 2 bytes.
+3. **Constant Pool**: Count + Entries (same format as SVM).
+4. **Chunk Count**: 4 bytes (big-endian).
+5. **Chunks**: Length (4 bytes, big-endian) + Code (Array of 32-bit RISC-V instructions).
+
+---
+
+[Existing Content...]
 
 ## 2. Compilation & Execution Pipeline
 SageLang code follows a strictly defined path to execution:
