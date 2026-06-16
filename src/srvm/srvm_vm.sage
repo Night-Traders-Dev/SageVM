@@ -338,7 +338,14 @@ class SRVM:
                 elif type(obj) == "dict":
                     obj[idx] = val
         elif f3 == srvm_core.F3_GPU_OPS:
-            # TODO: Implement GPU operations
-            return nil
+            self.handle_gpu(instr)
         
         self.state.pc = self.state.pc + 4
+
+    proc handle_gpu(self, instr):
+        let sub_op = instr.rs1
+        # TODO: Implement mapping for 28 GPU opcodes
+        if self.trace:
+            print "GPU Op: " + str(sub_op)
+        return nil
+
