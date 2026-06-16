@@ -30,3 +30,8 @@ scratch_test
 scratch_test.sage
 output.txt
 test_int
+
+# Benchmark results (Keep for README)
+!testsuite/benchmarks/results/
+!testsuite/benchmarks/results/*.png
+!testsuite/benchmarks/results/*.json

@@ -100,11 +100,24 @@ chmod +x hello.sgvm
 - [Changelog](docs/CHANGELOG.md): History of changes and improvements.
 - [Roadmap](docs/ROADMAP.md): Features and library modules yet to be implemented.
 
-## Performance Benchmarks
+## Performance Benchmarks (v0.9.7)
 
-The project tracks performance across various benchmarks. A visual comparison between the current and baseline performance can be generated using the `report.py` tool.
+SageVM tracks performance across a suite of micro-benchmarks. Below are the results for the unified `sagevm` binary (v0.9.7) running in a pure SageLang environment.
 
-![Benchmark Comparison](testsuite/benchmarks/results/benchmark_comparison.png)
+| Benchmark | Runtime | Duration (ms) |
+|-----------|---------|---------------|
+| `01_fibonacci.sage` (fib(22)) | sagevm | 2256 |
+| `02_loop_sum.sage` | sagevm | 4513 |
+| `03_string_concat.sage` | sagevm | 495 |
+| `04_array_ops.sage` | sagevm | 2644 |
+| `05_dict_ops.sage` | sagevm | 2542 |
+| `06_class_method.sage` | sagevm | 7876 |
+| `07_nested_loops.sage` | sagevm | 16991 |
+| `08_exception_handling.sage` | sagevm | 417 |
+| `10_primes_sieve.sage` | sagevm | 1131 |
+| `runtime_compare.sage` | sagevm | 845 |
+
+*Note: Benchmarks were run on a standardized environment. "sagevm" results reflect the pure-interpreter overhead.*
 
 ## Integration with SageLang
 
