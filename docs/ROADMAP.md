@@ -5,7 +5,7 @@ This document outlines the features and standard library modules currently unsup
 ## ✅ Supported Features
 - **Floating Point Binary Loading**: Full IEEE 754 64-bit double support for packing and unpacking.
 - **Exception Handling**: Full support for `try/catch/finally` with correct call stack and scope unwinding.
-- **Enhanced Flow Control**: Correct handling of relative jumps and loop control opcodes.
+- **Enhanced Flow Control**: Correct handling of relative jumps.
 - **Dynamic Imports**: Ability to load and execute external `.sgvm` modules at runtime.
 - **Native Bridging Layer**: Support for `math`, `io`, `sys`, `net`, `gpu`, and `ml_native` modules via host SageLang mapping.
 - **Multi-threading**: Full support for `thread` module with a Global Interpreter Lock (GIL) and result capturing.
@@ -18,6 +18,7 @@ This document outlines the features and standard library modules currently unsup
 
 ## 🟡 Medium Difficulty (Native Bridging)
 - **Local Variable Opcodes**: Implement interpreter support for `OP_GET_LOCAL` (88) and `OP_SET_LOCAL` (89) in `src/svm/sgvm_vm.sage`.
+- **Loop Control Opcodes**: Implement interpreter support for `OP_BREAK` (49) and `OP_CONTINUE` (50) in `src/svm/sgvm_vm.sage` (currently stubs).
 
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.
