@@ -40,6 +40,8 @@ class MetalVM:
         self.is_throwing = false
         self.exception_value = nil
         self.trace = false
+        self.safe_mode = false
+        self.ffi_enabled = true
         self.modules = {}
         self.utils = SGVMUtils()
         # Security: Limits to prevent Denial of Service (DoS) via resource exhaustion
@@ -62,6 +64,13 @@ class MetalVM:
         self.globals["gpu"] = {"__host_mod__": gpu}
         self.globals["ml_native"] = {"__host_mod__": ml_native}
         
+        if not self.safe_mode:
+            self.globals["mem"] = {"__host_mod__": "mem", "alloc": "__builtin_mem_alloc", "free": "__builtin_mem_free", "read": "__builtin_mem_read", "write": "__builtin_mem_write", "size": "__builtin_mem_size"}
+            if self.ffi_enabled:
+                self.globals["ffi"] = {"__host_mod__": "ffi", "open": "__builtin_ffi_open", "close": "__builtin_ffi_close", "call": "__builtin_ffi_call"}
+
+        self.globals["struct"] = {"__host_mod__": "struct", "def": "__builtin_struct_def", "new": "__builtin_struct_new", "get": "__builtin_struct_get", "set": "__builtin_struct_set", "size": "__builtin_struct_size"}
+
         self.globals["gc"] = {"__host_mod__": "gc"}
         self.globals["gc"]["collect"] = "__builtin_gc_collect"
         self.globals["gc"]["stats"] = "__builtin_gc_stats"
@@ -119,7 +128,81 @@ class MetalVM:
             print "IP: " + str(self.ip) + " OP: " + str(op) + " Stack: " + str(self.stack)
         
         self.ip = self.ip + 1
+        return self.execute_op(op)
 
+    proc call_builtin(self, callee, args):
+        let argc = len(args)
+        if callee == "__builtin_clock":
+            return clock()
+        elif callee == "__builtin_str":
+            return str(args[0])
+        elif callee == "__builtin_int":
+            return int(args[0])
+        elif callee == "__builtin_tonumber":
+            return tonumber(args[0])
+        elif callee == "__builtin_len":
+            return len(args[0])
+        elif callee == "__builtin_print":
+            print args[0]
+            return nil
+        elif callee == "__builtin_range":
+            return range(args[0])
+        elif callee == "__builtin_type":
+            return type(args[0])
+        elif callee == "__builtin_math_printm":
+            let matrix = args[0]
+            if type(matrix) != "array":
+                print "Error: math.printm() expects an array"
+            else:
+                print "["
+                var mi = 0
+                while mi < len(matrix):
+                    let row = matrix[mi]
+                    if type(row) == "array":
+                        var parts = []
+                        var mj = 0
+                        while mj < len(row):
+                            push(parts, str(row[mj]))
+                            mj = mj + 1
+                        print "  [" + join(parts, ", ") + "]"
+                    else:
+                        print "  " + str(row)
+                    mi = mi + 1
+                print "]"
+            return nil
+        elif callee == "__builtin_mem_alloc": return mem_alloc(args[0])
+        elif callee == "__builtin_mem_free": return mem_free(args[0])
+        elif callee == "__builtin_mem_read": return mem_read(args[0], args[1], args[2])
+        elif callee == "__builtin_mem_write": return mem_write(args[0], args[1], args[2], args[3])
+        elif callee == "__builtin_mem_size": return mem_size(args[0])
+        elif callee == "__builtin_ffi_open": return ffi_open(args[0])
+        elif callee == "__builtin_ffi_close": return ffi_close(args[0])
+        elif callee == "__builtin_ffi_call":
+            # Note: ffi_call might be a stub in some backends
+            try:
+                if argc == 3: return ffi_call(args[0], args[1], args[2])
+                else: return ffi_call(args[0], args[1], args[2], args[3])
+            catch e:
+                print "Error: ffi_call failed: " + str(e)
+                return nil
+        elif callee == "__builtin_struct_def": return struct_def(args[0])
+        elif callee == "__builtin_struct_new": return struct_new(args[0])
+        elif callee == "__builtin_struct_get": return struct_get(args[0], args[1], args[2])
+        elif callee == "__builtin_struct_set": return struct_set(args[0], args[1], args[2], args[3])
+        elif callee == "__builtin_struct_size": return struct_size(args[0])
+        elif callee == "__builtin_sys_exec": return sys_exec(args[0])
+        elif callee == "__builtin_gc_collect": return gc_collect()
+        elif callee == "__builtin_gc_stats": return gc_stats()
+        elif callee == "__builtin_gc_enable": return gc_enable()
+        elif callee == "__builtin_gc_disable": return gc_disable()
+        elif callee == "__builtin_reflect_get_methods": return reflect_get_methods(args[0])
+        elif callee == "__builtin_reflect_get_class": return reflect_get_class(args[0])
+        else:
+            print "Error: Unknown builtin: " + callee
+            return nil
+
+    proc execute_op(self, op):
+        let ut = self.utils
         if op == OP_CONSTANT:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
@@ -271,29 +354,7 @@ class MetalVM:
             print pop(self.stack)
         elif op == OP_MATH_PRINTM:
             let matrix = pop(self.stack)
-            if type(matrix) != "array":
-                print "Error: math.printm() expects an array"
-                self.halted = true
-                return false
-            end
-            print "["
-            var mi = 0
-            while mi < len(matrix):
-                let row = matrix[mi]
-                if type(row) == "array":
-                    var parts = []
-                    var mj = 0
-                    while mj < len(row):
-                        push(parts, str(row[mj]))
-                        mj = mj + 1
-                    end
-                    print "  [" + join(parts, ", ") + "]"
-                else:
-                    print "  " + str(row)
-                end
-                mi = mi + 1
-            end
-            print "]"
+            self.call_builtin("__builtin_math_printm", [matrix])
             push(self.stack, nil)
         elif op == OP_ARRAY:
             let count = ut.read_be16(self.code, self.ip)
@@ -422,48 +483,7 @@ class MetalVM:
                 else:
                     print "Error: Callee dict has no __type__"
             elif type(callee) == "string":
-                if callee == "__builtin_clock":
-                    push(self.stack, clock())
-                elif callee == "__builtin_str":
-                    push(self.stack, str(args[0]))
-                elif callee == "__builtin_int":
-                    push(self.stack, int(args[0]))
-                elif callee == "__builtin_tonumber":
-                    push(self.stack, tonumber(args[0]))
-                elif callee == "__builtin_len":
-                    push(self.stack, len(args[0]))
-                elif callee == "__builtin_print":
-                    print args[0]
-                    push(self.stack, nil)
-                elif callee == "__builtin_range":
-                    push(self.stack, range(args[0]))
-                elif callee == "__builtin_type":
-                    push(self.stack, type(args[0]))
-                elif callee == "__builtin_math_printm":
-                    let matrix = args[0]
-                    if type(matrix) != "array":
-                        print "Error: math.printm() expects an array"
-                        push(self.stack, nil)
-                    else:
-                        print "["
-                        var mi = 0
-                        while mi < len(matrix):
-                            let row = matrix[mi]
-                            if type(row) == "array":
-                                var parts = []
-                                var mj = 0
-                                while mj < len(row):
-                                    push(parts, str(row[mj]))
-                                    mj = mj + 1
-                                print "  [" + join(parts, ", ") + "]"
-                            else:
-                                print "  " + str(row)
-                            mi = mi + 1
-                        print "]"
-                        push(self.stack, nil)
-                else:
-                    print "Error: Unknown builtin: " + callee
-                    push(self.stack, nil)
+                push(self.stack, self.call_builtin(callee, args))
             elif type(callee) == "function" or type(callee) == "native fn":
                 # Delegation Bridge: using sys.call to avoid AOT tracing issues
                 if argc == 0: push(self.stack, sys.call(callee))
@@ -548,6 +568,8 @@ class MetalVM:
                         else:
                             print "Error: Host module call with >8 args not implemented"
                             push(self.stack, nil)
+                    elif type(val) == "string" and startswith(val, "__builtin_"):
+                        push(self.stack, self.call_builtin(val, args))
                     else:
                         push(self.stack, val)
                 else:
@@ -569,27 +591,8 @@ class MetalVM:
                         else:
                             print "Error: Host method call with >8 args not implemented"
                             push(self.stack, nil)
-                    elif val == "__builtin_math_printm":
-                        let matrix = args[0]
-                        if type(matrix) != "array":
-                            print "Error: math.printm() expects an array"
-                        else:
-                            print "["
-                            var mi = 0
-                            while mi < len(matrix):
-                                let row = matrix[mi]
-                                if type(row) == "array":
-                                    var parts = []
-                                    var mj = 0
-                                    while mj < len(row):
-                                        push(parts, str(row[mj]))
-                                        mj = mj + 1
-                                    print "  [" + join(parts, ", ") + "]"
-                                else:
-                                    print "  " + str(row)
-                                mi = mi + 1
-                            print "]"
-                        push(self.stack, nil)
+                    elif type(val) == "string" and startswith(val, "__builtin_"):
+                        push(self.stack, self.call_builtin(val, args))
                     else:
                         push(self.stack, val)
                 else:
@@ -690,35 +693,45 @@ class MetalVM:
             self.ip = self.ip + 2
             let name = self.constants[idx]
             # Delegation Bridge: check host first for native modules
-            try:
-                if name == "math":
-                    let m = {"pi": 3.141592653589793, "e": 2.718281828459045}
-                    m["abs"] = math.abs
-                    m["sqrt"] = math.sqrt
-                    m["sin"] = math.sin
-                    m["cos"] = math.cos
-                    m["printm"] = "__builtin_math_printm"
-                    push(self.stack, m)
-                elif name == "io": push(self.stack, io)
-                elif name == "sys":
-                    let s = {"args": sys.args()}
-                    s["exec"] = sys.exec
-                    s["exit"] = sys.exit
-                    push(self.stack, s)
-                elif name == "net": push(self.stack, net)
-                elif name == "gpu":
-                    let g = {}
-                    g["poll_events"] = gpu.poll_events
-                    g["get_time"] = gpu.get_time
-                    g["mouse_pos"] = gpu.mouse_pos
-                    push(self.stack, g)
-                elif name == "ml_native": push(self.stack, ml_native)
-                elif name == "thread": push(self.stack, host_thread)
-                else:
-                    # TODO: Implement full .sgvm dynamic loading
+            if self.safe_mode and (name == "net" or name == "sys" or name == "thread" or name == "gpu" or name == "ml_native" or name == "mem" or name == "ffi"):
+                print "Error: Access to module '" + name + "' is restricted in safe mode"
+                push(self.stack, nil)
+            elif name == "ffi" and not self.ffi_enabled:
+                print "Error: FFI is disabled"
+                push(self.stack, nil)
+            else:
+                try:
+                    if name == "math":
+                        let m = {"pi": 3.141592653589793, "e": 2.718281828459045}
+                        m["abs"] = math.abs
+                        m["sqrt"] = math.sqrt
+                        m["sin"] = math.sin
+                        m["cos"] = math.cos
+                        m["printm"] = "__builtin_math_printm"
+                        push(self.stack, m)
+                    elif name == "io": push(self.stack, io)
+                    elif name == "sys":
+                        let s = {"args": sys.args()}
+                        s["exec"] = "__builtin_sys_exec"
+                        s["exit"] = sys.exit
+                        push(self.stack, s)
+                    elif name == "net": push(self.stack, net)
+                    elif name == "gpu":
+                        let g = {}
+                        g["poll_events"] = gpu.poll_events
+                        g["get_time"] = gpu.get_time
+                        g["mouse_pos"] = gpu.mouse_pos
+                        push(self.stack, g)
+                    elif name == "ml_native": push(self.stack, ml_native)
+                    elif name == "thread": push(self.stack, host_thread)
+                    elif name == "mem": push(self.stack, self.globals["mem"])
+                    elif name == "ffi": push(self.stack, self.globals["ffi"])
+                    elif name == "struct": push(self.stack, self.globals["struct"])
+                    else:
+                        # TODO: Implement full .sgvm dynamic loading
+                        push(self.stack, {"__type__": "module", "__name__": name})
+                catch e:
                     push(self.stack, {"__type__": "module", "__name__": name})
-            catch e:
-                push(self.stack, {"__type__": "module", "__name__": name})
         elif op == OP_SETUP_TRY:
             let handler = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
@@ -768,6 +781,10 @@ class MetalVM:
                 print "Unhandled exception: " + str(val)
                 self.halted = true
         elif op == OP_EXEC_AST_STMT:
+            if self.safe_mode:
+                print "Error: sys.exec is restricted in safe mode"
+                self.ip = self.ip + 2
+                return true
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let ast_code = self.constants[idx]

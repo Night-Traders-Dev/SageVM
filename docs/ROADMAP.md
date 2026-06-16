@@ -13,10 +13,10 @@ This document outlines the features and standard library modules currently unsup
 - **GPU Hot-Paths**: Implementation of the `BC_OP_GPU_*` opcodes for Vulkan/OpenGL acceleration via host delegation.
 - **AST Delegation**: Full implementation of `OP_EXEC_AST_STMT` to allow execution of non-lowered code via `sys.exec()`.
 - **Matrix Visualization**: Native binary emission and interpretation for `OP_MATH_PRINTM` (87).
+- **Native Bridge Modules**: Re-implemented and exposed `ffi`, `mem`, and `struct` native modules to guest VM (restoration of missing functionality).
+- **Security Sandboxing**: Implemented `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
 
 ## 🟡 Medium Difficulty (Native Bridging)
-- **Native Bridge Modules**: Re-implement and expose `ffi`, `mem`, and `struct` native modules to guest VM (restoration of missing functionality).
-- **Security Sandboxing**: Implement `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
 
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.

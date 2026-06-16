@@ -60,19 +60,23 @@ class SGVMCLI:
     proc handle_run(self, args, start_idx):
         var input_file = ""
         var debug = false
+        var safe = false
+        var no_ffi = false
         var i = start_idx
         while i < len(args):
             let a = args[i]
             if a == "--debug": debug = true
+            elif a == "--safe": safe = true
+            elif a == "--no-ffi": no_ffi = true
             else: input_file = a
             i = i + 1
         
         if input_file == "":
-            print "Usage: sagevm run <file.sgvm> [--debug]"
+            print "Usage: sagevm run <file.sgvm> [--debug] [--safe] [--no-ffi]"
             return
         
         let runner = sgvm_runner.SGVMRunner()
-        runner.run_file(input_file, debug)
+        runner.run_file(input_file, debug, safe, not no_ffi)
 
     proc handle_compile(self, args, start_idx):
         var input_file = ""
