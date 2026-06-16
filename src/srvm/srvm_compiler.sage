@@ -89,6 +89,19 @@ class StackToRiscVTranslator:
                 # 2. VMSYS OBJ_SET_GLOBAL ri, val
                 self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, srvm_core.OBJ_SET_GLOBAL, 0, ri, val))
                 
+            elif op == sgvm_core.OP_JUMP_IF_FALSE:
+                let target_ip = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                let cond = pop(self.reg_stack)
+                let patch_pc = len(self.output_bytes)
+                # BEQ rs1, x0, offset
+                self.emit_32(self.encoder.encode_b(srvm_core.OP_BRANCH, srvm_core.F3_BEQ, cond, 0, 0)) # Placeholder
+                push(self.jump_patches, [patch_pc, target_ip])
+
+            elif op == sgvm_core.OP_RETURN:
+                # JALR x0, 0(x1) -- Return using ra
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_JALR, 0, 0, 1, 0))
+
             elif op == sgvm_core.OP_PRINT:
                 let rs1 = pop(self.reg_stack)
                 self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.VMO_PRINT, 0, rs1, 0))
@@ -105,8 +118,27 @@ class StackToRiscVTranslator:
             if target_ip < len(svm_bytecode) and self.label_map[target_ip] != nil:
                 let target_pc = self.label_map[target_ip]
                 let offset = target_pc - patch_pc
-                let instr = self.encoder.encode_j(srvm_core.OP_JAL, 0, offset)
-                self.patch_32(patch_pc, instr)
+                
+                # Check instruction type at patch_pc to use correct encoder
+                let b0 = self.output_bytes[patch_pc]
+                let opcode = b0 & 0x7F
+                
+                var instr = 0
+                if opcode == srvm_core.OP_JAL:
+                    instr = self.encoder.encode_j(srvm_core.OP_JAL, 0, offset)
+                elif opcode == srvm_core.OP_BRANCH:
+                    # Need to extract rs1, rs2, and f3 from existing (partially encoded) instruction
+                    # rs2 is typically 0 (x0) for JUMP_IF_FALSE
+                    # Let's simplify and re-encode BEQ
+                    # (In a better design, we'd store instruction metadata in jump_patches)
+                    let raw = int(self.output_bytes[patch_pc]) | (int(self.output_bytes[patch_pc+1]) << 8) | (int(self.output_bytes[patch_pc+2]) << 16) | (int(self.output_bytes[patch_pc+3]) << 24)
+                    let rs1 = (raw >> 15) & 0x1F
+                    let rs2 = (raw >> 20) & 0x1F
+                    let f3 = (raw >> 12) & 0x07
+                    instr = self.encoder.encode_b(srvm_core.OP_BRANCH, f3, rs1, rs2, offset)
+                
+                if instr != 0:
+                    self.patch_32(patch_pc, instr)
             p = p + 1
             
         return self.output_bytes

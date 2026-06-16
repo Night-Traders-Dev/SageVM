@@ -199,11 +199,14 @@ class SRVM:
                 self.state.running = false
             elif f7 == srvm_core.VMO_PRINT:
                 print str(self.state.x[instr.rs1])
+            elif f7 == srvm_core.VMO_PUSH_ENV:
+                push(self.state.stack, self.state.heap) # Simplified scope push
+                self.state.heap = {} # New scope
+            elif f7 == srvm_core.VMO_POP_ENV:
+                self.state.heap = pop(self.state.stack) # Simplified scope pop
         elif f3 == srvm_core.F3_OBJ_OPS:
             if f7 == srvm_core.OBJ_GET_GLOBAL:
-                # rs1 contains global index (as constant)
                 let idx = int(self.state.x[instr.rs1])
-                # Map index to name from constants
                 let name = self.state.constants[idx]
                 self.state.x[instr.rd] = self.state.heap[name]
             elif f7 == srvm_core.OBJ_SET_GLOBAL:
@@ -211,5 +214,23 @@ class SRVM:
                 let val = self.state.x[instr.rs2]
                 let name = self.state.constants[idx]
                 self.state.heap[name] = val
+            elif f7 == srvm_core.OBJ_GET_PROP:
+                # rs1 = object, rs2 = property name index
+                let obj = self.state.x[instr.rs1]
+                let name_idx = int(self.state.x[instr.rs2])
+                let name = self.state.constants[name_idx]
+                if type(obj) == "dict":
+                    self.state.x[instr.rd] = obj[name]
+                else:
+                    # In real VM, handle class instance
+                    self.state.x[instr.rd] = nil
+            elif f7 == srvm_core.OBJ_SET_PROP:
+                # rs1 = object, rs2 = property name index, a0 (x10) = value
+                let obj = self.state.x[instr.rs1]
+                let name_idx = int(self.state.x[instr.rs2])
+                let name = self.state.constants[name_idx]
+                let val = self.state.x[10] # Convention: x10 contains value for set_prop
+                if type(obj) == "dict":
+                    obj[name] = val
         
         self.state.pc = self.state.pc + 4
