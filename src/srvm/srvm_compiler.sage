@@ -84,7 +84,17 @@ class StackToRiscVTranslator:
                 let rs2 = pop(self.reg_stack)
                 let rs1 = pop(self.reg_stack)
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_ADD, 0, rd, rs1, rs2))
+                
+                # Check speculative type
+                # Simple lookup: use current instruction index to get speculative type
+                let t = speculative_types[i-1] 
+                if t == srvm_profiler.TYPE_INT:
+                    # Emit integer specialized ADD
+                    self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_ADD, 0, rd, rs1, rs2))
+                else:
+                    # Emit generic/fallback ADD
+                    self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_ADD, 0, rd, rs1, rs2))
+                
                 push(self.reg_stack, rd)
 
             elif op == sgvm_core.OP_SUB:
