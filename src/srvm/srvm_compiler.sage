@@ -102,6 +102,49 @@ class StackToRiscVTranslator:
                 # JALR x0, 0(x1) -- Return using ra
                 self.emit_32(self.encoder.encode_i(srvm_core.OP_JALR, 0, 0, 1, 0))
 
+            elif op == sgvm_core.OP_DEFINE_FUNCTION:
+                let chunk_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                # 1. Load chunk index into temp register
+                let ri = self.alloc_reg()
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, ri, 0, chunk_idx))
+                # 2. VMSYS OBJ_NEW_FUNC rd, ri
+                let rd = self.alloc_reg()
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, srvm_core.OBJ_NEW_FUNC, rd, ri, 0))
+                push(self.reg_stack, rd)
+
+            elif op == sgvm_core.OP_CALL:
+                let argc = int(svm_bytecode[i])
+                i = i + 1
+                # Arguments are on the virtual register stack
+                # RISC-V convention: arguments in a0-a7 (x10-x17)
+                var args = []
+                var j = 0
+                while j < argc:
+                    push(args, pop(self.reg_stack))
+                    j = j + 1
+                
+                # Reverse args to move to correct registers
+                # (Last pushed is last arg in SVM, so pop gives last arg first)
+                j = argc - 1
+                while j >= 0:
+                    let src = args[argc - 1 - j]
+                    let dest = 10 + j # x10 + j
+                    if src != dest:
+                        # ADDI dest, src, 0 (Move)
+                        self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, dest, src, 0))
+                    j = j - 1
+                
+                # Function object is now at the top of reg_stack
+                let func_reg = pop(self.reg_stack)
+                # VMSYS VMO_CALL, func_reg
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.VMO_CALL, 0, func_reg, 0))
+                
+                # Result in a0 (x10)
+                let rd = self.alloc_reg()
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, 10, 0))
+                push(self.reg_stack, rd)
+
             elif op == sgvm_core.OP_PRINT:
                 let rs1 = pop(self.reg_stack)
                 self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.VMO_PRINT, 0, rs1, 0))

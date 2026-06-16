@@ -19,13 +19,16 @@ class SageVMState:
         # Memory segments
         self.bytecode = []
         self.constants = []
-        self.stack = [] # 1MB stack (simplified for now)
+        self.chunks = []
+        self.current_chunk_idx = 0
+        self.stack = [] 
         i = 0
-        while i < 1000: # Smaller stack for now
+        while i < 1000:
             push(self.stack, 0)
             i = i + 1
         
-        self.heap = {} # Simple object heap for now
+        self.heap = {} 
+        self.call_stack = [] # Stack of [chunk_idx, pc, ra]
         
         # Register x2 is typically stack pointer (sp)
         self.x[2] = len(self.stack)
@@ -36,22 +39,23 @@ class SRVM:
         self.trace = false
 
     proc run(self, bytecode):
+        # Initial chunk (0)
         self.state.bytecode = bytecode
+        if len(self.state.chunks) == 0:
+            push(self.state.chunks, bytecode)
+        
         self.state.pc = 0
         self.state.running = true
         
-        while self.state.running and self.state.pc < len(bytecode):
+        while self.state.running and self.state.pc < len(self.state.bytecode):
             # Fetch
-            if self.state.pc + 4 > len(bytecode):
+            if self.state.pc + 4 > len(self.state.bytecode):
                 break
             
-            # Instructions are 32-bit LE in RISC-V normally, but let's decide
-            # Let's use 32-bit big-endian for consistency with existing SGVM if we want,
-            # but RV standard is LE. I'll use LE.
-            let b0 = bytecode[self.state.pc]
-            let b1 = bytecode[self.state.pc+1]
-            let b2 = bytecode[self.state.pc+2]
-            let b3 = bytecode[self.state.pc+3]
+            let b0 = self.state.bytecode[self.state.pc]
+            let b1 = self.state.bytecode[self.state.pc+1]
+            let b2 = self.state.bytecode[self.state.pc+2]
+            let b3 = self.state.bytecode[self.state.pc+3]
             let raw_instr = int(b0) | (int(b1) << 8) | (int(b2) << 16) | (int(b3) << 24)
             
             let instr = RVInstruction(raw_instr)
@@ -78,7 +82,22 @@ class SRVM:
             self.state.pc = self.state.pc + instr.imm_j
         elif op == srvm_core.OP_JALR:
             let target = (self.state.x[instr.rs1] + instr.imm_i) & ~1
-            self.state.x[instr.rd] = self.state.pc + 4
+            let rd_val = self.state.pc + 4
+            
+            # Special case for return: JALR x0, 0(x1)
+            if instr.rd == 0 and instr.rs1 == 1 and instr.imm_i == 0:
+                if len(self.state.call_stack) > 0:
+                    let frame = pop(self.state.call_stack)
+                    self.state.current_chunk_idx = frame[0]
+                    self.state.bytecode = self.state.chunks[self.state.current_chunk_idx]
+                    self.state.pc = frame[1]
+                    self.state.x[1] = frame[2]
+                    return # Skip standard PC update
+                else:
+                    self.state.running = false
+                    return
+
+            self.state.x[instr.rd] = rd_val
             self.state.pc = target
         elif op == srvm_core.OP_BRANCH:
             self.handle_branch(instr)
@@ -109,36 +128,27 @@ class SRVM:
 
     proc handle_load(self, instr):
         let addr = self.state.x[instr.rs1] + instr.imm_i
-        let f3 = instr.funct3
-        
-        # In a real VM, this would access a byte array.
-        # For our prototype, we treat self.stack as a value array.
         if addr >= 0 and addr < len(self.state.stack):
             self.state.x[instr.rd] = self.state.stack[addr]
         else:
             print "Load access violation at " + str(addr)
             self.state.running = false
-        
         self.state.pc = self.state.pc + 4
 
     proc handle_store(self, instr):
         let addr = self.state.x[instr.rs1] + instr.imm_s
         let val = self.state.x[instr.rs2]
-        let f3 = instr.funct3
-        
         if addr >= 0 and addr < len(self.state.stack):
             self.state.stack[addr] = val
         else:
             print "Store access violation at " + str(addr)
             self.state.running = false
-            
         self.state.pc = self.state.pc + 4
 
     proc handle_branch(self, instr):
         let rs1_val = self.state.x[instr.rs1]
         let rs2_val = self.state.x[instr.rs2]
         var take = false
-        
         let f3 = instr.funct3
         if f3 == srvm_core.F3_BEQ: take = (rs1_val == rs2_val)
         elif f3 == srvm_core.F3_BNE: take = (rs1_val != rs2_val)
@@ -154,7 +164,6 @@ class SRVM:
         let rs1_val = self.state.x[instr.rs1]
         let imm = instr.imm_i
         let f3 = instr.funct3
-        
         if f3 == srvm_core.F3_ADDI: self.state.x[instr.rd] = rs1_val + imm
         elif f3 == srvm_core.F3_SLTI:
             if rs1_val < imm: self.state.x[instr.rd] = 1
@@ -163,10 +172,7 @@ class SRVM:
         elif f3 == srvm_core.F3_ORI: self.state.x[instr.rd] = rs1_val | imm
         elif f3 == srvm_core.F3_ANDI: self.state.x[instr.rd] = rs1_val & imm
         elif f3 == srvm_core.F3_SLLI: self.state.x[instr.rd] = rs1_val << (imm & 0x3F)
-        elif f3 == srvm_core.F3_SRLI:
-            # Shift right logical
-            self.state.x[instr.rd] = rs1_val >> (imm & 0x3F)
-        
+        elif f3 == srvm_core.F3_SRLI: self.state.x[instr.rd] = rs1_val >> (imm & 0x3F)
         self.state.pc = self.state.pc + 4
 
     proc handle_reg(self, instr):
@@ -174,7 +180,6 @@ class SRVM:
         let rs2_val = self.state.x[instr.rs2]
         let f3 = instr.funct3
         let f7 = instr.funct7
-        
         if f3 == srvm_core.F3_ADD:
             if f7 == 0x00: self.state.x[instr.rd] = rs1_val + rs2_val
             elif f7 == 0x20: self.state.x[instr.rd] = rs1_val - rs2_val
@@ -187,7 +192,6 @@ class SRVM:
             if f7 == 0x00: self.state.x[instr.rd] = rs1_val >> (rs2_val & 0x3F)
         elif f3 == srvm_core.F3_OR: self.state.x[instr.rd] = rs1_val | rs2_val
         elif f3 == srvm_core.F3_AND: self.state.x[instr.rd] = rs1_val & rs2_val
-        
         self.state.pc = self.state.pc + 4
 
     proc handle_vmsys(self, instr):
@@ -200,10 +204,23 @@ class SRVM:
             elif f7 == srvm_core.VMO_PRINT:
                 print str(self.state.x[instr.rs1])
             elif f7 == srvm_core.VMO_PUSH_ENV:
-                push(self.state.stack, self.state.heap) # Simplified scope push
-                self.state.heap = {} # New scope
+                push(self.state.call_stack, self.state.heap) # Reuse call_stack for envs for now or add env_stack
+                self.state.heap = {}
             elif f7 == srvm_core.VMO_POP_ENV:
-                self.state.heap = pop(self.state.stack) # Simplified scope pop
+                self.state.heap = pop(self.state.call_stack)
+            elif f7 == srvm_core.VMO_CALL:
+                let func_obj = self.state.x[instr.rs1]
+                var target_chunk = -1
+                if type(func_obj) == "number": target_chunk = int(func_obj)
+                elif type(func_obj) == "dict": target_chunk = int(func_obj["chunk_idx"])
+                
+                if target_chunk >= 0 and target_chunk < len(self.state.chunks):
+                    push(self.state.call_stack, [self.state.current_chunk_idx, self.state.pc + 4, self.state.x[1]])
+                    self.state.current_chunk_idx = target_chunk
+                    self.state.bytecode = self.state.chunks[target_chunk]
+                    self.state.pc = 0
+                    self.state.x[1] = 0
+                    return
         elif f3 == srvm_core.F3_OBJ_OPS:
             if f7 == srvm_core.OBJ_GET_GLOBAL:
                 let idx = int(self.state.x[instr.rs1])
@@ -215,22 +232,19 @@ class SRVM:
                 let name = self.state.constants[idx]
                 self.state.heap[name] = val
             elif f7 == srvm_core.OBJ_GET_PROP:
-                # rs1 = object, rs2 = property name index
                 let obj = self.state.x[instr.rs1]
                 let name_idx = int(self.state.x[instr.rs2])
                 let name = self.state.constants[name_idx]
-                if type(obj) == "dict":
-                    self.state.x[instr.rd] = obj[name]
-                else:
-                    # In real VM, handle class instance
-                    self.state.x[instr.rd] = nil
+                if type(obj) == "dict": self.state.x[instr.rd] = obj[name]
+                else: self.state.x[instr.rd] = nil
             elif f7 == srvm_core.OBJ_SET_PROP:
-                # rs1 = object, rs2 = property name index, a0 (x10) = value
                 let obj = self.state.x[instr.rs1]
                 let name_idx = int(self.state.x[instr.rs2])
                 let name = self.state.constants[name_idx]
-                let val = self.state.x[10] # Convention: x10 contains value for set_prop
-                if type(obj) == "dict":
-                    obj[name] = val
+                let val = self.state.x[10]
+                if type(obj) == "dict": obj[name] = val
+            elif f7 == srvm_core.OBJ_NEW_FUNC:
+                let chunk_idx = self.state.x[instr.rs1]
+                self.state.x[instr.rd] = {"type": "function", "chunk_idx": chunk_idx}
         
         self.state.pc = self.state.pc + 4

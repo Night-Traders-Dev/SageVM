@@ -66,6 +66,7 @@ let F3_OBJ_OPS  = 0b010
 let VMO_HALT    = 0x01
 let VMO_PUSH_ENV = 0x02
 let VMO_POP_ENV  = 0x03
+let VMO_CALL     = 0x04
 let VMO_PRINT   = 0x09
 let VMO_PRINTM  = 0x0B
 
@@ -75,6 +76,7 @@ let OBJ_SET_GLOBAL = 0x01
 let OBJ_NEW_CLASS  = 0x02
 let OBJ_GET_PROP   = 0x03
 let OBJ_SET_PROP   = 0x04
+let OBJ_NEW_FUNC   = 0x05
 
 class RVInstruction:
     proc init(self, value):
