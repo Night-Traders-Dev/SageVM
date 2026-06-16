@@ -1,8 +1,11 @@
 ## Tools
-- `sgvmc.sage`: Bytecode compiler.
-- `sgvm.sage`: Bytecode interpreter.
-- `sgvm_hexdump.sage`: Low-level bytecode binary inspector.
-- `sgvm_disassembler.sage`: High-level bytecode to source code reconstruction tool.
+- **`sagevm`**: The unified entry point for all operations.
+- `sgvmc.sage` (Logic): Compiled into `sagevm compile`.
+- `sgvm.sage` (Logic): Compiled into `sagevm run`.
+- `sgvm_hexdump.sage` (Logic): Compiled into `sagevm hex`.
+- `sgvm_disassembler.sage` (Logic): Compiled into `sagevm dis`.
+
+The project provides symlinks (`sgvm`, `sgvmc`) to the `sagevm` binary for backward compatibility.
 
 ## Opcodes
 

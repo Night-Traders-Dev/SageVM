@@ -4,15 +4,30 @@ This repository contains the SageLang ports of the SGVM (Sage General Virtual Ma
 
 ## Installation
 
-SageVM requires SageLang **v3.7.7** or higher for full feature parity (OOP, Exceptions, Delegation Bridge). The project uses a unified Python-based build system.
+SageVM requires SageLang **v3.7.7** or higher for full feature parity. The project uses a unified build system that produces a single native binary.
 
-To build and install the tools to your system:
+To build and install:
 
 ```bash
 ./sagemake --install
 ```
 
-This will automatically initialize the SageLang submodule, build the `sage` compiler, and then compile `sgvm.sage` and `sgvmc.sage` into native binaries.
+This produces the `sagevm` binary (and symlinks for `sgvm`/`sgvmc`).
+
+## Unified CLI (sagevm)
+
+The primary entry point is the `sagevm` tool, which supports several sub-commands:
+
+- **`sagevm run <file.sgvm>`**: Execute a compiled binary.
+- **`sagevm compile <file.sage>`**: Compile source to binary.
+- **`sagevm dis <file.sgvm>`**: Disassemble binary into readable source.
+- **`sagevm hex <file.sgvm>`**: Low-level binary hexdump.
+- **`sagevm version`**: Show version information.
+
+### Backward Compatibility
+Legacy tools are supported via symlinks to the unified binary:
+- `sgvm ...` -> `sagevm run ...`
+- `sgvmc ...` -> `sagevm compile ...`
 
 ## Features (v0.9.7)
 
