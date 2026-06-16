@@ -34,7 +34,14 @@ sage tools/diff_bytecode.sage --hex /tmp/interp.sgvm /tmp/compiled.sgvm
 
 Disassembles `.sgvm` bytecode files into human-readable `.sage` source code.
 
+**Note:** The unified `sagevm dis` and `sagevm hex` commands are now the preferred way to inspect both `.sgvm` (Stack) and `.sgrv` (RISC-V) files.
+
 ```bash
+# Modern unified interface
+./sagevm dis <file.sgvm|.sgrv>
+./sagevm hex <file.sgvm|.sgrv>
+
+# Legacy tools
 sage tools/sgvm_disassembler.sage <file.sgvm>
 ```
 

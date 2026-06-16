@@ -17,12 +17,10 @@ The Sage Virtual Machine (SGVM) is the portable execution substrate for SageOS. 
 5. **Chunk Count**: 4 bytes (big-endian).
 6. **Chunks**: Length (4 bytes) + Code (Variable length).
 
-### 2.2 SGRV Format (.sgrv)
-1. **Header**: "SGRV" (4 bytes).
-2. **Version**: 2 bytes.
-3. **Constant Pool**: Count + Entries (same format as SVM).
-4. **Chunk Count**: 4 bytes (big-endian).
-5. **Chunks**: Length (4 bytes, big-endian) + Code (Array of 32-bit RISC-V instructions).
+### 2.3 Diagnostic Tooling
+Both formats are fully supported by the unified SageVM CLI tools:
+- `sagevm dis`: Disassembles both stack and register-based binaries.
+- `sagevm hex`: Provides a low-level structural view of both binary formats.
 
 ---
 

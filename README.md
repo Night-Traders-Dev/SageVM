@@ -26,7 +26,7 @@ This produces the `sagevm` binary (and symlinks for `sgvm`/`sgvmc`).
 - **`sagevm run <file.sgvm|.sgrv>`**: Execute a compiled binary. Auto-detects architecture via magic headers.
 - **`sagevm compile <file.sage> [--riscv]`**: Compile source to binary. Use `--riscv` for register-based output.
 - **`sagevm dis <file.sgvm|.sgrv>`**: Disassemble binary into readable instructions.
-- **`sagevm hex <file.sgvm>`**: Low-level binary hexdump.
+- **`sagevm hex <file.sgvm|.sgrv>`**: Low-level binary hexdump. Auto-detects magic.
 - **`sagevm version`**: Show version information.
 
 ## Architectures

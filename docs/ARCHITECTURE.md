@@ -12,10 +12,13 @@ A modern, register-based architecture mapped to the RV64I specification. This VM
 - **Instruction Encoding**: Fixed 32-bit width for efficient decoding.
 - **Addressing**: Load-Store architecture separating computation from memory.
 
-### SRVM Compilation Pipeline
-1. **Frontend**: Source -> SGVM Bytecode (`.svm`)
-2. **Translator**: SGVM Bytecode (`.svm`) -> SRVM Bytecode (`.sgrv`) + Speculative Type Metadata.
-3. **Execution/JIT**: SRVM Bytecode (`.sgrv`) -> Interpreter (or Native Machine Code via JIT).
+## 3. Unified Diagnostic Pipeline
+To support the ongoing development of both architectures, SageVM provides a unified diagnostic pipeline. The `sagevm` CLI automatically detects the target architecture by inspecting the 4-byte magic header of the binary.
+
+- **SGVM (Stack)**: Magic `SGVM`. Disassembled into high-level `.sage`-like pseudo-code or low-level `.svm` bytecode.
+- **SGRV (RISC-V)**: Magic `SGRV`. Disassembled into standard RISC-V assembly with custom SageVM system extensions (`ldc`, `vm_nop`, etc.).
+
+This pipeline ensures that developers can inspect the low-level structure of their compiled programs regardless of the target architecture.
 
 ---
 [Existing Content...]

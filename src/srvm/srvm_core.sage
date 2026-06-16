@@ -125,20 +125,14 @@ let GPU_BUFFER_CREATE       = 0x1B
 
 class RVInstruction:
     proc init(self, value):
-        self.raw = value
-        self.opcode = value & 0x7F
-        self.rd = (value >> 7) & 0x1F
-        self.funct3 = (value >> 12) & 0x07
-        self.rs1 = (value >> 15) & 0x1F
-        self.rs2 = (value >> 20) & 0x1F
-        self.funct7 = (value >> 25) & 0x7F
-        
-        # Immediate decodings
-        self.imm_i = self.decode_i_imm()
-        self.imm_s = self.decode_s_imm()
-        self.imm_b = self.decode_b_imm()
-        self.imm_u = self.decode_u_imm()
-        self.imm_j = self.decode_j_imm()
+        let v = int(value)
+        self.raw = v
+        self.opcode = v & 0x7F
+        self.rd = (v >> 7) & 0x1F
+        self.funct3 = (v >> 12) & 0x07
+        self.rs1 = (v >> 15) & 0x1F
+        self.rs2 = (v >> 20) & 0x1F
+        self.funct7 = (v >> 25) & 0x7F
 
     proc decode_i_imm(self):
         # 12-bit signed immediate
@@ -250,17 +244,17 @@ class SRVMUtils:
         return nil
 
     proc read_be32(self, data, off):
-        var v = int(data[off]) * 16777216
-        v = v + int(data[off+1]) * 65536
-        v = v + int(data[off+2]) * 256
-        v = v + int(data[off+3])
+        var v = int(data[off]) << 24
+        v = v | (int(data[off+1]) << 16)
+        v = v | (int(data[off+2]) << 8)
+        v = v | int(data[off+3])
         return v
     
     proc read_le32(self, data, off):
         var v = int(data[off])
-        v = v + int(data[off+1]) * 256
-        v = v + int(data[off+2]) * 65536
-        v = v + int(data[off+3]) * 16777216
+        v = v | (int(data[off+1]) << 8)
+        v = v | (int(data[off+2]) << 16)
+        v = v | (int(data[off+3]) << 24)
         return v
 
     proc unpack_double(self, bs, off):

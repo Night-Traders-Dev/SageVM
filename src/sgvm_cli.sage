@@ -6,6 +6,8 @@ import sgvm_disassembler_logic
 import sgvm_hexdump_logic
 import srvm_runner
 import srvm_compiler
+import srvm_disassembler_logic
+import srvm_hexdump_logic
 from sgvm_compiler import sys_exec, io_readfile, io_writebytes
 
 proc print_help():
@@ -15,7 +17,7 @@ proc print_help():
     print "  run <file.sgvm> [--debug] [--riscv]   Execute a compiled binary"
     print "  compile <input.sage> [out] [--riscv]  Compile Sage source to binary"
     print "  dis <file.sgvm> [--riscv]             Disassemble binary"
-    print "  hex <file.sgvm>                       Low-level binary hexdump"
+    print "  hex <file.sgvm> [--riscv]             Low-level binary hexdump"
     print "  version                               Show version information"
     print ""
     print "Use 'sagevm <command> --help' for command-specific options."
@@ -139,25 +141,57 @@ class SGVMCLI:
     proc handle_dis(self, args, start_idx):
         var input_file = ""
         var mode = "sage"
+        var riscv = false
         var i = start_idx
         while i < len(args):
             let a = args[i]
             if a == "--svm": mode = "svm"
             elif a == "--sage": mode = "sage"
+            elif a == "--riscv": riscv = true
             else: input_file = a
             i = i + 1
         
         if input_file == "":
-            print "Usage: sagevm dis <file.sgvm> [--sage | --svm]"
+            print "Usage: sagevm dis <file.sgvm> [--sage | --svm] [--riscv]"
             return
         
-        let dis = sgvm_disassembler_logic.SGVMDisassembler(input_file)
-        if dis.disassemble():
-            if mode == "svm": print dis.generate_svm()
-            else: print dis.generate_sage()
+        # Auto-detect RISC-V header
+        let data = io.readbytes(input_file)
+        if data != nil and len(data) >= 4:
+            if int(data[0]) == 83 and int(data[1]) == 71 and int(data[2]) == 82 and int(data[3]) == 86:
+                riscv = true
+
+        if riscv:
+            let dis = srvm_disassembler_logic.SRVMDisassembler(input_file)
+            if dis.disassemble():
+                dis.generate_sage()
+        else:
+            let dis = sgvm_disassembler_logic.SGVMDisassembler(input_file)
+            if dis.disassemble():
+                if mode == "svm": print dis.generate_svm()
+                else: print dis.generate_sage()
 
     proc handle_hex(self, args):
-        if len(args) < 3:
-            print "Usage: sagevm hex <file.sgvm>"
+        var input_file = ""
+        var riscv = false
+        var i = 2
+        while i < len(args):
+            let a = args[i]
+            if a == "--riscv": riscv = true
+            else: input_file = a
+            i = i + 1
+
+        if input_file == "":
+            print "Usage: sagevm hex <file.sgvm> [--riscv]"
             return
-        sgvm_hexdump_logic.disassemble(args[2])
+        
+        # Auto-detect RISC-V header
+        let data = io.readbytes(input_file)
+        if data != nil and len(data) >= 4:
+            if int(data[0]) == 83 and int(data[1]) == 71 and int(data[2]) == 82 and int(data[3]) == 86:
+                riscv = true
+
+        if riscv:
+            srvm_hexdump_logic.srvm_disassemble(input_file)
+        else:
+            sgvm_hexdump_logic.disassemble(input_file)
