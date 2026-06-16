@@ -4,10 +4,12 @@
 import sgvm_core
 import srvm_core
 from srvm_core import RVEncoder
+import srvm_profiler
 
 class StackToRiscVTranslator:
-    proc init(self):
+    proc init(self, constants):
         self.encoder = RVEncoder()
+        self.profiler = srvm_profiler.TypeProfiler(constants)
         self.reg_stack = []
         self.next_reg = 10 # Start from a0 (x10)
         self.output_bytes = []
@@ -34,6 +36,9 @@ class StackToRiscVTranslator:
         return r
 
     proc translate(self, svm_bytecode):
+        # Speculative type analysis
+        let speculative_types = self.profiler.analyze(svm_bytecode)
+        
         self.output_bytes = []
         self.reg_stack = []
         self.next_reg = 10
@@ -398,8 +403,8 @@ class StackToRiscVTranslator:
         return self.output_bytes
 
 class SGRVCompiler:
-    proc init(self):
-        self.translator = StackToRiscVTranslator()
+    proc init(self, constants):
+        self.translator = StackToRiscVTranslator(constants)
         self.utils = srvm_core.SRVMUtils()
 
     proc compile(self, sgvm_data):
@@ -418,6 +423,8 @@ class SGRVCompiler:
         let const_count = (int(sgvm_data[pos]) << 8) | int(sgvm_data[pos+1])
         pos = pos + 2
         
+        var constants = []
+        
         var output = [83, 71, 82, 86, 0, 1]
         push(output, (const_count >> 8) & 0xFF)
         push(output, const_count & 0xFF)
@@ -428,22 +435,33 @@ class SGRVCompiler:
             push(output, t)
             pos = pos + 1
             if t == 1: # Number
+                var val_bytes = []
                 var k = 0
                 while k < 8:
+                    push(val_bytes, int(sgvm_data[pos + k]))
                     push(output, int(sgvm_data[pos + k]))
                     k = k + 1
                 pos = pos + 8
+                # Simplified: Need to unpack to get number object
+                push(constants, {"type": 1})
             elif t == 3: # String
                 let slen = (int(sgvm_data[pos]) << 8) | int(sgvm_data[pos+1])
                 push(output, (slen >> 8) & 0xFF)
                 push(output, slen & 0xFF)
                 pos = pos + 2
+                var s = ""
                 var k = 0
                 while k < slen:
-                    push(output, int(sgvm_data[pos + k]))
+                    let b = int(sgvm_data[pos + k])
+                    push(output, b)
+                    s = s + chr(b)
                     k = k + 1
                 pos = pos + slen
+                push(constants, {"type": 3, "str": s})
             ci = ci + 1
+            
+        # Initialize translator with constants
+        self.translator = StackToRiscVTranslator(constants)
             
         let num_chunks = (int(sgvm_data[pos]) << 24) | (int(sgvm_data[pos+1]) << 16) | (int(sgvm_data[pos+2]) << 8) | int(sgvm_data[pos+3])
         pos = pos + 4
