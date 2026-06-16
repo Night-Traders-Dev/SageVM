@@ -57,7 +57,7 @@ class SGVMCLI:
         elif cmd == "hex":
             self.handle_hex(args)
         elif cmd == "version":
-            print "SageVM v0.9.7"
+            print "SageVM v0.9.8"
         elif cmd == "--help" or cmd == "-h" or cmd == "help":
             print_help()
         else:

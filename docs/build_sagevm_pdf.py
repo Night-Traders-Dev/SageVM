@@ -58,7 +58,7 @@ def draw_content_page(canvas, doc):
     canvas.setFont('Courier', 7.5)
     canvas.setFillColor(HexColor('#8bafc4'))
     canvas.drawRightString(PAGE_W - RIGHT, PAGE_H - TOP + 0.65 * cm,
-                           'Night-Traders-Dev  ·  v0.9.7')
+                           'Night-Traders-Dev  ·  v0.9.8')
     # ── Footer ──
     canvas.setFillColor(C_DIVIDER)
     canvas.rect(LEFT, BOTTOM - 0.5 * cm, CONTENT_W, 0.03 * cm, fill=1, stroke=0)
@@ -284,7 +284,7 @@ def build():
         topMargin=TOP, bottomMargin=BOTTOM,
         title='SageVM Technical Reference',
         author='Night-Traders-Dev',
-        subject='SageVM Bytecode Compiler and Interpreter — v0.9.7',
+        subject='SageVM Bytecode Compiler and Interpreter — v0.9.8',
         creator='SageLang Documentation Pipeline',
     )
 
@@ -310,7 +310,7 @@ def build():
     ]
 
     meta = [
-        ('Version',         'v0.9.7'),
+        ('Version',         'v0.9.8'),
         ('Organization',    'Night-Traders-Dev'),
         ('Primary Language','SageLang / C'),
         ('Document Type',   'Internal Technical Reference'),
@@ -720,7 +720,7 @@ def build():
     story.append(PageBreak())
     story += h1('7.  Performance Characteristics', S)
 
-    story += h2('7.1  Benchmarks (v0.9.7)', S)
+    story += h2('7.1  Benchmarks (v0.9.8)', S)
     story += data_table(
         ['Benchmark', 'Duration (ms)', 'Workload Type'],
         [
@@ -825,7 +825,7 @@ def build():
     # ── §12 Conclusion ───────────────────────────────────────────────────────
     story += h1('12.  Conclusion', S)
     story += p(
-        'SageVM v0.9.7 is a sophisticated, well-architected educational and tooling VM that serves '
+        'SageVM v0.9.8 is a sophisticated, well-architected educational and tooling VM that serves '
         'as a critical bridge in the SageLang ecosystem. Its pure-SageLang implementation enables '
         'bootstrap scenarios and cross-platform portability that would be impossible with C-only '
         'tooling. The inclusion of GPU opcodes, comprehensive OOP support, and rigorous diagnostic '
@@ -851,7 +851,7 @@ def build():
     story += [
         Spacer(1, 8),
         Paragraph(
-            'End of Document  ·  SageVM Technical Reference v0.9.7  ·  Night-Traders-Dev',
+            'End of Document  ·  SageVM Technical Reference v0.9.8  ·  Night-Traders-Dev',
             S['end_note']
         ),
     ]

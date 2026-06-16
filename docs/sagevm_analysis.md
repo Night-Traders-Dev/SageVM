@@ -1,6 +1,6 @@
 # SageVM — Full Project Analysis
 
-> **Version**: 0.9.4 (VERSION file) / 0.9.7 (README/CLI)  
+> **Version**: 0.9.8 (Unified across VERSION/README/CLI)  
 > **Language**: SageLang (pure, 100%)  
 > **Repository**: Night-Traders-Dev/SageVM  
 > **Commits**: 146 across single `main` branch  
@@ -193,8 +193,8 @@ Native calls use `sys.call()` with explicit arity dispatch (0–8 args). The `__
 
 ### 7.1 Critical
 
-> [!CAUTION]
-> **Version mismatch**: `VERSION` file says `0.9.4`, README says `v0.9.8`, CLI prints `v0.9.7`. Three different versions across the codebase.
+> [!NOTE]
+> **Version mismatch**: Historically, the `VERSION` file, README, and CLI had conflicting versions (0.9.4, v0.9.8, v0.9.7). These have been unified to `0.9.8`.
 
 > [!WARNING]
 > **Duplicate `return true`** in [sgvm_disassembler_logic.sage:142-143](file:///home/kraken/Devel/SageVM/src/svm/sgvm_disassembler_logic.sage#L142-L143) — dead code after the first `return`.
@@ -250,7 +250,7 @@ Native calls use `sys.call()` with explicit arity dispatch (0–8 args). The `__
 
 ### 9.1 Immediate Fixes (Low Effort)
 
-- [ ] Synchronize VERSION file, README, and CLI version string to `0.9.8`
+- [x] Synchronize VERSION file, README, and CLI version string to `0.9.8`
 - [ ] Remove duplicate `return true` in disassembler (line 143)
 - [ ] Remove debug prints from `srvm_runner.sage`
 - [ ] Fix SRVM runner to skip function chunks (add `function_count` offset like SVM runner)

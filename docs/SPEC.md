@@ -73,4 +73,4 @@ The following opcodes are SageVM-specific extensions not found in the core `byte
 
 ### 7.2 Known Incompatibilities
 - **GPU Instruction Set**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes (59-86) in the core spec.
-- **Raise Encoding**: The `sgvmc` compiler (SVM) currently expects an incorrect encoding (`0x44`) for `OP_RAISE`, which conflicts with `OP_GPU_END_COMMANDS` in the authoritative spec.
+- **Raise Encoding**: Historically, the `sgvmc` compiler (SVM) expected an incorrect encoding (`0x44`) for `OP_RAISE` which conflicted with `OP_GPU_END_COMMANDS`. This was resolved in v0.9.7; `OP_RAISE` is now correctly mapped to 58.
