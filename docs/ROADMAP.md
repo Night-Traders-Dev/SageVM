@@ -17,6 +17,7 @@ This document outlines the features and standard library modules currently unsup
 - **Security Sandboxing**: Implemented `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
 
 ## 🟡 Medium Difficulty (Native Bridging)
+- **Local Variable Opcodes**: Implement interpreter support for `OP_GET_LOCAL` (88) and `OP_SET_LOCAL` (89) in `src/svm/sgvm_vm.sage`.
 
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.

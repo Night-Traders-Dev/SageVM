@@ -128,6 +128,8 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_GPU_CMD_PUSH_CONST | 85 | gpu.cmd_push_constants(cmd, layout, stages, data) |
 | OP_GPU_CMD_DISPATCH | 86 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
 | OP_MATH_PRINTM | 87 | math.printm(matrix) [SageVM Extension] |
+| OP_GET_LOCAL | 88 | Get a local variable value |
+| OP_SET_LOCAL | 89 | Set a local variable value |
 | OP_HALT | 0xFF | Halt execution [SageVM Extension] |
 
 ## Native Bridge
