@@ -41,6 +41,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
 - **Control Flow Integrity**: No illegal jumps; recursive depth is limited to 1,024 frames (`max_call_depth`).
 - **Type Safety**: Operations are performed on valid operand types.
 - **Boundary Checks**: No out-of-bounds access to memory or object arenas. Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
+- **Path Sanitization**: Compiler validates input and output file paths against shell metacharacters to prevent command injection.
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions.
 
 ## 4. Execution Modes
