@@ -14,14 +14,15 @@ To build and install the tools to your system:
 
 This will automatically initialize the SageLang submodule, build the `sage` compiler, and then compile `sgvm.sage` and `sgvmc.sage` into native binaries.
 
-## Features (v0.9.5)
+## Features (v0.9.7)
 
 - **Delegation Bridge**: Full guest-to-host delegation for GPU, I/O, and native modules.
-- **Full Opcode Parity**: Supports all opcodes from SageLang v3.7.6 `MetalVM`.
+- **100% Opcode Parity**: Supports all 89 opcodes from SageLang `MetalVM` (0-87, 255).
 - **OOP Engine**: Native support for classes, inheritance, and method dispatch.
-- **Exceptions**: VM-level support for `try/catch/finally` blocks.
+- **Exceptions**: VM-level support for `try/catch/finally` blocks with correct stack and scope unwinding.
 - **Unified Build System**: Modern orchestrator using `sagemake` with `rich` UI.
 - **Standalone Mode**: Can compile `.sage` source directly to `.sgvm` binaries.
+- **Matrix Visualization**: Native `math.printm` support for formatted matrix output.
 
 ## Tools
 
@@ -96,7 +97,7 @@ This repository is intended to be used as a submodule within the main SageLang r
 
 ## Development
 
-The opcodes used by these tools must stay in lockstep with the primary specification in the SageLang repository (`core/src/vm/bytecode.h`).
+The opcodes used by these tools stay in 100% lockstep with the primary specification in the SageLang repository (`core/src/vm/bytecode.h`).
 
 ## License
 

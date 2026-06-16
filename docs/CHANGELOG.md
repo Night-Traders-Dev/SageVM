@@ -5,14 +5,18 @@ All notable changes to this project will be documented in this file.
 ## [0.9.7] - 2026-06-16
 
 ### Added
-- **Opcode Conformance Sync**: Performed a comprehensive synchronization with the authoritative `bytecode.h` from the SageLang repository.
+- **100% Opcode Parity**: Achieved full synchronization with the authoritative `bytecode.h` from SageLang (89 opcodes total, 0-87 and 255).
+- **Matrix Visualization**: Implemented native `math.printm` support in both the VM and compiler.
+- **Mobile-Friendly Docs**: Improved the architecture graph visualization with dynamic resizing and touch support.
 
 ### Changed
-- **Documentation Maintenance**: Updated `ARCHITECTURE.md` and `ROADMAP.md` to reflect the current opcode alignment, removing stale warnings about `OP_MATH_PRINTM` index drift (now resolved in upstream).
-- **Opcode Status**: Formally classified `OP_MATH_PRINTM` (87) and `OP_HALT` (255) as intentional SageVM-only extensions.
+- **OOP Engine Refactor**: Significantly improved `OP_CALL_METHOD` to correctly handle direct class method calls and inheritance.
+- **Documentation Maintenance**: Updated `ARCHITECTURE.md` and `ROADMAP.md` to reflect current implementation status, removing legacy warnings.
 
 ### Fixed
-- **Collision Clarification**: Explicitly documented that the `OP_RAISE` / `OP_GPU_END_COMMANDS` encoding collision is a compiler-specific mapping bug in `sgvmc` and does not affect the core VM definition.
+- **Opcode Mapping Fix**: Corrected the critical `OP_RAISE` collision (now correctly mapped to 58, not 68).
+- **Scope Persistence Bug**: Fixed a VM bug where `OP_RETURN` prematurely popped the global scope in top-level chunks.
+- **Output Interference**: Silenced intrusive debug logs in `MetalVM.init` that caused test suite mismatches.
 
 ## [0.9.6] - 2026-06-15
 

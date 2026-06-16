@@ -4,12 +4,6 @@
 - `sgvm_hexdump.sage`: Low-level bytecode binary inspector.
 - `sgvm_disassembler.sage`: High-level bytecode to source code reconstruction tool.
 
-> [!CAUTION]
-> **BINARY COMPATIBILITY RISK**: The `sgvmc` compiler (SageVM toolset) currently has a known opcode mapping bug.
-> - `OP_RAISE` is defined as **58** in the authoritative `bytecode.h` and SageVM core, but the **compiler (sgvmc) incorrectly maps it to 68**.
-> - **Encoding Collision**: Opcode **68** is used for both `OP_RAISE` (by the compiler) and `OP_GPU_END_COMMANDS` (by the VM core).
-> - Binaries compiled with `sgvmc` containing exception handling are **not compatible** with the core `MetalVM` C implementation or GPU-enabled execution environments.
-
 ## Opcodes
 
 The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
