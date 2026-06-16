@@ -1,7 +1,7 @@
 import sys
 import io
-import svm.sgvm_vm as sgvm_vm
-from svm.sgvm_core import SGVMUtils
+import sgvm_vm
+from sgvm_core import SGVMUtils
 
 class SGVMRunner:
     proc init(self):

@@ -1,6 +1,6 @@
 import sys
 import io
-from svm.sgvm_core import SGVMUtils
+from sgvm_core import SGVMUtils
 
 # The Enhanced .sgvm Disassembler
 # Supports outputting both .svm (bytecode) and .sage (source reconstruction)
