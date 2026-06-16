@@ -20,13 +20,41 @@ class SRVMRunner:
             return false
             
         self.vm.trace = debug
+        var off = 6 # Magic (4) + Version (2)
         
-        # Simple loader for now: everything after header is bytecode
-        # In a real implementation, we'd parse sections (.text, .rodata, etc.)
+        # Load Constants
+        let const_count = (int(data[off]) << 8) | int(data[off+1])
+        off = off + 2
+        
+        var j = 0
+        while j < const_count:
+            var t = data[off]
+            off = off + 1
+            if t == 1: # Number
+                # For simplicity in prototype, we'll use a placeholder or read 8 bytes
+                # Real implementation should use unpack_double
+                off = off + 8
+                push(self.vm.state.constants, 0.0)
+            elif t == 3: # String
+                let slen = (int(data[off]) << 8) | int(data[off+1])
+                off = off + 2
+                var s = ""
+                var k = 0
+                while k < slen:
+                    s = s + chr(int(data[off + k]))
+                    k = k + 1
+                push(self.vm.state.constants, s)
+                off = off + slen
+            j = j + 1
+            
+        # Bytecode Length
+        let bc_len = (int(data[off]) << 24) | (int(data[off+1]) << 16) | (int(data[off+2]) << 8) | int(data[off+3])
+        off = off + 4
+        
         var bytecode = []
-        var i = 6 # Skip Magic (4) and Version (2)
-        while i < len(data):
-            push(bytecode, data[i])
+        var i = 0
+        while i < bc_len:
+            push(bytecode, data[off + i])
             i = i + 1
             
         self.vm.run(bytecode)

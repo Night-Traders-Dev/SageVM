@@ -86,6 +86,8 @@ class SRVM:
             self.handle_imm(instr)
         elif op == srvm_core.OP_REG:
             self.handle_reg(instr)
+        elif op == srvm_core.OP_LDC:
+            self.handle_ldc(instr)
         elif op == srvm_core.OP_LOAD:
             self.handle_load(instr)
         elif op == srvm_core.OP_STORE:
@@ -95,6 +97,15 @@ class SRVM:
         else:
             print "Unknown opcode: " + str(op)
             self.state.running = false
+
+    proc handle_ldc(self, instr):
+        let idx = (instr.imm_u >> 12) & 0xFFFFF
+        if idx >= 0 and idx < len(self.state.constants):
+            self.state.x[instr.rd] = self.state.constants[idx]
+        else:
+            print "Constant pool access violation at " + str(idx)
+            self.state.running = false
+        self.state.pc = self.state.pc + 4
 
     proc handle_load(self, instr):
         let addr = self.state.x[instr.rs1] + instr.imm_i
@@ -180,10 +191,25 @@ class SRVM:
         self.state.pc = self.state.pc + 4
 
     proc handle_vmsys(self, instr):
-        if instr.funct3 == srvm_core.F3_VM_OPS:
-            if instr.funct7 == srvm_core.VMO_HALT:
+        let f3 = instr.funct3
+        let f7 = instr.funct7
+        
+        if f3 == srvm_core.F3_VM_OPS:
+            if f7 == srvm_core.VMO_HALT:
                 self.state.running = false
-            elif instr.funct7 == srvm_core.VMO_PRINT:
+            elif f7 == srvm_core.VMO_PRINT:
                 print str(self.state.x[instr.rs1])
+        elif f3 == srvm_core.F3_OBJ_OPS:
+            if f7 == srvm_core.OBJ_GET_GLOBAL:
+                # rs1 contains global index (as constant)
+                let idx = int(self.state.x[instr.rs1])
+                # Map index to name from constants
+                let name = self.state.constants[idx]
+                self.state.x[instr.rd] = self.state.heap[name]
+            elif f7 == srvm_core.OBJ_SET_GLOBAL:
+                let idx = int(self.state.x[instr.rs1])
+                let val = self.state.x[instr.rs2]
+                let name = self.state.constants[idx]
+                self.state.heap[name] = val
         
         self.state.pc = self.state.pc + 4

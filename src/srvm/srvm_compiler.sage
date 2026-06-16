@@ -50,7 +50,8 @@ class StackToRiscVTranslator:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_u(srvm_core.OP_LUI, rd, idx << 12))
+                # Load constant using OP_LDC (U-type)
+                self.emit_32(self.encoder.encode_u(srvm_core.OP_LDC, rd, idx << 12))
                 push(self.reg_stack, rd)
                 
             elif op == sgvm_core.OP_ADD:
@@ -66,6 +67,27 @@ class StackToRiscVTranslator:
                 let patch_pc = len(self.output_bytes)
                 self.emit_32(self.encoder.encode_j(srvm_core.OP_JAL, 0, 0)) # Placeholder
                 push(self.jump_patches, [patch_pc, target_ip])
+                
+            elif op == sgvm_core.OP_GET_GLOBAL:
+                let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                # 1. Load index into temp register
+                let ri = self.alloc_reg()
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, ri, 0, idx))
+                # 2. VMSYS OBJ_GET_GLOBAL rd, ri
+                let rd = self.alloc_reg()
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, srvm_core.OBJ_GET_GLOBAL, rd, ri, 0))
+                push(self.reg_stack, rd)
+
+            elif op == sgvm_core.OP_SET_GLOBAL:
+                let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                let val = pop(self.reg_stack)
+                # 1. Load index into temp register
+                let ri = self.alloc_reg()
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, ri, 0, idx))
+                # 2. VMSYS OBJ_SET_GLOBAL ri, val
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, srvm_core.OBJ_SET_GLOBAL, 0, ri, val))
                 
             elif op == sgvm_core.OP_PRINT:
                 let rs1 = pop(self.reg_stack)

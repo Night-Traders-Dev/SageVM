@@ -11,6 +11,7 @@ let OP_LOAD    = 0b0000011 # 0x03
 let OP_STORE   = 0b0100011 # 0x23
 let OP_IMM     = 0b0010011 # 0x13
 let OP_REG     = 0b0110011 # 0x33
+let OP_LDC     = 0b1011011 # Custom-2 Opcode for Load Constant (U-type)
 let OP_VMSYS   = 0b1110011 # 0x73 (Standard SYSTEM opcode repurposed)
 
 # Funct3 for OP_BRANCH
@@ -63,8 +64,17 @@ let F3_OBJ_OPS  = 0b010
 
 # VM Ops (funct7)
 let VMO_HALT    = 0x01
+let VMO_PUSH_ENV = 0x02
+let VMO_POP_ENV  = 0x03
 let VMO_PRINT   = 0x09
 let VMO_PRINTM  = 0x0B
+
+# Object Ops (funct7)
+let OBJ_GET_GLOBAL = 0x00
+let OBJ_SET_GLOBAL = 0x01
+let OBJ_NEW_CLASS  = 0x02
+let OBJ_GET_PROP   = 0x03
+let OBJ_SET_PROP   = 0x04
 
 class RVInstruction:
     proc init(self, value):
