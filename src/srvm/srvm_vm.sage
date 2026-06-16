@@ -86,11 +86,42 @@ class SRVM:
             self.handle_imm(instr)
         elif op == srvm_core.OP_REG:
             self.handle_reg(instr)
+        elif op == srvm_core.OP_LOAD:
+            self.handle_load(instr)
+        elif op == srvm_core.OP_STORE:
+            self.handle_store(instr)
         elif op == srvm_core.OP_VMSYS:
             self.handle_vmsys(instr)
         else:
             print "Unknown opcode: " + str(op)
             self.state.running = false
+
+    proc handle_load(self, instr):
+        let addr = self.state.x[instr.rs1] + instr.imm_i
+        let f3 = instr.funct3
+        
+        # In a real VM, this would access a byte array.
+        # For our prototype, we treat self.stack as a value array.
+        if addr >= 0 and addr < len(self.state.stack):
+            self.state.x[instr.rd] = self.state.stack[addr]
+        else:
+            print "Load access violation at " + str(addr)
+            self.state.running = false
+        
+        self.state.pc = self.state.pc + 4
+
+    proc handle_store(self, instr):
+        let addr = self.state.x[instr.rs1] + instr.imm_s
+        let val = self.state.x[instr.rs2]
+        let f3 = instr.funct3
+        
+        if addr >= 0 and addr < len(self.state.stack):
+            self.state.stack[addr] = val
+        else:
+            print "Store access violation at " + str(addr)
+            self.state.running = false
+            
+        self.state.pc = self.state.pc + 4
 
     proc handle_branch(self, instr):
         let rs1_val = self.state.x[instr.rs1]
@@ -114,9 +145,16 @@ class SRVM:
         let f3 = instr.funct3
         
         if f3 == srvm_core.F3_ADDI: self.state.x[instr.rd] = rs1_val + imm
+        elif f3 == srvm_core.F3_SLTI:
+            if rs1_val < imm: self.state.x[instr.rd] = 1
+            else: self.state.x[instr.rd] = 0
         elif f3 == srvm_core.F3_XORI: self.state.x[instr.rd] = rs1_val ^ imm
         elif f3 == srvm_core.F3_ORI: self.state.x[instr.rd] = rs1_val | imm
         elif f3 == srvm_core.F3_ANDI: self.state.x[instr.rd] = rs1_val & imm
+        elif f3 == srvm_core.F3_SLLI: self.state.x[instr.rd] = rs1_val << (imm & 0x3F)
+        elif f3 == srvm_core.F3_SRLI:
+            # Shift right logical
+            self.state.x[instr.rd] = rs1_val >> (imm & 0x3F)
         
         self.state.pc = self.state.pc + 4
 
@@ -129,7 +167,13 @@ class SRVM:
         if f3 == srvm_core.F3_ADD:
             if f7 == 0x00: self.state.x[instr.rd] = rs1_val + rs2_val
             elif f7 == 0x20: self.state.x[instr.rd] = rs1_val - rs2_val
+        elif f3 == srvm_core.F3_SLL: self.state.x[instr.rd] = rs1_val << (rs2_val & 0x3F)
+        elif f3 == srvm_core.F3_SLT:
+            if rs1_val < rs2_val: self.state.x[instr.rd] = 1
+            else: self.state.x[instr.rd] = 0
         elif f3 == srvm_core.F3_XOR: self.state.x[instr.rd] = rs1_val ^ rs2_val
+        elif f3 == srvm_core.F3_SRL:
+            if f7 == 0x00: self.state.x[instr.rd] = rs1_val >> (rs2_val & 0x3F)
         elif f3 == srvm_core.F3_OR: self.state.x[instr.rd] = rs1_val | rs2_val
         elif f3 == srvm_core.F3_AND: self.state.x[instr.rd] = rs1_val & rs2_val
         
