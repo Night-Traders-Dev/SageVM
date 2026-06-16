@@ -25,5 +25,5 @@ These tasks involve significant architectural additions or complex resource mana
 - **Bytecode Verifier**: Pre-execution verification for constant pool integrity and jump target validity.
 
 ## 🟣 Research / Future
-- **JIT/AOT Compilation**: Transitioning from a pure interpreter to a system that emits native machine code for the target architecture.
+- **JIT/AOT Compilation**: 🟡 Currently in progress (Phase 4: JIT Compilation Target). Infrastructure (Memory Manager, RISC-V Emitter) and OSR hooks implemented.
 - **Formal Verification**: Tools to mathematically prove the safety of a `.sgvm` binary before execution (as mentioned in `SPEC.md`).
