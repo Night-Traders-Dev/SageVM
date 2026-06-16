@@ -1,11 +1,11 @@
 import sys
-import io
 import sgvm_runner
 import sgvm_compiler
 import sgvm_disassembler_logic
 import sgvm_hexdump_logic
 import srvm_runner
 import srvm_compiler
+import io
 
 proc print_help():
     print "Usage: sagevm <command> [options]"
@@ -98,16 +98,16 @@ class SGVMCLI:
         var use_shebang = false
         var riscv = false
         var pos_idx = 0
-        var i = start_idx
-        while i < len(args):
-            let a = args[i]
+        var iter_idx = start_idx
+        while iter_idx < len(args):
+            let a = args[iter_idx]
             if a == "--shebang": use_shebang = true
             elif a == "--riscv": riscv = true
             else:
                 if pos_idx == 0: input_file = a
                 elif pos_idx == 1: output_file = a
                 pos_idx = pos_idx + 1
-            i = i + 1
+            iter_idx = iter_idx + 1
         
         if input_file == "":
             print "Usage: sagevm compile <input.sage> [output.sgvm] [--shebang] [--riscv]"
@@ -122,12 +122,22 @@ class SGVMCLI:
             if riscv:
                 # Post-process: Translate SVM to SRVM
                 let svm_data = io.readbytes(output_file)
-                # Find start of bytecode in .sgvm
-                # (This is simplified - in reality we'd need better integration)
-                # For now, let's just show it's possible
-                print "✨ Stack compilation complete. Translating to RISC-V..."
-                # ... translation logic would go here
-                # I'll implement a basic one in the next step
+                let rv_compiler = srvm_compiler.SGRVCompiler()
+                let sgrv_data = rv_compiler.compile(svm_data)
+                if sgrv_data != nil:
+                    # Workaround for io.writebytes bug in compiled binary
+                    var cmd = "python3 -c 'import sys; open(sys.argv[1], \"wb\").write(bytes(["
+                    var ci = 0
+                    while ci < len(sgrv_data):
+                        cmd = cmd + str(int(sgrv_data[ci]))
+                        if ci < len(sgrv_data) - 1:
+                            cmd = cmd + ","
+                        ci = ci + 1
+                    cmd = cmd + "]))' \"" + output_file + "\""
+                    sgvm_compiler.sys_exec(cmd)
+                    print "✨ RISC-V translation complete."
+                else:
+                    print "❌ RISC-V translation failed."
             print "✨ Compilation complete: " + output_file
         else:
             print "❌ Compilation failed."

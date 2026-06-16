@@ -26,15 +26,16 @@ class SRVMRunner:
         let const_count = (int(data[off]) << 8) | int(data[off+1])
         off = off + 2
         
+        let ut = srvm_core.SRVMUtils()
+        
         var j = 0
         while j < const_count:
-            var t = data[off]
+            var t = int(data[off])
             off = off + 1
             if t == 1: # Number
-                # For simplicity in prototype, we'll use a placeholder or read 8 bytes
-                # Real implementation should use unpack_double
+                let val = ut.unpack_double(data, off)
+                push(self.vm.state.constants, val) 
                 off = off + 8
-                push(self.vm.state.constants, 0.0)
             elif t == 3: # String
                 let slen = (int(data[off]) << 8) | int(data[off+1])
                 off = off + 2
@@ -47,15 +48,27 @@ class SRVMRunner:
                 off = off + slen
             j = j + 1
             
-        # Bytecode Length
-        let bc_len = (int(data[off]) << 24) | (int(data[off+1]) << 16) | (int(data[off+2]) << 8) | int(data[off+3])
+        # Load Chunks
+        let num_chunks = (int(data[off]) << 24) | (int(data[off+1]) << 16) | (int(data[off+2]) << 8) | int(data[off+3])
         off = off + 4
         
-        var bytecode = []
-        var i = 0
-        while i < bc_len:
-            push(bytecode, data[off + i])
-            i = i + 1
+        var chunk_idx = 0
+        while chunk_idx < num_chunks:
+            let clen = (int(data[off]) << 24) | (int(data[off+1]) << 16) | (int(data[off+2]) << 8) | int(data[off+3])
+            off = off + 4
             
-        self.vm.run(bytecode)
+            var bc = []
+            var i = 0
+            while i < clen:
+                push(bc, int(data[off + i]))
+                i = i + 1
+            push(self.vm.state.chunks, bc)
+            off = off + clen
+            chunk_idx = chunk_idx + 1
+            
+        # Execute all chunks (sequential top-level execution)
+        chunk_idx = 0
+        while chunk_idx < num_chunks:
+            self.vm.run(self.vm.state.chunks[chunk_idx])
+            chunk_idx = chunk_idx + 1
         return true

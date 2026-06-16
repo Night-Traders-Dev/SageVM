@@ -180,6 +180,19 @@ class SRVM:
         let rs2_val = self.state.x[instr.rs2]
         let f3 = instr.funct3
         let f7 = instr.funct7
+
+        if f7 == 0x01: # M-extension
+            if f3 == srvm_core.F3_ADD: # MUL
+                self.state.x[instr.rd] = rs1_val * rs2_val
+            elif f3 == srvm_core.F3_XOR: # DIV
+                if rs2_val != 0: self.state.x[instr.rd] = rs1_val / rs2_val
+                else: self.state.x[instr.rd] = 0
+            elif f3 == srvm_core.F3_OR: # REM
+                if rs2_val != 0: self.state.x[instr.rd] = rs1_val % rs2_val
+                else: self.state.x[instr.rd] = 0
+            self.state.pc = self.state.pc + 4
+            return
+
         if f3 == srvm_core.F3_ADD:
             if f7 == 0x00: self.state.x[instr.rd] = rs1_val + rs2_val
             elif f7 == 0x20: self.state.x[instr.rd] = rs1_val - rs2_val
@@ -190,6 +203,7 @@ class SRVM:
         elif f3 == srvm_core.F3_XOR: self.state.x[instr.rd] = rs1_val ^ rs2_val
         elif f3 == srvm_core.F3_SRL:
             if f7 == 0x00: self.state.x[instr.rd] = rs1_val >> (rs2_val & 0x3F)
+            elif f7 == 0x20: self.state.x[instr.rd] = rs1_val >> (rs2_val & 0x3F) # SRA
         elif f3 == srvm_core.F3_OR: self.state.x[instr.rd] = rs1_val | rs2_val
         elif f3 == srvm_core.F3_AND: self.state.x[instr.rd] = rs1_val & rs2_val
         self.state.pc = self.state.pc + 4
@@ -203,8 +217,10 @@ class SRVM:
                 self.state.running = false
             elif f7 == srvm_core.VMO_PRINT:
                 print str(self.state.x[instr.rs1])
+            elif f7 == srvm_core.VMO_PRINTM:
+                print str(self.state.x[instr.rs1])
             elif f7 == srvm_core.VMO_PUSH_ENV:
-                push(self.state.call_stack, self.state.heap) # Reuse call_stack for envs for now or add env_stack
+                push(self.state.call_stack, self.state.heap)
                 self.state.heap = {}
             elif f7 == srvm_core.VMO_POP_ENV:
                 self.state.heap = pop(self.state.call_stack)
@@ -221,6 +237,11 @@ class SRVM:
                     self.state.pc = 0
                     self.state.x[1] = 0
                     return
+            elif f7 == srvm_core.VMO_ARRAY_LEN:
+                let obj = self.state.x[instr.rs1]
+                if type(obj) == "list": self.state.x[instr.rd] = len(obj)
+                elif type(obj) == "dict": self.state.x[instr.rd] = len(obj)
+                else: self.state.x[instr.rd] = 0
         elif f3 == srvm_core.F3_OBJ_OPS:
             if f7 == srvm_core.OBJ_GET_GLOBAL:
                 let idx = int(self.state.x[instr.rs1])
@@ -241,10 +262,38 @@ class SRVM:
                 let obj = self.state.x[instr.rs1]
                 let name_idx = int(self.state.x[instr.rs2])
                 let name = self.state.constants[name_idx]
-                let val = self.state.x[10]
+                let val = self.state.x[10] # a0
                 if type(obj) == "dict": obj[name] = val
             elif f7 == srvm_core.OBJ_NEW_FUNC:
                 let chunk_idx = self.state.x[instr.rs1]
                 self.state.x[instr.rd] = {"type": "function", "chunk_idx": chunk_idx}
+            elif f7 == srvm_core.OBJ_ARRAY_NEW:
+                let size = int(self.state.x[instr.rs1])
+                let init_val = self.state.x[instr.rs2]
+                var arr = []
+                var i = 0
+                while i < size:
+                    push(arr, init_val)
+                    i = i + 1
+                self.state.x[instr.rd] = arr
+            elif f7 == srvm_core.OBJ_GET_INDEX:
+                let obj = self.state.x[instr.rs1]
+                let idx = int(self.state.x[instr.rs2])
+                if type(obj) == "list" and idx >= 0 and idx < len(obj):
+                    self.state.x[instr.rd] = obj[idx]
+                elif type(obj) == "dict":
+                    self.state.x[instr.rd] = obj[idx]
+                else: self.state.x[instr.rd] = nil
+            elif f7 == srvm_core.OBJ_SET_INDEX:
+                let obj = self.state.x[instr.rs1]
+                let idx = int(self.state.x[instr.rs2])
+                let val = self.state.x[10] # a0
+                if type(obj) == "list" and idx >= 0 and idx < len(obj):
+                    obj[idx] = val
+                elif type(obj) == "dict":
+                    obj[idx] = val
+        elif f3 == srvm_core.F3_GPU_OPS:
+            # TODO: Implement GPU operations
+            return nil
         
         self.state.pc = self.state.pc + 4

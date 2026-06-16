@@ -48,14 +48,14 @@ let F3_SLLI  = 0b001
 let F3_SRLI  = 0b101 # also SRAI with funct7
 
 # Funct3 for OP_REG
-let F3_ADD  = 0b000 # and SUB
-let F3_SLL  = 0b001
-let F3_SLT  = 0b010
-let F3_SLTU = 0b011
-let F3_XOR  = 0b100
-let F3_SRL  = 0b101 # and SRA
-let F3_OR   = 0b110
-let F3_AND  = 0b111
+let F3_ADD  = 0b000 # and SUB, and MUL
+let F3_SLL  = 0b001 # and MULH
+let F3_SLT  = 0b010 # and MULHSU
+let F3_SLTU = 0b011 # and MULHU
+let F3_XOR  = 0b100 # and DIV
+let F3_SRL  = 0b101 # and SRA, and DIVU
+let F3_OR   = 0b110 # and REM
+let F3_AND  = 0b111 # and REMU
 
 # Custom SageVM Opcodes (using OP_VMSYS)
 let F3_VM_OPS   = 0b000
@@ -63,20 +63,65 @@ let F3_GPU_OPS  = 0b001
 let F3_OBJ_OPS  = 0b010
 
 # VM Ops (funct7)
-let VMO_HALT    = 0x01
+let VMO_NOP      = 0x00
+let VMO_HALT     = 0x01
 let VMO_PUSH_ENV = 0x02
 let VMO_POP_ENV  = 0x03
 let VMO_CALL     = 0x04
-let VMO_PRINT   = 0x09
-let VMO_PRINTM  = 0x0B
+let VMO_SETUP_TRY = 0x05
+let VMO_END_TRY   = 0x06
+let VMO_RAISE    = 0x07
+let VMO_IMPORT   = 0x08
+let VMO_PRINT    = 0x09
+let VMO_ARRAY_LEN = 0x0A
+let VMO_PRINTM   = 0x0B
+let VMO_EXEC_AST = 0x0C
 
 # Object Ops (funct7)
 let OBJ_GET_GLOBAL = 0x00
 let OBJ_SET_GLOBAL = 0x01
 let OBJ_NEW_CLASS  = 0x02
-let OBJ_GET_PROP   = 0x03
-let OBJ_SET_PROP   = 0x04
-let OBJ_NEW_FUNC   = 0x05
+let OBJ_INHERIT    = 0x03
+let OBJ_METHOD_BIND = 0x04
+let OBJ_GET_PROP   = 0x05
+let OBJ_SET_PROP   = 0x06
+let OBJ_NEW_FUNC   = 0x07
+let OBJ_ARRAY_NEW  = 0x08
+let OBJ_DICT_NEW   = 0x09
+let OBJ_TUPLE_NEW  = 0x0A
+let OBJ_GET_INDEX  = 0x0B
+let OBJ_SET_INDEX  = 0x0C
+let OBJ_SLICE      = 0x0D
+
+# GPU Ops (funct7)
+let GPU_POLL_EVENTS         = 0x00
+let GPU_WINDOW_SHOULD_CLOSE = 0x01
+let GPU_GET_TIME            = 0x02
+let GPU_KEY_PRESSED         = 0x03
+let GPU_MOUSE_PRESSED       = 0x04
+let GPU_MOUSE_POS           = 0x05
+let GPU_SCREEN_SIZE         = 0x06
+let GPU_CLEAR               = 0x07
+let GPU_SET_COLOR           = 0x08
+let GPU_DRAW_PIXEL          = 0x09
+let GPU_DRAW_LINE           = 0x0A
+let GPU_DRAW_RECT           = 0x0B
+let GPU_DRAW_CIRCLE         = 0x0C
+let GPU_DRAW_TRIANGLE       = 0x0D
+let GPU_DRAW_TEXT           = 0x0E
+let GPU_LOAD_IMAGE          = 0x0F
+let GPU_DRAW_IMAGE          = 0x10
+let GPU_LOAD_FONT           = 0x11
+let GPU_LOAD_SOUND          = 0x12
+let GPU_PLAY_SOUND          = 0x13
+let GPU_STOP_SOUND          = 0x14
+let GPU_LOAD_MUSIC          = 0x15
+let GPU_PLAY_MUSIC          = 0x16
+let GPU_STOP_MUSIC          = 0x17
+let GPU_CMD_BATCH_BEGIN     = 0x18
+let GPU_CMD_BATCH_END       = 0x19
+let GPU_CMD_DISPATCH        = 0x1A
+let GPU_BUFFER_CREATE       = 0x1B
 
 class RVInstruction:
     proc init(self, value):
@@ -188,3 +233,41 @@ class SRVMUtils:
         v = v + int(data[off+2]) * 65536
         v = v + int(data[off+3]) * 16777216
         return v
+
+    proc unpack_double(self, bs, off):
+        var b0 = int(bs[off])
+        var b1 = int(bs[off+1])
+        var b2 = int(bs[off+2])
+        var b3 = int(bs[off+3])
+        var b4 = int(bs[off+4])
+        var b5 = int(bs[off+5])
+        var b6 = int(bs[off+6])
+        var b7 = int(bs[off+7])
+        var sign = 1.0
+        if int(b0 / 128) == 1:
+            sign = -1.0
+        var exp = (int(b0 % 128) * 16) + int(b1 / 16)
+        var mantissa = 1.0
+        if exp == 0:
+            mantissa = 0.0
+            exp = 1
+        mantissa = mantissa + (int(b1 % 16) / 16.0)
+        mantissa = mantissa + (b2 / 4096.0)
+        mantissa = mantissa + (b3 / 1048576.0)
+        mantissa = mantissa + (b4 / 268435456.0)
+        mantissa = mantissa + (b5 / 68719476736.0)
+        mantissa = mantissa + (b6 / 17592186044416.0)
+        mantissa = mantissa + (b7 / 4503599627370496.0)
+        var p2 = 1.0
+        var e = exp - 1023
+        if e > 0:
+            var i = 0
+            while i < e:
+                p2 = p2 * 2.0
+                i = i + 1
+        elif e < 0:
+            var i = 0
+            while i < -e:
+                p2 = p2 / 2.0
+                i = i + 1
+        return sign * mantissa * p2
