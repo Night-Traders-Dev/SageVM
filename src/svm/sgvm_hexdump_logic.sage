@@ -1,6 +1,6 @@
 import sys
 import io
-from sgvm_core import SGVMUtils
+from svm.sgvm_core import SGVMUtils
 
 proc byte_to_hex(val):
     let chars = "0123456789abcdef"

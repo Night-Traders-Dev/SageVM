@@ -10,14 +10,14 @@ proc io_readfile(path):
 proc io_writebytes(path, bytes):
     return io.writebytes(path, bytes)
 
-import sgvm_core
-from sgvm_core import SGVMUtils
-from sgvm_core import OP_CONSTANT, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL
-from sgvm_core import OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_LOAD_FUNCTION
-from sgvm_core import OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT
-from sgvm_core import OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK
-from sgvm_core import OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY
-from sgvm_core import OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM
+import svm.sgvm_core as sgvm_core
+from svm.sgvm_core import SGVMUtils
+from svm.sgvm_core import OP_CONSTANT, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL
+from svm.sgvm_core import OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_LOAD_FUNCTION
+from svm.sgvm_core import OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT
+from svm.sgvm_core import OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK
+from svm.sgvm_core import OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY
+from svm.sgvm_core import OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM
 
 class SGVMCompiler:
     proc init(self):

@@ -1,9 +1,9 @@
 import sys
 import io
-import sgvm_runner
-import sgvm_compiler
-import sgvm_disassembler_logic
-import sgvm_hexdump_logic
+import svm.sgvm_runner as sgvm_runner
+import svm.sgvm_compiler as sgvm_compiler
+import svm.sgvm_disassembler_logic as sgvm_disassembler_logic
+import svm.sgvm_hexdump_logic as sgvm_hexdump_logic
 
 proc print_help():
     print "Usage: sagevm <command> [options]"

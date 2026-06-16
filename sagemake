@@ -101,7 +101,7 @@ def build_sagelang(args):
 def build_sagevm(args):
     section("Building SageVM Tools")
     
-    sage_path = f"src:{SAGE_LIB}"
+    sage_path = f"src:src/svm:src/srvm:{SAGE_LIB}"
     env = {
         "SAGE_PATH": sage_path,
         "CFLAGS_EXTRA": "-Wno-overlength-strings"
