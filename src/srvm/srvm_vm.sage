@@ -115,7 +115,8 @@ class SRVM:
         elif op == srvm_core.OP_VMSYS:
             self.handle_vmsys(instr)
         else:
-            print "Unknown opcode: " + str(op)
+            if self.trace:
+                print "Unknown opcode: " + str(op)
             self.state.running = false
 
     proc handle_ldc(self, instr):
@@ -123,7 +124,8 @@ class SRVM:
         if idx >= 0 and idx < len(self.state.constants):
             self.state.x[instr.rd] = self.state.constants[idx]
         else:
-            print "Constant pool access violation at " + str(idx)
+            if self.trace:
+                print "Constant pool access violation at " + str(idx)
             self.state.running = false
         self.state.pc = self.state.pc + 4
 
@@ -132,7 +134,8 @@ class SRVM:
         if addr >= 0 and addr < len(self.state.stack):
             self.state.x[instr.rd] = self.state.stack[addr]
         else:
-            print "Load access violation at " + str(addr)
+            if self.trace:
+                print "Load access violation at " + str(addr)
             self.state.running = false
         self.state.pc = self.state.pc + 4
 
@@ -142,7 +145,8 @@ class SRVM:
         if addr >= 0 and addr < len(self.state.stack):
             self.state.stack[addr] = val
         else:
-            print "Store access violation at " + str(addr)
+            if self.trace:
+                print "Store access violation at " + str(addr)
             self.state.running = false
         self.state.pc = self.state.pc + 4
 
@@ -230,8 +234,7 @@ class SRVM:
                 if len(self.state.call_stack) > 0:
                     self.state.heap = pop(self.state.call_stack)
             elif sub_op == srvm_core.VMO_CALL:
-                let func_obj = self.state.x[instr.rs2] # rs2 is the function object
-                # print "DEBUG: VMO_CALL func_obj=" + str(func_obj) + " type=" + type(func_obj)
+                let func_obj = self.state.x[instr.rs2] 
                 var target_chunk = -1
                 if type(func_obj) == "number": target_chunk = int(func_obj)
                 elif type(func_obj) == "dict" and dict_has(func_obj, "chunk_idx"): target_chunk = int(func_obj["chunk_idx"])
