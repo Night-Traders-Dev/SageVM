@@ -11,16 +11,17 @@ import srvm_hexdump_logic
 from sgvm_compiler import sys_exec, io_readfile, io_writebytes
 
 proc print_help():
+    print "✨ SageVM v0.9.8 - The Sage Virtual Machine"
     print "Usage: sagevm <command> [options]"
     print ""
     print "Commands:"
-    print "  run <file.sgvm> [--debug] [--riscv]   Execute a compiled binary"
-    print "  compile <input.sage> [out] [--riscv]  Compile Sage source to binary"
-    print "  dis <file.sgvm> [--riscv]             Disassemble binary"
-    print "  hex <file.sgvm> [--riscv]             Low-level binary hexdump"
-    print "  version                               Show version information"
+    print "  🚀 run <file.sgvm>    Execute a compiled binary"
+    print "  🛠️  compile <file.sage> Compile Sage source to binary"
+    print "  🔍 dis <file.sgvm>    Disassemble binary"
+    print "  📦 hex <file.sgvm>    Low-level binary hexdump"
+    print "  ℹ️  version            Show version information"
     print ""
-    print "Use 'sagevm <command> --help' for command-specific options."
+    print "Flags: -h, --help, -v, --version"
 
 class SGVMCLI:
     proc init(self):
@@ -56,12 +57,13 @@ class SGVMCLI:
             self.handle_dis(args, 2)
         elif cmd == "hex":
             self.handle_hex(args)
-        elif cmd == "version":
+        elif cmd == "version" or cmd == "-v" or cmd == "--version":
             print "SageVM v0.9.8"
         elif cmd == "--help" or cmd == "-h" or cmd == "help":
             print_help()
-        else:
-            print "Unknown command: " + cmd
+        elif cmd != "":
+            print "❌ Unknown command: " + cmd
+            print ""
             print_help()
 
     proc handle_run(self, args, start_idx):
@@ -81,12 +83,17 @@ class SGVMCLI:
             i = i + 1
         
         if input_file == "":
-            print "Usage: sagevm run <file.sgvm> [--debug] [--safe] [--no-ffi] [--riscv]"
+            print "❌ Error: No input file specified."
             return
         
-        # Auto-detect RISC-V header
+        # Verify file existence
         let data = io.readbytes(input_file)
-        if data != nil and len(data) >= 4:
+        if data == nil:
+            print "❌ Error: Could not read file: " + input_file
+            return
+
+        # Auto-detect RISC-V header
+        if len(data) >= 4:
             if int(data[0]) == 83 and int(data[1]) == 71 and int(data[2]) == 82 and int(data[3]) == 86:
                 riscv = true
 
