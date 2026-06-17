@@ -13,7 +13,7 @@ SageVM is a high-performance, pure SageLang implementation of the Sage Virtual M
 
 ## Installation
 
-SageVM requires SageLang **v3.7.7** or higher. To build and install:
+SageVM requires SageLang **v3.8.1** or higher. To build and install:
 
 ```bash
 ./sagemake --install

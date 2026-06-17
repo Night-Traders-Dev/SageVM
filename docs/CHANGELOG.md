@@ -55,7 +55,7 @@ All notable changes to this project will be documented in this file.
 ## [0.9.4] - 2026-06-14
 
 ### Added
-- **SageLang v3.7.7 Support**: Updated the core compiler submodule and synchronized VM logic with the latest language specifications.
+- **SageLang v3.8.1 Support**: Updated the core compiler submodule and synchronized VM logic with the latest language specifications.
 - **AST Execution Bridge**: Implemented `OP_EXEC_AST_STMT` delegation to the host `sys.exec`, enabling execution of non-lowered code segments within the VM.
 - **Expanded Native Library Access**: Broadened the delegation bridge in `OP_IMPORT` to include `json` and `re` (regex) modules from the host standard library.
 
@@ -105,7 +105,7 @@ All notable changes to this project will be documented in this file.
 ## [0.9.0] - 2026-06-08
 
 ### Added
-- **Full Opcode Parity**: Synchronized all opcodes with SageLang v3.7.6, including support for classes, inheritance, exceptions, and GPU hot-path stubs.
+- **Full Opcode Parity**: Synchronized all opcodes with SageLang v3.8.1, including support for classes, inheritance, exceptions, and GPU hot-path stubs.
 - **OOP Engine**: Implemented native class instantiation, method dispatch, and attribute access in `sgvm_vm.sage`.
 - **Exception Handling**: Full support for `try/catch/finally` and `raise` in the VM.
 - **Advanced Data Structures**: Added native support for `slice`, `tuple`, and complex `dict` operations.
