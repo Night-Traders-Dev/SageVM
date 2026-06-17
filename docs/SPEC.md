@@ -17,6 +17,13 @@ The Sage Virtual Machine (SGVM) is the portable execution substrate for SageOS. 
 5. **Chunk Count**: 4 bytes (big-endian).
 6. **Chunks**: Length (4 bytes) + Code (Variable length).
 
+### 2.2 SGRV Format (.sgrv)
+1. **Header**: "SGRV" (4 bytes).
+2. **Version**: 2 bytes.
+3. **Constant Pool**: Count + Entries.
+4. **Chunk Count**: 4 bytes (big-endian).
+5. **Chunks**: Length (4 bytes) + Fixed-width 32-bit instructions.
+
 ### 2.3 Diagnostic Tooling
 Both formats are fully supported by the unified SageVM CLI tools:
 - `sagevm dis`: Disassembles both stack and register-based binaries.
@@ -30,9 +37,9 @@ Both formats are fully supported by the unified SageVM CLI tools:
 SageLang code follows a strictly defined path to execution:
 1. **Source**: Human-readable `.sage` files.
 2. **Compiler Frontend**: Parses source into an Abstract Syntax Tree (AST) or Intermediate Representation (SGIR).
-3. **Bytecode Generation**: Emits portable SGVM instructions.
+3. **Bytecode Generation**: Emits portable SGVM instructions. For register-based targets, performs translation to SGRV.
 4. **Verification**: Mandatory security and safety checks.
-5. **Runtime Execution**: Execution by the MetalVM engine.
+5. **Runtime Execution**: Execution by the MetalVM (SVM) or MetalRV64 (SRVM) engine.
 
 ## 3. Bytecode Verification & Runtime Safety
 (Note: Full static bytecode verification is currently a roadmap item for the SageLang-based interpreter. Runtime enforcement is currently used to ensure safety.)

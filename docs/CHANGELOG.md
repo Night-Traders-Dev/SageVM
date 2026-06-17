@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.9] - 2026-06-18
+
+### Added
+- **SGRV Specification**: Added Section 2.2 to `SPEC.md` detailing the register-based (RISC-V) binary format.
+- **Opcode Gaps**: Identified and documented missing `sgvmc` emission logic for `OP_MATH_PRINTM` (87).
+
+### Changed
+- **CLI Documentation**: Synchronized `README.md` with all implemented flags (`--riscv`, `--sage`, `--svm`, `--safe`, `--no-ffi`).
+- **Native Bridge Status**: Updated `ARCHITECTURE.md` and `ROADMAP.md` to accurately reflect implementation of `ffi`, `mem`, and `struct` modules.
+- **Roadmap Refinement**: Transitioned roadmap items to checkbox format and added `re` and `json` as missing bridge targets.
+
 ## [0.9.8] - 2026-06-17
 
 ### Added

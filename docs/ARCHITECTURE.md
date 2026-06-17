@@ -114,7 +114,7 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
 | OP_TUPLE | 40 | Create a tuple |
 | OP_DICT | 41 | Create a dictionary |
 | OP_PRINT | 42 | Print a value |
-| OP_EXEC_AST_STMT | 43 | Execute an AST statement (fallback) [NEW] |
+| OP_EXEC_AST_STMT | 43 | Execute an AST statement (fallback) |
 | OP_RETURN | 44 | Return from a function |
 | OP_PUSH_ENV | 45 | Push a new environment scope |
 | OP_POP_ENV | 46 | Pop an environment scope |
@@ -175,10 +175,13 @@ The following modules are currently bridged:
 - **thread**: Native SageLang `thread` module (host-level threading).
 - **gpu**: Native SageLang `gpu` module (Vulkan/OpenGL acceleration).
 - **ml_native**: Native SageLang `ml_native` module (Machine Learning acceleration).
+- **ffi**: Foreign Function Interface for calling host C libraries.
+- **mem**: Direct host memory management and raw access.
+- **struct**: Binary data structure packing/unpacking.
 - **gc**: (Experimental stub) Native SageLang garbage collector interface.
 - **reflect**: (Experimental stub) Native SageLang reflection interface.
 
-*Note: Modules like `re`, `ffi`, `mem`, and `struct` are not currently exposed through the guest-to-host bridge in this implementation.*
+*Note: The `re` and `json` modules are not currently exposed through the guest-to-host bridge (see Roadmap).*
 
 Native bridging is implemented by tagging objects and function-like dictionaries with a `__native__` property. The `OP_CALL` and `OP_CALL_METHOD` opcodes detect these tags and dispatch execution to the VM's `call_native()` handler.
 

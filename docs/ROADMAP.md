@@ -11,14 +11,15 @@ This document outlines the features and standard library modules currently unsup
 - **Multi-threading**: Full support for `thread` module with a Global Interpreter Lock (GIL) and result capturing.
 - **Resource Management**: Guest memory tracking and enforcement via host-provided limits.
 - **GPU Hot-Paths**: Implementation of the `BC_OP_GPU_*` opcodes for Vulkan/OpenGL acceleration via host delegation.
-- **AST Delegation**: Full implementation of `OP_EXEC_AST_STMT` to allow execution of non-lowered code via `sys.exec()`.
-- **Matrix Visualization**: Native binary emission and interpretation for `OP_MATH_PRINTM` (87).
-- **Native Bridge Modules**: Re-implemented and exposed `ffi`, `mem`, and `struct` native modules to guest VM (restoration of missing functionality).
+- **AST Delegation**: [x] Full implementation of `OP_EXEC_AST_STMT` to allow execution of non-lowered code via `sys.exec()`.
+- **Matrix Visualization**: [x] Native interpretation for `OP_MATH_PRINTM` (87) (Note: currently lacks `sgvmc` binary emission logic).
+- **Native Bridge Modules**: [x] Re-implemented and exposed `ffi`, `mem`, and `struct` native modules to guest VM (restoration of missing functionality).
 - **Security Sandboxing**: Implemented `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
 
 ## 🟡 Medium Difficulty (Native Bridging)
-- **Local Variable Opcodes**: Implement interpreter support for `OP_GET_LOCAL` (88) and `OP_SET_LOCAL` (89) in `src/svm/sgvm_vm.sage`.
-- **Loop Control Opcodes**: Implement interpreter support for `OP_BREAK` (49) and `OP_CONTINUE` (50) in `src/svm/sgvm_vm.sage` (currently stubs).
+- [ ] **Regex & JSON Support**: Restore `re` and `json` module bridging in `src/svm/sgvm_vm.sage`.
+- [ ] **Local Variable Opcodes**: Implement interpreter support for `OP_GET_LOCAL` (88) and `OP_SET_LOCAL` (89) in `src/svm/sgvm_vm.sage`.
+- [ ] **Loop Control Opcodes**: Implement interpreter support for `OP_BREAK` (49) and `OP_CONTINUE` (50) in `src/svm/sgvm_vm.sage` (currently stubs).
 
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.
