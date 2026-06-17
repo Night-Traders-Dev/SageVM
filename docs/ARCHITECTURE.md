@@ -67,101 +67,103 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## Opcodes
 
-The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`:
+> ⚠️ **Encoding Mismatch**: SageVM currently uses a different encoding for opcodes 59 and above compared to the authoritative `bytecode.h`. In SageVM, 59 starts the GPU instruction set, whereas in `bytecode.h`, 59 is `BC_OP_GET_LOCAL`. This causes a binary-compatibility shift that must be addressed in future versions.
 
-| Opcode | Value | Description |
-|--------|-------|-------------|
-| OP_CONSTANT | 0 | Push a constant onto the stack |
-| OP_NIL | 1 | Push nil onto the stack |
-| OP_TRUE | 2 | Push true onto the stack |
-| OP_FALSE | 3 | Push false onto the stack |
-| OP_POP | 4 | Pop the top value from the stack |
-| OP_GET_GLOBAL | 5 | Get a global variable value |
-| OP_DEFINE_GLOBAL | 6 | Define a global variable |
-| OP_SET_GLOBAL | 7 | Assign a value to a global variable |
-| OP_DEFINE_FUNCTION | 8 | Define a function |
-| OP_GET_PROPERTY | 9 | Get an object property |
-| OP_SET_PROPERTY | 10 | Set an object property |
-| OP_GET_INDEX | 11 | Get an element at an index (array/dict) |
-| OP_SET_INDEX | 12 | Set an element at an index |
-| OP_LOAD_FUNCTION | 13 | Load a function onto the stack |
-| OP_SLICE | 14 | Perform an array or string slice |
-| OP_ADD | 15 | Addition |
-| OP_SUB | 16 | Subtraction |
-| OP_MUL | 17 | Multiplication |
-| OP_DIV | 18 | Division |
-| OP_MOD | 19 | Modulo |
-| OP_NEGATE | 20 | Unary negation |
-| OP_EQUAL | 21 | Equality check |
-| OP_NOT_EQUAL | 22 | Inequality check |
-| OP_GREATER | 23 | Greater than |
-| OP_GREATER_EQUAL | 24 | Greater than or equal |
-| OP_LESS | 25 | Less than |
-| OP_LESS_EQUAL | 26 | Less than or equal |
-| OP_BIT_AND | 27 | Bitwise AND |
-| OP_BIT_OR | 28 | Bitwise OR |
-| OP_BIT_XOR | 29 | Bitwise XOR |
-| OP_BIT_NOT | 30 | Bitwise NOT |
-| OP_SHIFT_LEFT | 31 | Bitwise left shift |
-| OP_SHIFT_RIGHT | 32 | Bitwise right shift |
-| OP_NOT | 33 | Logical NOT |
-| OP_TRUTHY | 34 | Truthiness check |
-| OP_JUMP | 35 | Unconditional jump |
-| OP_JUMP_IF_FALSE | 36 | Jump if the top value is false |
-| OP_CALL | 37 | Call a function |
-| OP_CALL_METHOD | 38 | Call an object method |
-| OP_ARRAY | 39 | Create an array |
-| OP_TUPLE | 40 | Create a tuple |
-| OP_DICT | 41 | Create a dictionary |
-| OP_PRINT | 42 | Print a value |
-| OP_EXEC_AST_STMT | 43 | Execute an AST statement (fallback) |
-| OP_RETURN | 44 | Return from a function |
-| OP_PUSH_ENV | 45 | Push a new environment scope |
-| OP_POP_ENV | 46 | Pop an environment scope |
-| OP_DUP | 47 | Duplicate a value on the stack |
-| OP_ARRAY_LEN | 48 | Get array length |
-| OP_BREAK | 49 | Loop break |
-| OP_CONTINUE | 50 | Loop continue |
-| OP_LOOP_BACK | 51 | Jump to the start of a loop |
-| OP_IMPORT | 52 | Import and execute an external module |
-| OP_CLASS | 53 | Define a class |
-| OP_METHOD | 54 | Define a method on a class |
-| OP_INHERIT | 55 | Set up class inheritance |
-| OP_SETUP_TRY | 56 | Push an exception handler |
-| OP_END_TRY | 57 | Pop the current exception handler |
-| OP_RAISE | 58 | Raise an exception |
-| OP_GPU_POLL_EVENTS | 59 | gpu.poll_events() |
-| OP_GPU_WINDOW_SHOULD_CLOSE | 60 | gpu.window_should_close() -> bool |
-| OP_GPU_GET_TIME | 61 | gpu.get_time() -> number |
-| OP_GPU_KEY_PRESSED | 62 | gpu.key_pressed(key) -> bool |
-| OP_GPU_KEY_DOWN | 63 | gpu.key_down(key) -> bool |
-| OP_GPU_MOUSE_POS | 64 | gpu.mouse_pos() -> dict{x,y} |
-| OP_GPU_MOUSE_DELTA | 65 | gpu.mouse_delta() -> dict{x,y} |
-| OP_GPU_UPDATE_INPUT | 66 | gpu.update_input() |
-| OP_GPU_BEGIN_COMMANDS | 67 | gpu.begin_commands(cmd) |
-| OP_GPU_END_COMMANDS | 68 | gpu.end_commands(cmd) |
-| OP_GPU_CMD_BEGIN_RP | 69 | gpu.cmd_begin_render_pass(cmd, rp, fb, w, h, clear) |
-| OP_GPU_CMD_END_RP | 70 | gpu.cmd_end_render_pass(cmd) |
-| OP_GPU_CMD_DRAW | 71 | gpu.cmd_draw(cmd, verts, inst, first_v, first_i) |
-| OP_GPU_CMD_BIND_GP | 72 | gpu.cmd_bind_graphics_pipeline(cmd, pipe) |
-| OP_GPU_CMD_BIND_DS | 73 | gpu.cmd_bind_descriptor_set(cmd, layout, set, bp) |
-| OP_GPU_CMD_SET_VP | 74 | gpu.cmd_set_viewport(cmd, x, y, w, h, mind, maxd) |
-| OP_GPU_CMD_SET_SC | 75 | gpu.cmd_set_scissor(cmd, x, y, w, h) |
-| OP_GPU_CMD_BIND_VB | 76 | gpu.cmd_bind_vertex_buffer(cmd, buf) |
-| OP_GPU_CMD_BIND_IB | 77 | gpu.cmd_bind_index_buffer(cmd, buf) |
-| OP_GPU_CMD_DRAW_IDX | 78 | gpu.cmd_draw_indexed(cmd, idx_count, ...) |
-| OP_GPU_SUBMIT_SYNC | 79 | gpu.submit_with_sync(cmd, wait, signal, fence) |
-| OP_GPU_ACQUIRE_IMG | 80 | gpu.acquire_next_image(sem) -> number |
-| OP_GPU_PRESENT | 81 | gpu.present(sem, img_idx) |
-| OP_GPU_WAIT_FENCE | 82 | gpu.wait_fence(fence, timeout) |
-| OP_GPU_RESET_FENCE | 83 | gpu.reset_fence(fence) |
-| OP_GPU_UPDATE_UNIFORM | 84 | gpu.update_uniform(handle, data) |
-| OP_GPU_CMD_PUSH_CONST | 85 | gpu.cmd_push_constants(cmd, layout, stages, data) |
-| OP_GPU_CMD_DISPATCH | 86 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
-| OP_MATH_PRINTM | 87 | math.printm(matrix) [SageVM Extension] |
-| OP_GET_LOCAL | 88 | Get a local variable value |
-| OP_SET_LOCAL | 89 | Set a local variable value |
-| OP_HALT | 0xFF | Halt execution [SageVM Extension] |
+The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`. (Note: Values marked with `*` mismatch the authoritative `bytecode.h`).
+
+| Opcode | Value | Auth. Index | Description |
+|--------|-------|-------------|-------------|
+| OP_CONSTANT | 0 | 0 | Push a constant onto the stack |
+| OP_NIL | 1 | 1 | Push nil onto the stack |
+| OP_TRUE | 2 | 2 | Push true onto the stack |
+| OP_FALSE | 3 | 3 | Push false onto the stack |
+| OP_POP | 4 | 4 | Pop the top value from the stack |
+| OP_GET_GLOBAL | 5 | 5 | Get a global variable value |
+| OP_DEFINE_GLOBAL | 6 | 6 | Define a global variable |
+| OP_SET_GLOBAL | 7 | 7 | Assign a value to a global variable |
+| OP_DEFINE_FUNCTION | 8 | 8 | Define a function |
+| OP_GET_PROPERTY | 9 | 9 | Get an object property |
+| OP_SET_PROPERTY | 10 | 10 | Set an object property |
+| OP_GET_INDEX | 11 | 11 | Get an element at an index (array/dict) |
+| OP_SET_INDEX | 12 | 12 | Set an element at an index |
+| OP_LOAD_FUNCTION | 13 | 13 | Load a function onto the stack |
+| OP_SLICE | 14 | 14 | Perform an array or string slice |
+| OP_ADD | 15 | 15 | Addition |
+| OP_SUB | 16 | 16 | Subtraction |
+| OP_MUL | 17 | 17 | Multiplication |
+| OP_DIV | 18 | 18 | Division |
+| OP_MOD | 19 | 19 | Modulo |
+| OP_NEGATE | 20 | 20 | Unary negation |
+| OP_EQUAL | 21 | 21 | Equality check |
+| OP_NOT_EQUAL | 22 | 22 | Inequality check |
+| OP_GREATER | 23 | 23 | Greater than |
+| OP_GREATER_EQUAL | 24 | 24 | Greater than or equal |
+| OP_LESS | 25 | 25 | Less than |
+| OP_LESS_EQUAL | 26 | 26 | Less than or equal |
+| OP_BIT_AND | 27 | 27 | Bitwise AND |
+| OP_BIT_OR | 28 | 28 | Bitwise OR |
+| OP_BIT_XOR | 29 | 29 | Bitwise XOR |
+| OP_BIT_NOT | 30 | 30 | Bitwise NOT |
+| OP_SHIFT_LEFT | 31 | 31 | Bitwise left shift |
+| OP_SHIFT_RIGHT | 32 | 32 | Bitwise right shift |
+| OP_NOT | 33 | 33 | Logical NOT |
+| OP_TRUTHY | 34 | 34 | Truthiness check |
+| OP_JUMP | 35 | 35 | Unconditional jump |
+| OP_JUMP_IF_FALSE | 36 | 36 | Jump if the top value is false |
+| OP_CALL | 37 | 37 | Call a function |
+| OP_CALL_METHOD | 38 | 38 | Call an object method |
+| OP_ARRAY | 39 | 39 | Create an array |
+| OP_TUPLE | 40 | 40 | Create a tuple |
+| OP_DICT | 41 | 41 | Create a dictionary |
+| OP_PRINT | 42 | 42 | Print a value |
+| OP_EXEC_AST_STMT | 43 | 43 | Execute an AST statement (fallback) |
+| OP_RETURN | 44 | 44 | Return from a function |
+| OP_PUSH_ENV | 45 | 45 | Push a new environment scope |
+| OP_POP_ENV | 46 | 46 | Pop an environment scope |
+| OP_DUP | 47 | 47 | Duplicate a value on the stack |
+| OP_ARRAY_LEN | 48 | 48 | Get array length |
+| OP_BREAK | 49 | 49 | Loop break |
+| OP_CONTINUE | 50 | 50 | Loop continue |
+| OP_LOOP_BACK | 51 | 51 | Jump to the start of a loop |
+| OP_IMPORT | 52 | 52 | Import and execute an external module |
+| OP_CLASS | 53 | 53 | Define a class |
+| OP_METHOD | 54 | 54 | Define a method on a class |
+| OP_INHERIT | 55 | 55 | Set up class inheritance |
+| OP_SETUP_TRY | 56 | 56 | Push an exception handler |
+| OP_END_TRY | 57 | 57 | Pop the current exception handler |
+| OP_RAISE | 58 | 58 | Raise an exception |
+| OP_GPU_POLL_EVENTS | 59* | 61 | gpu.poll_events() |
+| OP_GPU_WINDOW_SHOULD_CLOSE | 60* | 62 | gpu.window_should_close() -> bool |
+| OP_GPU_GET_TIME | 61* | 63 | gpu.get_time() -> number |
+| OP_GPU_KEY_PRESSED | 62* | 64 | gpu.key_pressed(key) -> bool |
+| OP_GPU_KEY_DOWN | 63* | 65 | gpu.key_down(key) -> bool |
+| OP_GPU_MOUSE_POS | 64* | 66 | gpu.mouse_pos() -> dict{x,y} |
+| OP_GPU_MOUSE_DELTA | 65* | 67 | gpu.mouse_delta() -> dict{x,y} |
+| OP_GPU_UPDATE_INPUT | 66* | 68 | gpu.update_input() |
+| OP_GPU_BEGIN_COMMANDS | 67* | 69 | gpu.begin_commands(cmd) |
+| OP_GPU_END_COMMANDS | 68* | 70 | gpu.end_commands(cmd) |
+| OP_GPU_CMD_BEGIN_RP | 69* | 71 | gpu.cmd_begin_render_pass(cmd, rp, fb, w, h, clear) |
+| OP_GPU_CMD_END_RP | 70* | 72 | gpu.cmd_end_render_pass(cmd) |
+| OP_GPU_CMD_DRAW | 71* | 73 | gpu.cmd_draw(cmd, verts, inst, first_v, first_i) |
+| OP_GPU_CMD_BIND_GP | 72* | 74 | gpu.cmd_bind_graphics_pipeline(cmd, pipe) |
+| OP_GPU_CMD_BIND_DS | 73* | 75 | gpu.cmd_bind_descriptor_set(cmd, layout, set, bp) |
+| OP_GPU_CMD_SET_VP | 74* | 76 | gpu.cmd_set_viewport(cmd, x, y, w, h, mind, maxd) |
+| OP_GPU_CMD_SET_SC | 75* | 77 | gpu.cmd_set_scissor(cmd, x, y, w, h) |
+| OP_GPU_CMD_BIND_VB | 76* | 78 | gpu.cmd_bind_vertex_buffer(cmd, buf) |
+| OP_GPU_CMD_BIND_IB | 77* | 79 | gpu.cmd_bind_index_buffer(cmd, buf) |
+| OP_GPU_CMD_DRAW_IDX | 78* | 80 | gpu.cmd_draw_indexed(cmd, idx_count, ...) |
+| OP_GPU_SUBMIT_SYNC | 79* | 81 | gpu.submit_with_sync(cmd, wait, signal, fence) |
+| OP_GPU_ACQUIRE_IMG | 80* | 82 | gpu.acquire_next_image(sem) -> number |
+| OP_GPU_PRESENT | 81* | 83 | gpu.present(sem, img_idx) |
+| OP_GPU_WAIT_FENCE | 82* | 84 | gpu.wait_fence(fence, timeout) |
+| OP_GPU_RESET_FENCE | 83* | 85 | gpu.reset_fence(fence) |
+| OP_GPU_UPDATE_UNIFORM | 84* | 86 | gpu.update_uniform(handle, data) |
+| OP_GPU_CMD_PUSH_CONST | 85* | 87 | gpu.cmd_push_constants(cmd, layout, stages, data) |
+| OP_GPU_CMD_DISPATCH | 86* | 88 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
+| OP_MATH_PRINTM | 87 | - | math.printm(matrix) [SageVM Extension] |
+| OP_GET_LOCAL | 88* | 59 | Get a local variable value |
+| OP_SET_LOCAL | 89* | 60 | Set a local variable value |
+| OP_HALT | 0xFF | - | Halt execution [SageVM Extension] |
 
 ## Native Bridge
 
