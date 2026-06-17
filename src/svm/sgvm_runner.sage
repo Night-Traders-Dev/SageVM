@@ -27,10 +27,8 @@ class SGVMRunner:
             print "❌ Error: Invalid SGVM header in " + input_file
             return false
             
-        var metal_vm = sgvm_vm.MetalVM()
+        var metal_vm = sgvm_vm.MetalVM(safe_mode, ffi_enabled)
         metal_vm.trace = debug
-        metal_vm.safe_mode = safe_mode
-        metal_vm.ffi_enabled = ffi_enabled
         metal_vm.setup_builtins()
 
         off = off + 6 # Skip Magic and Version

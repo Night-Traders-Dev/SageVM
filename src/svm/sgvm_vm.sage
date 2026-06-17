@@ -26,7 +26,7 @@ proc reflect_get_class(obj):
 let g_gil = host_thread.mutex()
 
 class MetalVM:
-    proc init(self):
+    proc init(self, safe_mode=false, ffi_enabled=true):
         self.stack = []
         self.constants = []
         self.chunks = []
@@ -40,8 +40,8 @@ class MetalVM:
         self.is_throwing = false
         self.exception_value = nil
         self.trace = false
-        self.safe_mode = false
-        self.ffi_enabled = true
+        self.safe_mode = safe_mode
+        self.ffi_enabled = ffi_enabled
         self.modules = {}
         self.utils = SGVMUtils()
         # Security: Limits to prevent Denial of Service (DoS) via resource exhaustion
@@ -57,19 +57,18 @@ class MetalVM:
     proc setup_builtins(self):
         # Native Bridge: Expose host standard library to guest VM
         self.globals["math"] = {"__host_mod__": math, "printm": "__builtin_math_printm"}
-        self.globals["io"] = {"__host_mod__": io}
-        self.globals["sys"] = {"__host_mod__": sys}
-        self.globals["net"] = {"__host_mod__": net}
-        self.globals["thread"] = {"__host_mod__": host_thread}
-        self.globals["gpu"] = {"__host_mod__": gpu}
-        self.globals["ml_native"] = {"__host_mod__": ml_native}
         
         if not self.safe_mode:
+            self.globals["io"] = {"__host_mod__": io}
+            self.globals["sys"] = {"__host_mod__": sys}
+            self.globals["net"] = {"__host_mod__": net}
+            self.globals["thread"] = {"__host_mod__": host_thread}
+            self.globals["gpu"] = {"__host_mod__": gpu}
+            self.globals["ml_native"] = {"__host_mod__": ml_native}
             self.globals["mem"] = {"__host_mod__": "mem", "alloc": "__builtin_mem_alloc", "free": "__builtin_mem_free", "read": "__builtin_mem_read", "write": "__builtin_mem_write", "size": "__builtin_mem_size"}
             if self.ffi_enabled:
                 self.globals["ffi"] = {"__host_mod__": "ffi", "open": "__builtin_ffi_open", "close": "__builtin_ffi_close", "call": "__builtin_ffi_call"}
-
-        self.globals["struct"] = {"__host_mod__": "struct", "def": "__builtin_struct_def", "new": "__builtin_struct_new", "get": "__builtin_struct_get", "set": "__builtin_struct_set", "size": "__builtin_struct_size"}
+            self.globals["struct"] = {"__host_mod__": "struct", "def": "__builtin_struct_def", "new": "__builtin_struct_new", "get": "__builtin_struct_get", "set": "__builtin_struct_set", "size": "__builtin_struct_size"}
 
         self.globals["gc"] = {"__host_mod__": "gc"}
         self.globals["gc"]["collect"] = "__builtin_gc_collect"
@@ -173,14 +172,29 @@ class MetalVM:
                     mi = mi + 1
                 print "]"
             return nil
-        elif callee == "__builtin_mem_alloc": return mem_alloc(args[0])
-        elif callee == "__builtin_mem_free": return mem_free(args[0])
-        elif callee == "__builtin_mem_read": return mem_read(args[0], args[1], args[2])
-        elif callee == "__builtin_mem_write": return mem_write(args[0], args[1], args[2], args[3])
-        elif callee == "__builtin_mem_size": return mem_size(args[0])
-        elif callee == "__builtin_ffi_open": return ffi_open(args[0])
-        elif callee == "__builtin_ffi_close": return ffi_close(args[0])
+        elif callee == "__builtin_mem_alloc":
+            if self.safe_mode: return nil
+            return mem_alloc(args[0])
+        elif callee == "__builtin_mem_free":
+            if self.safe_mode: return nil
+            return mem_free(args[0])
+        elif callee == "__builtin_mem_read":
+            if self.safe_mode: return nil
+            return mem_read(args[0], args[1], args[2])
+        elif callee == "__builtin_mem_write":
+            if self.safe_mode: return nil
+            return mem_write(args[0], args[1], args[2], args[3])
+        elif callee == "__builtin_mem_size":
+            if self.safe_mode: return nil
+            return mem_size(args[0])
+        elif callee == "__builtin_ffi_open":
+            if self.safe_mode or not self.ffi_enabled: return nil
+            return ffi_open(args[0])
+        elif callee == "__builtin_ffi_close":
+            if self.safe_mode or not self.ffi_enabled: return nil
+            return ffi_close(args[0])
         elif callee == "__builtin_ffi_call":
+            if self.safe_mode or not self.ffi_enabled: return nil
             # Note: ffi_call might be a stub in some backends
             try:
                 if argc == 3: return ffi_call(args[0], args[1], args[2])
@@ -188,12 +202,24 @@ class MetalVM:
             catch e:
                 print "Error: ffi_call failed: " + str(e)
                 return nil
-        elif callee == "__builtin_struct_def": return struct_def(args[0])
-        elif callee == "__builtin_struct_new": return struct_new(args[0])
-        elif callee == "__builtin_struct_get": return struct_get(args[0], args[1], args[2])
-        elif callee == "__builtin_struct_set": return struct_set(args[0], args[1], args[2], args[3])
-        elif callee == "__builtin_struct_size": return struct_size(args[0])
-        elif callee == "__builtin_sys_exec": return sys_exec(args[0])
+        elif callee == "__builtin_struct_def":
+            if self.safe_mode: return nil
+            return struct_def(args[0])
+        elif callee == "__builtin_struct_new":
+            if self.safe_mode: return nil
+            return struct_new(args[0])
+        elif callee == "__builtin_struct_get":
+            if self.safe_mode: return nil
+            return struct_get(args[0], args[1], args[2])
+        elif callee == "__builtin_struct_set":
+            if self.safe_mode: return nil
+            return struct_set(args[0], args[1], args[2], args[3])
+        elif callee == "__builtin_struct_size":
+            if self.safe_mode: return nil
+            return struct_size(args[0])
+        elif callee == "__builtin_sys_exec":
+            if self.safe_mode: return nil
+            return sys.exec(args[0])
         elif callee == "__builtin_gc_collect": return gc_collect()
         elif callee == "__builtin_gc_stats": return gc_stats()
         elif callee == "__builtin_gc_enable": return gc_enable()
@@ -696,7 +722,7 @@ class MetalVM:
             self.ip = self.ip + 2
             let name = self.constants[idx]
             # Delegation Bridge: check host first for native modules
-            if self.safe_mode and (name == "net" or name == "sys" or name == "thread" or name == "gpu" or name == "ml_native" or name == "mem" or name == "ffi"):
+            if self.safe_mode and (name == "io" or name == "net" or name == "sys" or name == "thread" or name == "gpu" or name == "ml_native" or name == "mem" or name == "ffi" or name == "struct"):
                 print "Error: Access to module '" + name + "' is restricted in safe mode"
                 push(self.stack, nil)
             elif name == "ffi" and not self.ffi_enabled:
