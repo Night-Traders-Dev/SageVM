@@ -36,6 +36,14 @@ class SGVMCLI:
         if len(args) >= 2:
             cmd = args[1]
         
+        # Handle standard version and help flags before any dispatch
+        if cmd == "-v" or cmd == "--version" or cmd == "version":
+            print "SageVM v0.9.8"
+            return
+        if cmd == "-h" or cmd == "--help" or cmd == "help":
+            print_help()
+            return
+        
         # Check if called via symlink
         let binary_name = args[0]
         if endswith(binary_name, "sgvm"):
@@ -57,10 +65,6 @@ class SGVMCLI:
             self.handle_dis(args, 2)
         elif cmd == "hex":
             self.handle_hex(args)
-        elif cmd == "version" or cmd == "-v" or cmd == "--version":
-            print "SageVM v0.9.8"
-        elif cmd == "--help" or cmd == "-h" or cmd == "help":
-            print_help()
         elif cmd != "":
             print "❌ Unknown command: " + cmd
             print ""
@@ -79,6 +83,12 @@ class SGVMCLI:
             elif a == "--safe": safe = true
             elif a == "--no-ffi": no_ffi = true
             elif a == "--riscv": riscv = true
+            elif a == "-v" or a == "--version":
+                print "SageVM v0.9.8"
+                return
+            elif a == "-h" or a == "--help":
+                print "Usage: sagevm run <file.sgvm> [--debug] [--safe] [--no-ffi] [--riscv]"
+                return
             else: input_file = a
             i = i + 1
         
@@ -115,6 +125,12 @@ class SGVMCLI:
             let a = args[iter_idx]
             if a == "--shebang": use_shebang = true
             elif a == "--riscv": riscv = true
+            elif a == "-v" or a == "--version":
+                print "SageVM v0.9.8"
+                return
+            elif a == "-h" or a == "--help":
+                print "Usage: sagevm compile <input.sage> [output.sgvm] [--shebang] [--riscv]"
+                return
             else:
                 if pos_idx == 0: input_file = a
                 elif pos_idx == 1: output_file = a
@@ -155,6 +171,12 @@ class SGVMCLI:
             if a == "--svm": mode = "svm"
             elif a == "--sage": mode = "sage"
             elif a == "--riscv": riscv = true
+            elif a == "-v" or a == "--version":
+                print "SageVM v0.9.8"
+                return
+            elif a == "-h" or a == "--help":
+                print "Usage: sagevm dis <file.sgvm> [--sage | --svm] [--riscv]"
+                return
             else: input_file = a
             i = i + 1
         
@@ -185,6 +207,12 @@ class SGVMCLI:
         while i < len(args):
             let a = args[i]
             if a == "--riscv": riscv = true
+            elif a == "-v" or a == "--version":
+                print "SageVM v0.9.8"
+                return
+            elif a == "-h" or a == "--help":
+                print "Usage: sagevm hex <file.sgvm> [--riscv]"
+                return
             else: input_file = a
             i = i + 1
 
