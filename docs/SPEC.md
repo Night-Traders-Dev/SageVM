@@ -77,6 +77,6 @@ The following opcodes are SageVM-specific extensions not found in the core `byte
 - `OP_HALT` (255): Unconditional VM termination.
 
 ### 7.2 Known Incompatibilities
-- **Opcode Shift (SVM)**: There is a major encoding mismatch starting at index 59. SageVM (SVM) uses indices 59-86 for `GPU_*` opcodes, whereas the authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` at 59 and `BC_OP_SET_LOCAL` at 60, shifting the GPU opcodes to 61+.
+- **Opcode Shift (SVM)**: There is a major encoding mismatch starting at index 59. The authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` (59) and `BC_OP_SET_LOCAL` (60), which shifts all subsequent GPU opcodes by +2. SageVM (SVM) currently maintains a legacy mapping where `OP_GPU_POLL_EVENTS` starts at 59, and `OP_GET_LOCAL` / `OP_SET_LOCAL` are mapped to 88 and 89 respectively.
 - **GPU Instruction Set**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes in the core spec.
 - **Raise Encoding**: Historically, the `sgvmc` compiler (SVM) expected an incorrect encoding (`0x44`) for `OP_RAISE` which conflicted with `OP_GPU_END_COMMANDS`. This was resolved in v0.9.7; `OP_RAISE` is now correctly mapped to 58.

@@ -201,6 +201,12 @@ SGVM exposes several host-level functions directly in the global scope for perfo
 | `print(val)` | Prints a value to standard output. |
 | `range(n)` | Generates a range object from 0 to n-1. |
 | `type(val)` | Returns the type name of a value. |
+| `slice(obj, start, end)` | Creates a slice object or performs a slice on a string/array. |
+| `gc_collect()` | Manually triggers garbage collection. |
+| `gc_stats()` | Returns a dictionary with GC statistics. |
+| `gc_enable()` / `gc_disable()` | Enables or disables the host garbage collector. |
+| `reflect_get_methods(obj)` | Returns a list of method names available on an object. |
+| `reflect_get_class(obj)` | Returns the class object for a given instance. |
 
 ## Multi-threading & GIL
 
