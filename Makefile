@@ -20,6 +20,7 @@ clean:
 		$(MAKE) -C .deps/SageLang/core clean; \
 	fi
 
+# Automated test suite for SGVM/SRVM coverage
 test:
 	@mkdir -p .deps/SageLang/core/include/curl
 	@if [ ! -f .deps/SageLang/core/include/curl/curl.h ]; then \
