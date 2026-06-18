@@ -142,8 +142,11 @@ class SGVMCLI:
             return
         
         if output_file == "":
-            if riscv: output_file = input_file + ".sgrv"
-            else: output_file = input_file + ".sgvm"
+            var base = input_file
+            if endswith(input_file, ".sage"):
+                base = slice(input_file, 0, len(input_file) - 5)
+            if riscv: output_file = base + ".sgrv"
+            else: output_file = base + ".sgvm"
         
         let compiler = sgvm_compiler.SGVMCompiler()
         if compiler.compile(input_file, output_file, use_shebang):
