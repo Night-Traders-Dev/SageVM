@@ -1,6 +1,6 @@
 # Test break and continue
-# Note: These are currently stubs in sgvm_vm.sage and will halt the VM.
-# We expect this test to FAIL or show "Error: Unexpected loop break opcode"
+# NOTE: This test is expected to FAIL because OP_BREAK (49) and OP_CONTINUE (50)
+# are currently unimplemented stubs in src/svm/sgvm_vm.sage and will halt execution.
 
 print "Loop start"
 var i = 0
