@@ -21,6 +21,9 @@ This document outlines the features and standard library modules currently unsup
 - [ ] **Local Variable Opcodes**: Implement interpreter support for `OP_GET_LOCAL` and `OP_SET_LOCAL` in `src/svm/sgvm_vm.sage`.
   - > ⚠️ **Encoding Mismatch**: Authoritative indices are 59 and 60, but SageVM currently uses stubs at 88 and 89.
 - [ ] **Loop Control Opcodes**: Implement interpreter support for `OP_BREAK` (49) and `OP_CONTINUE` (50) in `src/svm/sgvm_vm.sage` (currently stubs).
+- [ ] **SRVM Opcode Gaps**: Implement missing register-based opcodes in `src/srvm/srvm_vm.sage`:
+  - `VMO_IMPORT`, `VMO_EXEC_AST`
+  - `OBJ_NEW_CLASS`, `OBJ_INHERIT`, `OBJ_METHOD_BIND`, `OBJ_DICT_NEW`, `OBJ_TUPLE_NEW`, `OBJ_SLICE`
 
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.
