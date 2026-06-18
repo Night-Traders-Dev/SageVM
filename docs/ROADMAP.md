@@ -20,6 +20,7 @@ This document outlines the features and standard library modules currently unsup
 - [ ] **Regex & JSON Support**: Restore `re` and `json` module bridging in `src/svm/sgvm_vm.sage`.
 - [ ] **Local Variable Opcodes**: Implement interpreter support for `OP_GET_LOCAL` and `OP_SET_LOCAL` in `src/svm/sgvm_vm.sage`.
   - > ⚠️ **Encoding Mismatch**: Authoritative indices are 59 and 60, but SageVM currently uses stubs at 88 and 89.
+- [ ] **Compiler Conformance**: Overhaul `src/svm/sgvm_compiler.sage` remapping logic to align with authoritative `bytecode.h` indices (Shifted GPU and local variables).
 - [ ] **Loop Control Opcodes**: Implement interpreter support for `OP_BREAK` (49) and `OP_CONTINUE` (50) in `src/svm/sgvm_vm.sage` (currently stubs).
 - [ ] **SRVM Opcode Gaps**: Implement missing register-based opcodes in `src/srvm/srvm_vm.sage`:
   - `VMO_IMPORT`, `VMO_EXEC_AST`

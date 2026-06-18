@@ -69,6 +69,10 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 > ⚠️ **Encoding Mismatch**: SageVM currently uses a different encoding for opcodes 59 and above compared to the authoritative `bytecode.h`. In SageVM, 59 starts the GPU instruction set, whereas in `bytecode.h`, 59 is `BC_OP_GET_LOCAL`. This causes a binary-compatibility shift that must be addressed in future versions.
 
+> ⚠️ **Collision Alert**: Opcodes 87 and 88 in SageVM (`OP_MATH_PRINTM`, `OP_GET_LOCAL`) now collide with the tail of the authoritative GPU instruction set (`BC_OP_GPU_CMD_PUSH_CONST`, `BC_OP_GPU_CMD_DISPATCH`).
+
+> ⚠️ **Compiler Implementation Gap**: `sgvmc` (`src/svm/sgvm_compiler.sage`) currently lacks binary emission logic for `OP_MATH_PRINTM` (87) and only implements remapping for a subset of opcodes (up to `OP_SLICE`). Most GPU opcodes (59-86) and local variable opcodes (88-89) are currently emitted using host indices that do not match the VM's legacy mapping.
+
 The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`. (Note: Values marked with `*` mismatch the authoritative `bytecode.h`).
 
 | Opcode | Value | Auth. Index | Description |
@@ -160,8 +164,8 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`. 
 | OP_GPU_UPDATE_UNIFORM | 84* | 86 | gpu.update_uniform(handle, data) |
 | OP_GPU_CMD_PUSH_CONST | 85* | 87 | gpu.cmd_push_constants(cmd, layout, stages, data) |
 | OP_GPU_CMD_DISPATCH | 86* | 88 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
-| OP_MATH_PRINTM | 87 | - | math.printm(matrix) [SageVM Extension] |
-| OP_GET_LOCAL | 88* | 59 | Get a local variable value |
+| OP_MATH_PRINTM | 87* | - | math.printm(matrix) [SageVM Extension] (Collides with BC_OP_GPU_CMD_PUSH_CONST @ 87) |
+| OP_GET_LOCAL | 88* | 59 | Get a local variable value (Collides with BC_OP_GPU_CMD_DISPATCH @ 88) |
 | OP_SET_LOCAL | 89* | 60 | Set a local variable value |
 | OP_HALT | 0xFF | - | Halt execution [SageVM Extension] |
 
