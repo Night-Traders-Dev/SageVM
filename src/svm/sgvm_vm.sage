@@ -57,14 +57,15 @@ class MetalVM:
     proc setup_builtins(self):
         # Native Bridge: Expose host standard library to guest VM
         self.globals["math"] = {"__host_mod__": math, "printm": "__builtin_math_printm"}
-        self.globals["io"] = {"__host_mod__": io}
-        self.globals["sys"] = {"__host_mod__": sys}
-        self.globals["net"] = {"__host_mod__": net}
-        self.globals["thread"] = {"__host_mod__": host_thread}
-        self.globals["gpu"] = {"__host_mod__": gpu}
-        self.globals["ml_native"] = {"__host_mod__": ml_native}
         
         if not self.safe_mode:
+            # Security: Only expose sensitive modules to globals if NOT in safe mode
+            self.globals["io"] = {"__host_mod__": io}
+            self.globals["sys"] = {"__host_mod__": sys}
+            self.globals["net"] = {"__host_mod__": net}
+            self.globals["thread"] = {"__host_mod__": host_thread}
+            self.globals["gpu"] = {"__host_mod__": gpu}
+            self.globals["ml_native"] = {"__host_mod__": ml_native}
             self.globals["mem"] = {"__host_mod__": "mem", "alloc": "__builtin_mem_alloc", "free": "__builtin_mem_free", "read": "__builtin_mem_read", "write": "__builtin_mem_write", "size": "__builtin_mem_size"}
             if self.ffi_enabled:
                 self.globals["ffi"] = {"__host_mod__": "ffi", "open": "__builtin_ffi_open", "close": "__builtin_ffi_close", "call": "__builtin_ffi_call"}
@@ -193,7 +194,11 @@ class MetalVM:
         elif callee == "__builtin_struct_get": return struct_get(args[0], args[1], args[2])
         elif callee == "__builtin_struct_set": return struct_set(args[0], args[1], args[2], args[3])
         elif callee == "__builtin_struct_size": return struct_size(args[0])
-        elif callee == "__builtin_sys_exec": return sys_exec(args[0])
+        elif callee == "__builtin_sys_exec":
+            if self.safe_mode:
+                print "Error: sys.exec is restricted in safe mode"
+                return nil
+            return sys_exec(args[0])
         elif callee == "__builtin_gc_collect": return gc_collect()
         elif callee == "__builtin_gc_stats": return gc_stats()
         elif callee == "__builtin_gc_enable": return gc_enable()
@@ -696,7 +701,8 @@ class MetalVM:
             self.ip = self.ip + 2
             let name = self.constants[idx]
             # Delegation Bridge: check host first for native modules
-            if self.safe_mode and (name == "net" or name == "sys" or name == "thread" or name == "gpu" or name == "ml_native" or name == "mem" or name == "ffi"):
+            # Security: Explicitly block 'io' in safe mode blacklist
+            if self.safe_mode and (name == "io" or name == "net" or name == "sys" or name == "thread" or name == "gpu" or name == "ml_native" or name == "mem" or name == "ffi"):
                 print "Error: Access to module '" + name + "' is restricted in safe mode"
                 push(self.stack, nil)
             elif name == "ffi" and not self.ffi_enabled:
