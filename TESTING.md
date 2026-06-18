@@ -12,12 +12,18 @@ To run the automated test suite:
 ```bash
 make test
 ```
+The `test` target in the `Makefile` handles several environment-specific setup tasks:
+- Mocks `curl/curl.h` if missing in the SageLang submodule to allow compilation in restricted environments.
+- Bootstraps the `sage` host binary with custom `LDFLAGS` if it hasn't been built.
+- Ensures `sgvm` and `sgvmc` symlinks are present.
+- Executes `python3 tests/run_tests.py` to run the modern coverage suite.
+
 The test suite performs the following for each `.sage` file in the `tests/` directory:
 1. Compiles the `.sage` file to `.sgvm` bytecode using `./sgvmc`.
 2. Runs the compiled bytecode using `./sgvm`.
-3. Compares the output against the corresponding `.expected` file.
+3. Filters out `DEBUG:` logs and compares the output against the corresponding `.expected` file.
 
-Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification.
+Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, and dictionaries are located here.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.

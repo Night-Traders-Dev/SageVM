@@ -1,0 +1,8 @@
+Start try
+Inside try
+Caught exception: Error value
+End try
+Start nested
+Caught nested: Nested error
+Caught re-raised: Re-raised error
+End nested
