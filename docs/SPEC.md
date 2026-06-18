@@ -74,10 +74,9 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 ### 7.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions not found in the core `bytecode.h`:
 - `OP_MATH_PRINTM` (87): Native matrix visualization.
-- `OP_GET_LOCAL` (88): Optimized local variable access (Roadmap).
-- `OP_SET_LOCAL` (89): Optimized local variable assignment (Roadmap).
 - `OP_HALT` (255): Unconditional VM termination.
 
 ### 7.2 Known Incompatibilities
-- **GPU Instruction Set**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes (59-86) in the core spec.
+- **Opcode Shift (SVM)**: There is a major encoding mismatch starting at index 59. SageVM (SVM) uses indices 59-86 for `GPU_*` opcodes, whereas the authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` at 59 and `BC_OP_SET_LOCAL` at 60, shifting the GPU opcodes to 61+.
+- **GPU Instruction Set**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes in the core spec.
 - **Raise Encoding**: Historically, the `sgvmc` compiler (SVM) expected an incorrect encoding (`0x44`) for `OP_RAISE` which conflicted with `OP_GPU_END_COMMANDS`. This was resolved in v0.9.7; `OP_RAISE` is now correctly mapped to 58.
