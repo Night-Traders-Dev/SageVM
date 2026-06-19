@@ -39,7 +39,7 @@ class SGVMCLI:
         
         # Handle standard version and help flags before any dispatch
         if cmd == "-v" or cmd == "--version" or cmd == "version":
-            print "SageVM v0.9.8"
+            print "\x1b[1;36mSageVM\x1b[0m \x1b[32mv0.9.8\x1b[0m \x1b[90m(pure SageLang VM)\x1b[0m"
             return
         if cmd == "-h" or cmd == "--help" or cmd == "help":
             print_help()
@@ -97,6 +97,11 @@ class SGVMCLI:
             print "❌ Error: No input file specified."
             return
         
+        if endswith(input_file, ".sage"):
+            print "💡 Tip: You are trying to run a source file directly."
+            print "   Use \x1b[1msagevm compile " + input_file + "\x1b[0m first to create a binary."
+            print ""
+
         # Verify file existence
         let data = io.readbytes(input_file)
         if data == nil:
