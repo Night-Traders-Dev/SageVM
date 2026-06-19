@@ -1,0 +1,7 @@
+str(10): 10
+str(true): true
+str(nil): nil
+10
+123
+456.78
+true
