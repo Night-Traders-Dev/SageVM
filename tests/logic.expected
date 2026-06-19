@@ -1,0 +1,6 @@
+false
+true
+true
+true is truthy
+false is falsy
+nil is falsy
