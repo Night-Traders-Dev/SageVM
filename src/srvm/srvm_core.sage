@@ -133,6 +133,12 @@ class RVInstruction:
         self.rs1 = (v >> 15) & 0x1F
         self.rs2 = (v >> 20) & 0x1F
         self.funct7 = (v >> 25) & 0x7F
+        # Pre-compute all immediate formats for property access
+        self.imm_i = self.decode_i_imm()
+        self.imm_s = self.decode_s_imm()
+        self.imm_b = self.decode_b_imm()
+        self.imm_u = self.decode_u_imm()
+        self.imm_j = self.decode_j_imm()
 
     proc decode_i_imm(self):
         # 12-bit signed immediate

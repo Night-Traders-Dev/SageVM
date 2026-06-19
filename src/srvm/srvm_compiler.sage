@@ -186,20 +186,28 @@ class StackToRiscVTranslator:
                 let idx = pop(self.reg_stack)
                 let obj = pop(self.reg_stack)
                 let rd = self.alloc_reg()
+                var obj_reg = obj
+                if obj == 10:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, obj, 0))
+                    obj_reg = 5
                 if idx != 10:
                     self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, idx, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, rd, srvm_core.OBJ_GET_INDEX, obj))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, rd, srvm_core.OBJ_GET_INDEX, obj_reg))
                 push(self.reg_stack, rd)
 
             elif op == sgvm_core.OP_SET_INDEX:
                 let val = pop(self.reg_stack)
                 let idx = pop(self.reg_stack)
                 let obj = pop(self.reg_stack)
+                var obj_reg = obj
+                if obj == 10 or obj == 11:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, obj, 0))
+                    obj_reg = 5
                 if val != 11:
                     self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, val, 0))
                 if idx != 10:
                     self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, idx, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_INDEX, obj))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_INDEX, obj_reg))
 
             elif op == sgvm_core.OP_ARRAY:
                 let init_val = pop(self.reg_stack)
@@ -222,8 +230,12 @@ class StackToRiscVTranslator:
                 i = i + 2
                 let obj = pop(self.reg_stack)
                 let rd = self.alloc_reg()
+                var obj_reg = obj
+                if obj == 10:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, obj, 0))
+                    obj_reg = 5
                 self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, name_idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, rd, srvm_core.OBJ_GET_PROP, obj))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, rd, srvm_core.OBJ_GET_PROP, obj_reg))
                 push(self.reg_stack, rd)
 
             elif op == sgvm_core.OP_SET_PROPERTY:
@@ -231,10 +243,14 @@ class StackToRiscVTranslator:
                 i = i + 2
                 let val = pop(self.reg_stack)
                 let obj = pop(self.reg_stack)
+                var obj_reg = obj
+                if obj == 10 or obj == 11:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, obj, 0))
+                    obj_reg = 5
                 if val != 11:
                     self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, val, 0))
                 self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, name_idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_PROP, obj))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_PROP, obj_reg))
 
             elif op == sgvm_core.OP_POP:
                 if len(self.reg_stack) > 0:
@@ -255,20 +271,28 @@ class StackToRiscVTranslator:
             elif op == sgvm_core.OP_INHERIT:
                 let parent = pop(self.reg_stack)
                 let child = pop(self.reg_stack)
+                var child_reg = child
+                let rd = self.alloc_reg()
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, child, 0))
+                child_reg = rd
                 if parent != 10:
                     self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, parent, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_INHERIT, child))
-                push(self.reg_stack, child)
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_INHERIT, child_reg))
+                push(self.reg_stack, rd)
 
             elif op == sgvm_core.OP_METHOD:
                 let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
                 let func = pop(self.reg_stack)
                 let klass = pop(self.reg_stack)
+                var klass_reg = klass
+                if klass == 10 or klass == 11:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, klass, 0))
+                    klass_reg = 5
                 if func != 11:
                     self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, func, 0))
                 self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, name_idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_METHOD_BIND, klass))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_METHOD_BIND, klass_reg))
 
             elif op == sgvm_core.OP_DEFINE_GLOBAL:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])

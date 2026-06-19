@@ -258,6 +258,63 @@ class SRVM:
                         self.state.x[10] = int(self.state.x[10])
                     elif b_name == "slice":
                         self.state.x[10] = slice(self.state.x[10], self.state.x[11], self.state.x[12])
+                    elif b_name == "len":
+                        self.state.x[10] = len(self.state.x[10])
+                    elif b_name == "type":
+                        self.state.x[10] = type(self.state.x[10])
+                    elif b_name == "range":
+                        self.state.x[10] = range(self.state.x[10])
+                    elif b_name == "clock":
+                        self.state.x[10] = clock()
+                    elif b_name == "tonumber":
+                        self.state.x[10] = tonumber(self.state.x[10])
+                    elif b_name == "push":
+                        push(self.state.x[10], self.state.x[11])
+                        self.state.x[10] = nil
+                    elif b_name == "pop":
+                        self.state.x[10] = pop(self.state.x[10])
+                    elif b_name == "chr":
+                        self.state.x[10] = chr(self.state.x[10])
+                    elif b_name == "ord":
+                        self.state.x[10] = ord(self.state.x[10])
+                    elif b_name == "dict_has":
+                        self.state.x[10] = dict_has(self.state.x[10], self.state.x[11])
+                    elif b_name == "dict_keys":
+                        self.state.x[10] = dict_keys(self.state.x[10])
+                    elif b_name == "dict_values":
+                        self.state.x[10] = dict_values(self.state.x[10])
+                    elif b_name == "gc_stats":
+                        self.state.x[10] = gc_stats()
+                    elif b_name == "gc_collect":
+                        gc_collect()
+                        self.state.x[10] = nil
+                    elif b_name == "gc_enable":
+                        gc_enable()
+                        self.state.x[10] = nil
+                    elif b_name == "gc_disable":
+                        gc_disable()
+                        self.state.x[10] = nil
+                    elif b_name == "startswith":
+                        self.state.x[10] = startswith(self.state.x[10], self.state.x[11])
+                    elif b_name == "endswith":
+                        self.state.x[10] = endswith(self.state.x[10], self.state.x[11])
+                    elif b_name == "contains":
+                        self.state.x[10] = contains(self.state.x[10], self.state.x[11])
+                    elif b_name == "join":
+                        self.state.x[10] = join(self.state.x[10], self.state.x[11])
+                    elif b_name == "split":
+                        self.state.x[10] = split(self.state.x[10], self.state.x[11])
+                    elif b_name == "replace":
+                        self.state.x[10] = replace(self.state.x[10], self.state.x[11], self.state.x[12])
+                    elif b_name == "upper":
+                        self.state.x[10] = upper(self.state.x[10])
+                    elif b_name == "lower":
+                        self.state.x[10] = lower(self.state.x[10])
+                    elif b_name == "strip":
+                        self.state.x[10] = strip(self.state.x[10])
+                    elif b_name == "print":
+                        print str(self.state.x[10])
+                        self.state.x[10] = nil
                     self.state.pc = self.state.pc + 4
                     return
                 
@@ -300,12 +357,8 @@ class SRVM:
                 let name = self.state.constants[idx]
                 if dict_has(self.state.heap, name):
                     self.state.x[instr.rd] = self.state.heap[name]
-                elif name == "str":
-                    self.state.x[instr.rd] = {"__builtin__": "str"}
-                elif name == "int":
-                    self.state.x[instr.rd] = {"__builtin__": "int"}
-                elif name == "slice":
-                    self.state.x[instr.rd] = {"__builtin__": "slice"}
+                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print":
+                    self.state.x[instr.rd] = {"__builtin__": name}
                 else:
                     self.state.x[instr.rd] = nil
             elif sub_op == srvm_core.OBJ_SET_GLOBAL:
@@ -339,20 +392,25 @@ class SRVM:
                 self.state.x[instr.rd] = arr
             elif sub_op == srvm_core.OBJ_GET_INDEX:
                 let obj = self.state.x[instr.rs2]
-                let idx = int(self.state.x[10])
-                if type(obj) == "list" and idx >= 0 and idx < len(obj):
-                    self.state.x[instr.rd] = obj[idx]
-                elif type(obj) == "dict":
-                    self.state.x[instr.rd] = obj[idx]
+                let raw_idx = self.state.x[10]
+                if type(obj) == "dict":
+                    self.state.x[instr.rd] = obj[raw_idx]
+                elif type(obj) == "list":
+                    let idx = int(raw_idx)
+                    if idx >= 0 and idx < len(obj):
+                        self.state.x[instr.rd] = obj[idx]
+                    else: self.state.x[instr.rd] = nil
                 else: self.state.x[instr.rd] = nil
             elif sub_op == srvm_core.OBJ_SET_INDEX:
                 let obj = self.state.x[instr.rs2]
-                let idx = int(self.state.x[10])
+                let raw_idx = self.state.x[10]
                 let val = self.state.x[11]
-                if type(obj) == "list" and idx >= 0 and idx < len(obj):
-                    obj[idx] = val
-                elif type(obj) == "dict":
-                    obj[idx] = val
+                if type(obj) == "dict":
+                    obj[raw_idx] = val
+                elif type(obj) == "list":
+                    let idx = int(raw_idx)
+                    if idx >= 0 and idx < len(obj):
+                        obj[idx] = val
         elif f3 == srvm_core.F3_GPU_OPS:
             self.handle_gpu(instr)
         
