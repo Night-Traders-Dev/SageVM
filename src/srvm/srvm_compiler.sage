@@ -386,12 +386,14 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(srvm_core.OP_JALR, 0, 0, 1, 0))
 
             elif op == sgvm_core.OP_DEFINE_FUNCTION:
+                let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
                 let chunk_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, chunk_idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, rd, srvm_core.OBJ_NEW_FUNC, 0))
-                push(self.reg_stack, rd)
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 11, srvm_core.OBJ_NEW_FUNC, 0))
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, name_idx))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_GLOBAL, 0))
 
             elif op == sgvm_core.OP_CALL:
                 let argc = int(svm_bytecode[i])
