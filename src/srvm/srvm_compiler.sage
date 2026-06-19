@@ -55,9 +55,11 @@ class StackToRiscVTranslator:
                 let cip = (int(svm_bytecode[j]) << 8) | int(svm_bytecode[j+1])
                 catch_labels[str(cip)] = true
                 j = j + 2
-            elif op == sgvm_core.OP_CONSTANT or op == sgvm_core.OP_GET_GLOBAL or op == sgvm_core.OP_SET_GLOBAL or op == sgvm_core.OP_DEFINE_GLOBAL or op == sgvm_core.OP_JUMP or op == sgvm_core.OP_JUMP_IF_FALSE or op == sgvm_core.OP_DEFINE_FUNCTION or op == sgvm_core.OP_GET_PROPERTY or op == sgvm_core.OP_SET_PROPERTY or op == sgvm_core.OP_METHOD:
+            elif op == sgvm_core.OP_CALL_METHOD:
+                j = j + 3
+            elif op == sgvm_core.OP_CONSTANT or op == sgvm_core.OP_GET_GLOBAL or op == sgvm_core.OP_SET_GLOBAL or op == sgvm_core.OP_DEFINE_GLOBAL or op == sgvm_core.OP_JUMP or op == sgvm_core.OP_JUMP_IF_FALSE or op == sgvm_core.OP_DEFINE_FUNCTION or op == sgvm_core.OP_GET_PROPERTY or op == sgvm_core.OP_SET_PROPERTY or op == sgvm_core.OP_METHOD or op == sgvm_core.OP_ARRAY or op == sgvm_core.OP_TUPLE or op == sgvm_core.OP_DICT or op == sgvm_core.OP_LOOP_BACK or op == sgvm_core.OP_IMPORT:
                 j = j + 2
-            elif op == sgvm_core.OP_CALL or op == sgvm_core.OP_GET_LOCAL or op == sgvm_core.OP_SET_LOCAL:
+            elif op == sgvm_core.OP_CALL or op == sgvm_core.OP_DUP or op == sgvm_core.OP_GET_LOCAL or op == sgvm_core.OP_SET_LOCAL:
                 j = j + 1
         
         var i = 0
@@ -257,8 +259,10 @@ class StackToRiscVTranslator:
                     pop(self.reg_stack)
 
             elif op == sgvm_core.OP_DUP:
-                if len(self.reg_stack) > 0:
-                    let rs = self.reg_stack[len(self.reg_stack)-1]
+                let distance = int(svm_bytecode[i])
+                i = i + 1
+                if len(self.reg_stack) > distance:
+                    let rs = self.reg_stack[len(self.reg_stack)-1-distance]
                     let rd = self.alloc_reg()
                     self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, rs, 0))
                     push(self.reg_stack, rd)
@@ -410,6 +414,62 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, 10, 0))
                 push(self.reg_stack, rd)
 
+            elif op == sgvm_core.OP_CALL_METHOD:
+                let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                let argc = int(svm_bytecode[i+2])
+                i = i + 3
+                var args = []
+                var k = 0
+                while k < argc:
+                    push(args, pop(self.reg_stack))
+                    k = k + 1
+                let obj = pop(self.reg_stack)
+                
+                # Move obj to x18
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 18, obj, 0))
+                # Move args to x19..
+                k = 0
+                while k < argc:
+                    let src = args[argc - 1 - k]
+                    let dest = 19 + k
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, dest, src, 0))
+                    k = k + 1
+                
+                # Load name_idx to x10
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, name_idx))
+                # Call OBJ_METHOD_BIND on obj (x18), target x29, setting x28 flag
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 29, srvm_core.OBJ_METHOD_BIND, 18))
+                
+                # Branch if x28 == 0 (class call) to class_call block.
+                # Offset is (argc + 3) * 4 bytes.
+                self.emit_32(self.encoder.encode_b(srvm_core.OP_BRANCH, srvm_core.F3_BEQ, 28, 0, (argc + 3) * 4))
+                
+                # Instance call block:
+                # Move obj (x18) to x10
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 18, 0))
+                # Move args (x19..) to x11..
+                k = 0
+                while k < argc:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11 + k, 19 + k, 0))
+                    k = k + 1
+                # JUMP over class_call block.
+                # Offset is (argc + 1) * 4 bytes.
+                self.emit_32(self.encoder.encode_j(srvm_core.OP_JAL, 0, (argc + 1) * 4))
+                
+                # Class call block:
+                # Move args (x19..) to x10..
+                k = 0
+                while k < argc:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10 + k, 19 + k, 0))
+                    k = k + 1
+                
+                # Do call: VMO_CALL(x29)
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_CALL, 29))
+                # Get return value: rd = x10
+                let rd_ret = self.alloc_reg()
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd_ret, 10, 0))
+                push(self.reg_stack, rd_ret)
+
             elif op == sgvm_core.OP_PRINT:
                 let rs = pop(self.reg_stack)
                 if rs != 10:
@@ -418,6 +478,58 @@ class StackToRiscVTranslator:
                 
             elif op == sgvm_core.OP_HALT:
                 self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_HALT, 0))
+
+            elif op == 59: # OP_GPU_POLL_EVENTS (halt)
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 0, 0))
+
+            elif op == 69: # OP_GPU_CMD_BEGIN_RP (get_trap)
+                let rd2 = self.alloc_reg()
+                let rd1 = self.alloc_reg()
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 1, 0))
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd1, 10, 0))
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd2, 11, 0))
+                push(self.reg_stack, rd1)
+                push(self.reg_stack, rd2)
+
+            elif op == 70: # OP_GPU_CMD_END_RP (enable_interrupts)
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 2, 0))
+
+            elif op == 71: # OP_GPU_CMD_DRAW (set_timer)
+                let arg4 = pop(self.reg_stack)
+                let arg3 = pop(self.reg_stack)
+                let arg2 = pop(self.reg_stack)
+                let arg1 = pop(self.reg_stack)
+                if arg1 != 10:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, arg1, 0))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 3, 0))
+
+            elif op == 62: # OP_GPU_KEY_PRESSED (peek64)
+                let addr = pop(self.reg_stack)
+                let rd = self.alloc_reg()
+                if addr != 10:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, addr, 0))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, rd, 4, 0))
+                push(self.reg_stack, rd)
+
+            elif op == 84: # OP_GPU_UPDATE_UNIFORM (poke64)
+                let val = pop(self.reg_stack)
+                let addr = pop(self.reg_stack)
+                if val != 11:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, val, 0))
+                if addr != 10:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, addr, 0))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 5, 0))
+
+            elif op == 85: # OP_GPU_CMD_PUSH_CONST (poke32)
+                let arg4 = pop(self.reg_stack)
+                let arg3 = pop(self.reg_stack)
+                let val = pop(self.reg_stack)
+                let addr = pop(self.reg_stack)
+                if val != 11:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, val, 0))
+                if addr != 10:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, addr, 0))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 6, 0))
         
         var p = 0
         while p < len(self.jump_patches):

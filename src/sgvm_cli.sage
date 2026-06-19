@@ -1,3 +1,4 @@
+gc_disable()
 import sys
 import io
 import sgvm_runner
