@@ -23,7 +23,7 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 2. Runs the compiled bytecode using `./sgvm`.
 3. Filters out `DEBUG:` logs and compares the output against the corresponding `.expected` file.
 
-Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, and type conversions are located here.
+Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, indexing assignments, and GC/reflection built-ins are located here.
 
 ### Known Intentional Failures
 The following tests are expected to fail in the current implementation:
