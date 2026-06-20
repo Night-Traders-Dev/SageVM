@@ -14,7 +14,7 @@ This document outlines the features and standard library modules currently unsup
 - **AST Delegation**: [x] Full implementation of `OP_EXEC_AST_STMT` to allow execution of non-lowered code via `sys.exec()`.
 - **Matrix Visualization**: [x] Native interpretation for `OP_MATH_PRINTM` (87) (Note: currently lacks `sgvmc` binary emission logic).
 - **Native Bridge Modules**: [x] Re-implemented and exposed `ffi`, `mem`, and `struct` native modules to guest VM (restoration of missing functionality).
-- **Security Sandboxing**: Implemented `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
+- **Security Sandboxing**: [x] Implemented `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
 
 ## 🟡 Medium Difficulty (Native Bridging)
 - [ ] **Regex & JSON Support**: Restore `re` and `json` module bridging in `src/svm/sgvm_vm.sage`.
@@ -25,6 +25,7 @@ This document outlines the features and standard library modules currently unsup
 - [ ] **SRVM Opcode Gaps**: Implement missing register-based opcodes in `src/srvm/srvm_vm.sage`:
   - `VMO_IMPORT`, `VMO_EXEC_AST`
   - `OBJ_NEW_CLASS`, `OBJ_INHERIT`, `OBJ_METHOD_BIND`, `OBJ_DICT_NEW`, `OBJ_TUPLE_NEW`, `OBJ_SLICE`
+- [ ] **SRVM GPU Conformance**: Align SRVM legacy GPU opcodes with the Vulkan-aligned `BC_OP_GPU_*` instruction set.
 
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.
