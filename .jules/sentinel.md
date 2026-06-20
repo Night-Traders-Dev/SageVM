@@ -7,3 +7,8 @@
 **Vulnerability:** The SGVMC compiler constructed shell commands using raw input filenames and executed them via 'sys.exec' (which calls the C 'system()' function). A maliciously named file could execute arbitrary commands on the host system.
 **Learning:** Even internal toolchains must treat file paths as untrusted input when they are passed to shell-executing functions. Traditional path sanitization is insufficient if the string is eventually evaluated by a shell.
 **Prevention:** Always validate or sanitize input strings before concatenating them into shell commands, or preferably, use argument-vector based execution APIs that bypass the shell.
+
+## 2026-06-20 - Sandbox Escape via Direct Builtin Calls
+**Vulnerability:** The MetalVM sandbox restricted access to sensitive modules (io, mem, ffi, struct) by removing them from the global namespace in `safe_mode`. However, it failed to restrict direct calls to the underlying internal builtin functions (e.g., `__builtin_mem_alloc`, `__builtin_struct_def`) when called by name by a guest program.
+**Learning:** Sandboxing by namespace restriction is insufficient if the VM exposes a flat execution bridge for internal builtins. Security checks must be applied at the point of execution (the dispatcher) for all sensitive operations.
+**Prevention:** Always implement explicit security checks within the VM's builtin call dispatcher, independent of how the function was resolved or accessed by the guest program.
