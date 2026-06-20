@@ -21,7 +21,22 @@ To support the ongoing development of both architectures, SageVM provides a unif
 This pipeline ensures that developers can inspect the low-level structure of their compiled programs regardless of the target architecture.
 
 ---
-[Existing Content...]
+
+## 4. Execution Substrates
+
+### 4.1 MetalVM (Stack-Based)
+The core SVM implementation in `src/svm/sgvm_vm.sage`. It utilizes an operand stack for all computations.
+
+- **Stack Capacity**: 65,536 entries.
+- **Call Depth**: 1,024 frames.
+- **Handler Depth**: 1,024 levels.
+
+### 4.2 MetalRV64 (Register-Based)
+The SRVM implementation in `src/srvm/srvm_vm.sage`. It maps guest execution to a virtual RISC-V 64-bit hardware model.
+
+- **Register File**: x0 (zero) through x31.
+- **Stack Area**: 1,000 fixed slots.
+- **Optimized Builtins**: Provides native implementations for string and collection utilities.
 
 (Refer to `SPEC.md` for the complete opcode table.)
 
@@ -44,7 +59,35 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
   - `0x0C`: EXEC_AST
 
 - **funct3 = 001 (GPU Operations)**:
-  - > ⚠️ **Encoding Mismatch**: SRVM currently utilizes a legacy 2D-accelerated GPU instruction set (POLL_EVENTS to BUFFER_CREATE) which is incompatible with the Vulkan-like `BC_OP_GPU_*` opcodes defined in the authoritative `bytecode.h`.
+  - `0x00`: GPU_POLL_EVENTS
+  - `0x01`: GPU_WINDOW_SHOULD_CLOSE
+  - `0x02`: GPU_GET_TIME
+  - `0x03`: GPU_KEY_PRESSED
+  - `0x04`: GPU_MOUSE_PRESSED
+  - `0x05`: GPU_MOUSE_POS
+  - `0x06`: GPU_SCREEN_SIZE
+  - `0x07`: GPU_CLEAR
+  - `0x08`: GPU_SET_COLOR
+  - `0x09`: GPU_DRAW_PIXEL
+  - `0x0A`: GPU_DRAW_LINE
+  - `0x0B`: GPU_DRAW_RECT
+  - `0x0C`: GPU_DRAW_CIRCLE
+  - `0x0D`: GPU_DRAW_TRIANGLE
+  - `0x0E`: GPU_DRAW_TEXT
+  - `0x0F`: GPU_LOAD_IMAGE
+  - `0x10`: GPU_DRAW_IMAGE
+  - `0x11`: GPU_LOAD_FONT
+  - `0x12`: GPU_LOAD_SOUND
+  - `0x13`: GPU_PLAY_SOUND
+  - `0x14`: GPU_STOP_SOUND
+  - `0x15`: GPU_LOAD_MUSIC
+  - `0x16`: GPU_PLAY_MUSIC
+  - `0x17`: GPU_STOP_MUSIC
+  - `0x18`: GPU_CMD_BATCH_BEGIN
+  - `0x19`: GPU_CMD_BATCH_END
+  - `0x1A`: GPU_CMD_DISPATCH
+  - `0x1B`: GPU_BUFFER_CREATE
+  - > ⚠️ **Encoding Mismatch**: SRVM currently utilizes a legacy 2D-accelerated GPU instruction set (0x00-0x1B) which is incompatible with the Vulkan-like `BC_OP_GPU_*` opcodes defined in the authoritative `bytecode.h`.
 
 - **funct3 = 010 (Object Operations)**:
   - `0x00`: GET_GLOBAL
@@ -63,9 +106,8 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
   - `0x0D`: SLICE
 
 ---
-[Existing Content...]
 
-## Opcodes
+## 5. Bytecode Opcodes
 
 > ⚠️ **Encoding Mismatch**: SageVM currently uses a different encoding for opcodes 59 and above compared to the authoritative `bytecode.h`. In SageVM, 59 starts the GPU instruction set, whereas in `bytecode.h`, 59 is `BC_OP_GET_LOCAL`. This causes a binary-compatibility shift that must be addressed in future versions.
 
@@ -211,6 +253,23 @@ SGVM exposes several host-level functions directly in the global scope for perfo
 | `gc_enable()` / `gc_disable()` | Enables or disables the host garbage collector. |
 | `reflect_get_methods(obj)` | Returns a list of method names available on an object. |
 | `reflect_get_class(obj)` | Returns the class object for a given instance. |
+| `push(arr, val)` | Pushes a value onto an array. |
+| `pop(arr)` | Pops the last value from an array and returns it. |
+| `chr(val)` | Converts an integer ASCII code to a character string. |
+| `ord(str)` | Returns the integer ASCII code of the first character of a string. |
+| `dict_has(d, key)` | Returns true if the dictionary contains the given key. |
+| `dict_keys(d)` | Returns an array of keys in the dictionary. |
+| `dict_values(d)` | Returns an array of values in the dictionary. |
+| `startswith(str, prefix)` | Returns true if the string starts with the prefix. |
+| `endswith(str, suffix)` | Returns true if the string ends with the suffix. |
+| `contains(obj, val)` | Returns true if the array/string contains the value. |
+| `join(arr, sep)` | Joins an array of strings with the separator. |
+| `split(str, sep)` | Splits a string into an array by the separator. |
+| `replace(str, old, new)` | Replaces occurrences of `old` with `new` in the string. |
+| `upper(str)` / `lower(str)` | Converts a string to upper or lower case. |
+| `strip(str)` | Removes leading and trailing whitespace from a string. |
+
+*Note: String and collection utilities are optimized for the SRVM backend and may be delegated to host implementations in the SVM backend.*
 
 ## Multi-threading & GIL
 
