@@ -314,6 +314,8 @@ class SGVMCompiler:
                     elif op == 0x0c: op = 12 # BC_OP_SET_INDEX
                     elif op == 0x0d: op = 13 # BC_OP_LOAD_FUNCTION
                     elif op == 0x0e: op = 14 # BC_OP_SLICE
+                    elif op == 0x3b: op = 88 # BC_OP_GET_LOCAL
+                    elif op == 0x3c: op = 89 # BC_OP_SET_LOCAL
                     
                     self.write_byte(op)
                     j = j + 2
@@ -354,6 +356,11 @@ class SGVMCompiler:
                         let val = ut.parse_hex_byte(hex, j)
                         self.write_byte(val)
                         j = j + 2
+                    elif op == 88 or op == 89: # GET_LOCAL or SET_LOCAL
+                        let v1 = ut.parse_hex_byte(hex, j)
+                        let v2 = ut.parse_hex_byte(hex, j + 2)
+                        self.write_be16(v1 * 256 + v2)
+                        j = j + 4
                     elif op == 38: # CALL_METHOD
                         let v1 = ut.parse_hex_byte(hex, j)
                         let v2 = ut.parse_hex_byte(hex, j + 2)

@@ -171,6 +171,8 @@ class SRVM:
         elif f3 == srvm_core.F3_BNE: take = (rs1_val != rs2_val)
         elif f3 == srvm_core.F3_BLT: take = (rs1_val < rs2_val)
         elif f3 == srvm_core.F3_BGE: take = (rs1_val >= rs2_val)
+        elif f3 == srvm_core.F3_BLTU: take = (rs1_val < rs2_val)
+        elif f3 == srvm_core.F3_BGEU: take = (rs1_val >= rs2_val)
         
         if take:
             self.state.pc = self.state.pc + instr.imm_b
@@ -187,11 +189,18 @@ class SRVM:
         elif f3 == srvm_core.F3_SLTI:
             if rs1_val < imm: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
+        elif f3 == srvm_core.F3_SLTIU:
+            if rs1_val < imm: self.state.x[instr.rd] = 1
+            else: self.state.x[instr.rd] = 0
         elif f3 == srvm_core.F3_XORI: self.state.x[instr.rd] = rs1_val ^ imm
         elif f3 == srvm_core.F3_ORI: self.state.x[instr.rd] = rs1_val | imm
         elif f3 == srvm_core.F3_ANDI: self.state.x[instr.rd] = rs1_val & imm
         elif f3 == srvm_core.F3_SLLI: self.state.x[instr.rd] = rs1_val << (imm & 0x3F)
-        elif f3 == srvm_core.F3_SRLI: self.state.x[instr.rd] = rs1_val >> (imm & 0x3F)
+        elif f3 == srvm_core.F3_SRLI:
+            if instr.funct7 == 0x20:
+                self.state.x[instr.rd] = rs1_val >> (imm & 0x3F)
+            else:
+                self.state.x[instr.rd] = rs1_val >> (imm & 0x3F)
         self.state.pc = self.state.pc + 4
 
     proc handle_reg(self, instr):
@@ -218,6 +227,9 @@ class SRVM:
             elif f7 == 0x20: self.state.x[instr.rd] = rs1_val - rs2_val
         elif f3 == srvm_core.F3_SLL: self.state.x[instr.rd] = rs1_val << (rs2_val & 0x3F)
         elif f3 == srvm_core.F3_SLT:
+            if rs1_val < rs2_val: self.state.x[instr.rd] = 1
+            else: self.state.x[instr.rd] = 0
+        elif f3 == srvm_core.F3_SLTU:
             if rs1_val < rs2_val: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
         elif f3 == srvm_core.F3_XOR: self.state.x[instr.rd] = rs1_val ^ rs2_val

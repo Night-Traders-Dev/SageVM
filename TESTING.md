@@ -25,11 +25,8 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 
 Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, indexing assignments, and GC/reflection built-ins are located here.
 
-### Known Intentional Failures
-The following tests are expected to fail in the current implementation:
-- `tests/oop.sage`: Fails due to an opcode collision at index 59 (the VM interprets `GET_LOCAL` as `GPU_POLL_EVENTS`).
-- `tests/locals_test.sage`: Fails because `OP_GET_LOCAL` (88) and `OP_SET_LOCAL` (89) are currently unimplemented stubs in the SVM interpreter.
-- `tests/break_continue.sage`: Fails because `OP_BREAK` and `OP_CONTINUE` are currently unimplemented stubs that halt execution.
+### Known Issues
+All 16 tests currently pass. No known intentional failures.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
