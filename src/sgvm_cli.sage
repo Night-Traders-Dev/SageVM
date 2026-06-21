@@ -103,6 +103,10 @@ class SGVMCLI:
             print "❌ Error: Could not read file: " + input_file
             return
 
+        if endswith(input_file, ".sage"):
+            print "💡 Tip: It looks like you're trying to run a Sage source file."
+            print "   Try compiling it first: sagevm compile " + input_file
+
         # Auto-detect RISC-V header
         if len(data) >= 4:
             if int(data[0]) == 83 and int(data[1]) == 71 and int(data[2]) == 82 and int(data[3]) == 86:

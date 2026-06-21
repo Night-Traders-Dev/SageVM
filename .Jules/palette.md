@@ -5,3 +5,7 @@
 ## 2026-06-18 - [CLI Output Filename Hygiene]
 **Learning:** Automatically stripping source file extensions (like .sage) when generating default output filenames prevents redundant extensions (e.g., .sage.sgvm), leading to a cleaner and more professional-feeling CLI experience.
 **Action:** When deriving output filenames from inputs in CLI tools, always check for and strip known source extensions.
+
+## 2026-06-20 - [Contextual CLI Tips for Source Files]
+**Learning:** Users often attempt to execute source files (.sage) directly with the VM runner (sagevm run), leading to confusing "Invalid Header" errors.
+**Action:** Implement extension-based detection in the CLI to intercept these attempts and provide a clear "Try compiling first" tip.
