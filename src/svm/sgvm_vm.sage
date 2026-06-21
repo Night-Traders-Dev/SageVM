@@ -174,14 +174,45 @@ class MetalVM:
                     mi = mi + 1
                 print "]"
             return nil
-        elif callee == "__builtin_mem_alloc": return mem_alloc(args[0])
-        elif callee == "__builtin_mem_free": return mem_free(args[0])
-        elif callee == "__builtin_mem_read": return mem_read(args[0], args[1], args[2])
-        elif callee == "__builtin_mem_write": return mem_write(args[0], args[1], args[2], args[3])
-        elif callee == "__builtin_mem_size": return mem_size(args[0])
-        elif callee == "__builtin_ffi_open": return ffi_open(args[0])
-        elif callee == "__builtin_ffi_close": return ffi_close(args[0])
+        elif callee == "__builtin_mem_alloc":
+            if self.safe_mode:
+                print "Error: mem_alloc is restricted in safe mode"
+                return nil
+            return mem_alloc(args[0])
+        elif callee == "__builtin_mem_free":
+            if self.safe_mode:
+                print "Error: mem_free is restricted in safe mode"
+                return nil
+            return mem_free(args[0])
+        elif callee == "__builtin_mem_read":
+            if self.safe_mode:
+                print "Error: mem_read is restricted in safe mode"
+                return nil
+            return mem_read(args[0], args[1], args[2])
+        elif callee == "__builtin_mem_write":
+            if self.safe_mode:
+                print "Error: mem_write is restricted in safe mode"
+                return nil
+            return mem_write(args[0], args[1], args[2], args[3])
+        elif callee == "__builtin_mem_size":
+            if self.safe_mode:
+                print "Error: mem_size is restricted in safe mode"
+                return nil
+            return mem_size(args[0])
+        elif callee == "__builtin_ffi_open":
+            if self.safe_mode:
+                print "Error: ffi_open is restricted in safe mode"
+                return nil
+            return ffi_open(args[0])
+        elif callee == "__builtin_ffi_close":
+            if self.safe_mode:
+                print "Error: ffi_close is restricted in safe mode"
+                return nil
+            return ffi_close(args[0])
         elif callee == "__builtin_ffi_call":
+            if self.safe_mode:
+                print "Error: ffi_call is restricted in safe mode"
+                return nil
             # Note: ffi_call might be a stub in some backends
             try:
                 if argc == 3: return ffi_call(args[0], args[1], args[2])
@@ -189,11 +220,31 @@ class MetalVM:
             catch e:
                 print "Error: ffi_call failed: " + str(e)
                 return nil
-        elif callee == "__builtin_struct_def": return struct_def(args[0])
-        elif callee == "__builtin_struct_new": return struct_new(args[0])
-        elif callee == "__builtin_struct_get": return struct_get(args[0], args[1], args[2])
-        elif callee == "__builtin_struct_set": return struct_set(args[0], args[1], args[2], args[3])
-        elif callee == "__builtin_struct_size": return struct_size(args[0])
+        elif callee == "__builtin_struct_def":
+            if self.safe_mode:
+                print "Error: struct_def is restricted in safe mode"
+                return nil
+            return struct_def(args[0])
+        elif callee == "__builtin_struct_new":
+            if self.safe_mode:
+                print "Error: struct_new is restricted in safe mode"
+                return nil
+            return struct_new(args[0])
+        elif callee == "__builtin_struct_get":
+            if self.safe_mode:
+                print "Error: struct_get is restricted in safe mode"
+                return nil
+            return struct_get(args[0], args[1], args[2])
+        elif callee == "__builtin_struct_set":
+            if self.safe_mode:
+                print "Error: struct_set is restricted in safe mode"
+                return nil
+            return struct_set(args[0], args[1], args[2], args[3])
+        elif callee == "__builtin_struct_size":
+            if self.safe_mode:
+                print "Error: struct_size is restricted in safe mode"
+                return nil
+            return struct_size(args[0])
         elif callee == "__builtin_sys_exec":
             if self.safe_mode:
                 print "Error: sys.exec is restricted in safe mode"
