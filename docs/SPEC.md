@@ -31,9 +31,7 @@ Both formats are fully supported by the unified SageVM CLI tools:
 
 ---
 
-[Existing Content...]
-
-## 2. Compilation & Execution Pipeline
+## 3. Compilation & Execution Pipeline
 SageLang code follows a strictly defined path to execution:
 1. **Source**: Human-readable `.sage` files.
 2. **Compiler Frontend**: Parses source into an Abstract Syntax Tree (AST) or Intermediate Representation (SGIR).
@@ -41,42 +39,53 @@ SageLang code follows a strictly defined path to execution:
 4. **Verification**: Mandatory security and safety checks.
 5. **Runtime Execution**: Execution by the MetalVM (SVM) or MetalRV64 (SRVM) engine.
 
-## 3. Bytecode Verification & Runtime Safety
+## 4. Execution Semantics
+
+### 4.1 Truthiness
+In the SageVM implementation, truthiness follows strict rules for boolean context evaluation (e.g., `OP_JUMP_IF_FALSE`, `OP_TRUTHY`):
+- **Falsy**: `0` (number), `nil`.
+- **Truthy**: `true`, non-zero numbers, empty/non-empty strings, empty/non-empty arrays, and empty/non-empty dictionaries.
+
+*Note: While some backends may treat empty collections as falsy, the current `MetalVM` and `MetalRV64` implementations treat all non-nil, non-zero values as truthy.*
+
+## 5. Bytecode Verification & Runtime Safety
 (Note: Full static bytecode verification is currently a roadmap item for the SageLang-based interpreter. Runtime enforcement is currently used to ensure safety.)
 
 Before and during execution, production SGVM bytecode MUST pass verification and runtime checks that ensure:
 - **Control Flow Integrity**: No illegal jumps; recursive depth is limited to 1,024 frames (`max_call_depth`).
 - **Type Safety**: Operations are performed on valid operand types.
-- **Boundary Checks**: No out-of-bounds access to memory or object arenas. Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
+- **Boundary Checks**: No out-of-bounds access to memory or object arenas.
+  - **SVM**: Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
+  - **SRVM**: The fixed stack area is initialized with 1,000 slots.
 - **Path Sanitization**: Compiler validates input and output file paths against shell metacharacters to prevent command injection.
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions.
 
-## 4. Execution Modes
+## 6. Execution Modes
 SGVM supports multiple execution strategies:
 - **Interpreted**: Direct execution of the AST or bytecode (default for kernel-mode scripts).
 - **Threaded Interpreter**: High-performance bytecode dispatching using labels-as-values.
 - **JIT/AOT (Future)**: Just-in-Time or Ahead-of-Time compilation to native machine code for performance-critical applications.
 
-## 5. MetalVM C API (`metal_vm.h`)
+## 7. MetalVM C API (`metal_vm.h`)
 The kernel interacts with SGVM via the following internal interfaces:
 - `metal_vm_load_binary()`: Loads a compiled `.sgvm` artifact into memory.
 - `metal_vm_run()` / `metal_vm_step()`: Executes bytecode instructions.
 - `metal_vm_register_native()`: Binds kernel-level functions to SageLang (implemented via the **Native Bridge** in the SageLang-based interpreter).
 - `sage_gil_acquire()` / `sage_gil_release()`: Serializes access to the VM state to maintain thread safety in SMP environments.
 
-## 6. Object System & GC
+## 8. Object System & GC
 SGVM features a reference-tracked object system with a built-in Mark-and-Sweep garbage collector. Objects (primarily Arrays and Dictionaries) are capability-tagged and reside in dedicated memory arenas.
 
 ---
 
-## 7. Opcode Conformance
+## 9. Opcode Conformance
 
-### 7.1 SageVM Extensions
+### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions not found in the core `bytecode.h`:
 - `OP_MATH_PRINTM` (87): Native matrix visualization.
 - `OP_HALT` (255): Unconditional VM termination.
 
-### 7.2 Known Incompatibilities
+### 9.2 Known Incompatibilities
 - **Opcode Shift (SVM)**: There is a major encoding mismatch starting at index 59. The authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` (59) and `BC_OP_SET_LOCAL` (60), which shifts all subsequent GPU opcodes by +2. SageVM (SVM) currently maintains a legacy mapping where `OP_GPU_POLL_EVENTS` starts at 59, and `OP_GET_LOCAL` / `OP_SET_LOCAL` are mapped to 88 and 89 respectively.
 - **Secondary Collision (87-88)**: The shift in `bytecode.h` results in `BC_OP_GPU_CMD_PUSH_CONST` (87) and `BC_OP_GPU_CMD_DISPATCH` (88) colliding with SageVM's `OP_MATH_PRINTM` (87) and the legacy mapping for `OP_GET_LOCAL` (88).
 - **GPU Instruction Set**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes in the core spec.

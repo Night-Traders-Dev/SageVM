@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.10] - 2026-06-19
+
+### Added
+- **Truthiness Specification**: Documented boolean context evaluation semantics in `SPEC.md`.
+- **SRVM Builtins**: Expanded `ARCHITECTURE.md` with 16 new SRVM-optimized builtins (string/collection utilities).
+- **Safety Limits**: Documented the fixed 1,000-slot stack limit for the SRVM backend in `SPEC.md`.
+
+### Changed
+- **Documentation Alignment**: Synchronized SVM/SRVM opcode tables and verified against authoritative `bytecode.h`.
+- **Roadmap Cleanup**: Refined `ROADMAP.md` checkboxes and status descriptions.
+
 ## [0.9.9] - 2026-06-18
 
 ### Added
