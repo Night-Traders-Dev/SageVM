@@ -1,0 +1,6 @@
+chr(65): A
+ord('A'): 65
+startswith('hello', 'he'): true
+startswith('hello', 'world'): false
+endswith('hello', 'lo'): true
+endswith('hello', 'world'): false
