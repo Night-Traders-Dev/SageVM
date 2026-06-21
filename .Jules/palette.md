@@ -9,3 +9,7 @@
 ## 2026-06-20 - [Contextual CLI Tips for Source Files]
 **Learning:** Users often attempt to execute source files (.sage) directly with the VM runner (sagevm run), leading to confusing "Invalid Header" errors.
 **Action:** Implement extension-based detection in the CLI to intercept these attempts and provide a clear "Try compiling first" tip.
+
+## 2026-06-21 - [Colorized CLI Feedback]
+**Learning:** Colorizing CLI output significantly improves the scannability and "feel" of a tool. Errors that stand out in red and success messages in green provide immediate, pre-attentive feedback that makes the tool feel more responsive and professional.
+**Action:** Always use a consistent color palette (Red for errors, Green for success, Yellow for tips, Cyan for headers) in CLI tools to improve user navigation and feedback clarity.
