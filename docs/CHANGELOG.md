@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.11] - 2026-06-20
+
+### Added
+- **Local Variable Support**: Fully implemented `OP_GET_LOCAL` (88) and `OP_SET_LOCAL` (89) in the SVM interpreter.
+- **Enhanced Test Coverage**: Added `tests/indexing_assign.sage` for array/dictionary assignment and `tests/builtins_gc_reflect.sage` for garbage collection and reflection stubs.
+
+### Changed
+- **Compiler Alignment**: Updated `sgvmc` to correctly remap local variable opcodes (0x3B/0x3C) to SVM-internal indices (88/89).
+
 ## [0.9.10] - 2026-06-19
 
 ### Added
