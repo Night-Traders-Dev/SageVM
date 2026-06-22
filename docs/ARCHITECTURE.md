@@ -113,7 +113,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 > ⚠️ **Collision Alert**: Opcodes 87 and 88 in SageVM (`OP_MATH_PRINTM`, `OP_GET_LOCAL`) now collide with the tail of the authoritative GPU instruction set (`BC_OP_GPU_CMD_PUSH_CONST`, `BC_OP_GPU_CMD_DISPATCH`).
 
-> ⚠️ **Compiler Implementation Gap**: `sgvmc` (`src/svm/sgvm_compiler.sage`) currently lacks binary emission logic for `OP_MATH_PRINTM` (87) and only implements remapping for a subset of opcodes (up to `OP_SLICE`). Most GPU opcodes (59-86) and local variable opcodes (88-89) are currently emitted using host indices that do not match the VM's legacy mapping.
+> ⚠️ **Compiler Implementation Gap**: `sgvmc` (`src/svm/sgvm_compiler.sage`) currently lacks binary emission logic for `OP_MATH_PRINTM` (87). While local variable opcodes (88-89) are now correctly remapped, most GPU opcodes (59-86) are still emitted using host indices that do not match the VM's legacy mapping.
 
 The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`. (Note: Values marked with `*` mismatch the authoritative `bytecode.h`).
 
