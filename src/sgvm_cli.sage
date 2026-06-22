@@ -108,6 +108,15 @@ class SGVMCLI:
         let data = io.readbytes(input_file)
         if data == nil:
             print COLOR_RED + "❌ Error: Could not read file: " + COLOR_RESET + input_file
+
+            # Suggest alternative extensions if they exist
+            if not endswith(input_file, ".sgvm") and not endswith(input_file, ".sgrv") and not endswith(input_file, ".sage"):
+                if io.readbytes(input_file + ".sgvm") != nil:
+                    print COLOR_YELLOW + "💡 Tip: Did you mean " + COLOR_CYAN + input_file + ".sgvm" + COLOR_YELLOW + "?" + COLOR_RESET
+                elif io.readbytes(input_file + ".sgrv") != nil:
+                    print COLOR_YELLOW + "💡 Tip: Did you mean " + COLOR_CYAN + input_file + ".sgrv" + COLOR_YELLOW + "?" + COLOR_RESET
+                elif io.readbytes(input_file + ".sage") != nil:
+                    print COLOR_YELLOW + "💡 Tip: " + COLOR_CYAN + input_file + ".sage" + COLOR_YELLOW + " exists. Try compiling it first." + COLOR_RESET
             return
 
         if endswith(input_file, ".sage"):
@@ -173,7 +182,18 @@ class SGVMCLI:
                     print COLOR_GREEN + "✨ RISC-V translation complete." + COLOR_RESET
                 else:
                     print COLOR_RED + "❌ RISC-V translation failed." + COLOR_RESET
-            print COLOR_GREEN + "✨ Compilation complete: " + COLOR_RESET + output_file
+            let out_data = io.readbytes(output_file)
+            var size_str = ""
+            if out_data != nil:
+                let sz = len(out_data)
+                if sz < 1024:
+                    size_str = " (" + str(sz) + " bytes)"
+                else:
+                    # Very simple KB calculation
+                    let kb = sz / 1024
+                    size_str = " (" + str(kb) + " KB)"
+
+            print COLOR_GREEN + "✨ Compilation complete: " + COLOR_RESET + output_file + size_str
         else:
             print COLOR_RED + "❌ Compilation failed." + COLOR_RESET
 
