@@ -80,6 +80,8 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
+**Last Conformance Sync: 2026-06-21**
+
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions not found in the core `bytecode.h`:
 - `OP_MATH_PRINTM` (87): Native matrix visualization.
