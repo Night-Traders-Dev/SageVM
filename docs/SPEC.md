@@ -43,10 +43,10 @@ SageLang code follows a strictly defined path to execution:
 
 ### 4.1 Truthiness
 In the SageVM implementation, truthiness follows strict rules for boolean context evaluation (e.g., `OP_JUMP_IF_FALSE`, `OP_TRUTHY`):
-- **Falsy**: `0` (number), `nil`.
-- **Truthy**: `true`, non-zero numbers, empty/non-empty strings, empty/non-empty arrays, and empty/non-empty dictionaries.
+- **Falsy**: `0` (number), `nil`, `false`.
+- **Truthy**: `true`, non-zero numbers, empty/non-empty strings (""), empty/non-empty arrays ([]), and empty/non-empty dictionaries ({}).
 
-*Note: While some backends may treat empty collections as falsy, the current `MetalVM` and `MetalRV64` implementations treat all non-nil, non-zero values as truthy.*
+*Note: While standard SageLang may treat empty collections as falsy, the current `MetalVM` and `MetalRV64` implementations treat all non-nil, non-zero objects as truthy.*
 
 ## 5. Bytecode Verification & Runtime Safety
 (Note: Full static bytecode verification is currently a roadmap item for the SageLang-based interpreter. Runtime enforcement is currently used to ensure safety.)

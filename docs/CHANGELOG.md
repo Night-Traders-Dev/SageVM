@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.12] - 2026-06-21
+
+### Changed
+- **Documentation Sync**: Updated `ARCHITECTURE.md` and `SPEC.md` to reflect current truthiness semantics and SRVM-delegated builtins.
+- **Opcode Audit**: Verified SVM/SRVM opcode tables against `bytecode.h` and documented collision risks at 87-88.
+
+### Fixed
+- **Status Alignment**: Flagged implementation gaps for string/collection builtins in the SVM interpreter as documented in modern test suites.
+
 ## [0.9.11] - 2026-06-20
 
 ### Added
