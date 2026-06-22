@@ -11,16 +11,23 @@ import srvm_disassembler_logic
 import srvm_hexdump_logic
 from sgvm_compiler import sys_exec, io_readfile, io_writebytes
 
+let COLOR_RESET  = "\x1b[0m"
+let COLOR_BOLD   = "\x1b[1m"
+let COLOR_RED    = "\x1b[31m"
+let COLOR_GREEN  = "\x1b[32m"
+let COLOR_YELLOW = "\x1b[33m"
+let COLOR_CYAN   = "\x1b[36m"
+
 proc print_help():
-    print "✨ SageVM v0.9.8 - The Sage Virtual Machine"
-    print "Usage: sagevm <command> [options]"
+    print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET + " - The Sage Virtual Machine"
+    print "Usage: " + COLOR_BOLD + "sagevm" + COLOR_RESET + " <command> [options]"
     print ""
-    print "Commands:"
-    print "  🚀 run <file.sgvm>    Execute a compiled binary"
-    print "  🛠️  compile <file.sage> Compile Sage source to binary"
-    print "  🔍 dis <file.sgvm>    Disassemble binary"
-    print "  📦 hex <file.sgvm>    Low-level binary hexdump"
-    print "  ℹ️  version            Show version information"
+    print COLOR_BOLD + "Commands:" + COLOR_RESET
+    print "  🚀 " + COLOR_CYAN + "run" + COLOR_RESET + " <file.sgvm>    Execute a compiled binary"
+    print "  🛠️  " + COLOR_CYAN + "compile" + COLOR_RESET + " <file.sage> Compile Sage source to binary"
+    print "  🔍 " + COLOR_CYAN + "dis" + COLOR_RESET + " <file.sgvm>    Disassemble binary"
+    print "  📦 " + COLOR_CYAN + "hex" + COLOR_RESET + " <file.sgvm>    Low-level binary hexdump"
+    print "  ℹ️  " + COLOR_CYAN + "version" + COLOR_RESET + "            Show version information"
     print ""
     print "Flags: -h, --help, -v, --version"
 
@@ -39,7 +46,7 @@ class SGVMCLI:
         
         # Handle standard version and help flags before any dispatch
         if cmd == "-v" or cmd == "--version" or cmd == "version":
-            print "SageVM v0.9.8"
+            print COLOR_CYAN + COLOR_BOLD + "SageVM v0.9.8" + COLOR_RESET
             return
         if cmd == "-h" or cmd == "--help" or cmd == "help":
             print_help()
@@ -67,7 +74,7 @@ class SGVMCLI:
         elif cmd == "hex":
             self.handle_hex(args)
         elif cmd != "":
-            print "❌ Unknown command: " + cmd
+            print COLOR_RED + "❌ Unknown command: " + COLOR_RESET + cmd
             print ""
             print_help()
 
@@ -85,27 +92,27 @@ class SGVMCLI:
             elif a == "--no-ffi": no_ffi = true
             elif a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print "SageVM v0.9.8"
+                print COLOR_CYAN + COLOR_BOLD + "SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
-                print "Usage: sagevm run <file.sgvm> [--debug] [--safe] [--no-ffi] [--riscv]"
+                print "Usage: " + COLOR_BOLD + "sagevm run" + COLOR_RESET + " <file.sgvm> [--debug] [--safe] [--no-ffi] [--riscv]"
                 return
             else: input_file = a
             i = i + 1
         
         if input_file == "":
-            print "❌ Error: No input file specified."
+            print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
             return
         
         # Verify file existence
         let data = io.readbytes(input_file)
         if data == nil:
-            print "❌ Error: Could not read file: " + input_file
+            print COLOR_RED + "❌ Error: Could not read file: " + COLOR_RESET + input_file
             return
 
         if endswith(input_file, ".sage"):
-            print "💡 Tip: It looks like you're trying to run a Sage source file."
-            print "   Try compiling it first: sagevm compile " + input_file
+            print COLOR_YELLOW + "💡 Tip: It looks like you're trying to run a Sage source file." + COLOR_RESET
+            print "   Try compiling it first: " + COLOR_CYAN + "sagevm compile " + input_file + COLOR_RESET
 
         # Auto-detect RISC-V header
         if len(data) >= 4:
@@ -131,10 +138,10 @@ class SGVMCLI:
             if a == "--shebang": use_shebang = true
             elif a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print "SageVM v0.9.8"
+                print COLOR_CYAN + COLOR_BOLD + "SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
-                print "Usage: sagevm compile <input.sage> [output.sgvm] [--shebang] [--riscv]"
+                print "Usage: " + COLOR_BOLD + "sagevm compile" + COLOR_RESET + " <input.sage> [output.sgvm] [--shebang] [--riscv]"
                 return
             else:
                 if pos_idx == 0: input_file = a
@@ -143,7 +150,8 @@ class SGVMCLI:
             iter_idx = iter_idx + 1
         
         if input_file == "":
-            print "Usage: sagevm compile <input.sage> [output.sgvm] [--shebang] [--riscv]"
+            print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
+            print "Usage: " + COLOR_BOLD + "sagevm compile" + COLOR_RESET + " <input.sage> [output.sgvm] [--shebang] [--riscv]"
             return
         
         if output_file == "":
@@ -162,12 +170,12 @@ class SGVMCLI:
                 let sgrv_data = rv_compiler.compile(svm_data)
                 if sgrv_data != nil:
                     io_writebytes(output_file, sgrv_data)
-                    print "✨ RISC-V translation complete."
+                    print COLOR_GREEN + "✨ RISC-V translation complete." + COLOR_RESET
                 else:
-                    print "❌ RISC-V translation failed."
-            print "✨ Compilation complete: " + output_file
+                    print COLOR_RED + "❌ RISC-V translation failed." + COLOR_RESET
+            print COLOR_GREEN + "✨ Compilation complete: " + COLOR_RESET + output_file
         else:
-            print "❌ Compilation failed."
+            print COLOR_RED + "❌ Compilation failed." + COLOR_RESET
 
     proc handle_dis(self, args, start_idx):
         var input_file = ""
@@ -180,16 +188,17 @@ class SGVMCLI:
             elif a == "--sage": mode = "sage"
             elif a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print "SageVM v0.9.8"
+                print COLOR_CYAN + COLOR_BOLD + "SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
-                print "Usage: sagevm dis <file.sgvm> [--sage | --svm] [--riscv]"
+                print "Usage: " + COLOR_BOLD + "sagevm dis" + COLOR_RESET + " <file.sgvm> [--sage | --svm] [--riscv]"
                 return
             else: input_file = a
             i = i + 1
         
         if input_file == "":
-            print "Usage: sagevm dis <file.sgvm> [--sage | --svm] [--riscv]"
+            print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
+            print "Usage: " + COLOR_BOLD + "sagevm dis" + COLOR_RESET + " <file.sgvm> [--sage | --svm] [--riscv]"
             return
         
         # Auto-detect RISC-V header
@@ -216,16 +225,17 @@ class SGVMCLI:
             let a = args[i]
             if a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print "SageVM v0.9.8"
+                print COLOR_CYAN + COLOR_BOLD + "SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
-                print "Usage: sagevm hex <file.sgvm> [--riscv]"
+                print "Usage: " + COLOR_BOLD + "sagevm hex" + COLOR_RESET + " <file.sgvm> [--riscv]"
                 return
             else: input_file = a
             i = i + 1
 
         if input_file == "":
-            print "Usage: sagevm hex <file.sgvm> [--riscv]"
+            print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
+            print "Usage: " + COLOR_BOLD + "sagevm hex" + COLOR_RESET + " <file.sgvm> [--riscv]"
             return
         
         # Auto-detect RISC-V header
