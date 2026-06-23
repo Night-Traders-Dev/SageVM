@@ -13,3 +13,7 @@
 ## 2026-06-21 - [Colorized CLI Feedback]
 **Learning:** Colorizing CLI output significantly improves the scannability and "feel" of a tool. Errors that stand out in red and success messages in green provide immediate, pre-attentive feedback that makes the tool feel more responsive and professional.
 **Action:** Always use a consistent color palette (Red for errors, Green for success, Yellow for tips, Cyan for headers) in CLI tools to improve user navigation and feedback clarity.
+
+## 2026-06-22 - [Smart CLI Path Suggestions and Artifact Feedback]
+**Learning:** Providing smart path suggestions when a file is not found (e.g., checking for .sgvm or .sgrv extensions) significantly reduces user friction and makes the tool feel more helpful. Additionally, reporting the size of generated binaries provides immediate, valuable feedback about the result of a compilation.
+**Action:** In CLI tools, implement "Did you mean?" suggestions for common file extensions and always report artifact metadata (like size) on successful generation.
