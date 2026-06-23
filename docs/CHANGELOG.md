@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.13] - 2026-06-23
+
+### Added
+- **JIT Infrastructure**: Initialized high-performance JIT compilation pipeline in `src/jit/`.
+- **Memory Management**: Implemented `ExecutableMemoryManager` with W^X security enforcement.
+- **Native Emitter**: Added `CodeEmitter` for translating RV64I Intermediate Representation to binary instructions.
+
+### Changed
+- **Documentation Sync**: Synchronized technical specifications and architectural documentation with the 2026-06-23 implementation state.
+
 ## [0.9.12] - 2026-06-21
 
 ### Changed

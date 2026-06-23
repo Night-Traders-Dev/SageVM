@@ -109,7 +109,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-06-21**
+**Last Conformance Sync: 2026-06-23**
 
 > 🔴 **CRITICAL ENCODING MISMATCH**: SageVM currently uses a different encoding for opcodes 59 and above compared to the authoritative `bytecode.h`. In SageVM, 59 starts the GPU instruction set, whereas in `bytecode.h`, 59 is `BC_OP_GET_LOCAL`. This causes a binary-compatibility shift that must be addressed in future versions.
 
@@ -234,6 +234,21 @@ The following modules are currently bridged:
 *Note: The `re` and `json` modules are not currently exposed through the guest-to-host bridge (see Roadmap).*
 
 Native bridging is implemented by tagging objects and function-like dictionaries with a `__native__` property. The `OP_CALL` and `OP_CALL_METHOD` opcodes detect these tags and dispatch execution to the VM's `call_native()` handler.
+
+## 6. Just-In-Time (JIT) Infrastructure
+
+SageVM has begun laying the foundation for a high-performance JIT compilation pipeline located in `src/jit/`. This infrastructure aims to bridge the gap between interpreted bytecode and native hardware performance.
+
+### 6.1 Executable Memory Management (`src/jit/jit_memory.sage`)
+A dedicated manager for handling executable memory pages, implementing standard security practices:
+- **W^X Enforcement**: Simulated Write XOR Execute protection to prevent simultaneous writing and execution of memory.
+- **Page Transitions**: Controlled methods (`make_executable()`, `make_writable()`) for transitioning page permissions.
+- **Security Guardrails**: Explicit checks to prevent writes to executable memory segments.
+
+### 6.2 RISC-V Code Emitter (`src/jit/jit_emitter.sage`)
+A low-level component responsible for translating the SRVM's RV64I Intermediate Representation (IR) into native machine instructions.
+- **Instruction Generation**: Direct mapping of RV64I opcodes (e.g., `ADD`, `ADDI`) to binary instruction streams.
+- **Memory Integration**: Tight coupling with the `ExecutableMemoryManager` for safe code emission into managed pages.
 
 ## Core Builtins
 

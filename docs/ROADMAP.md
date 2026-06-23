@@ -22,6 +22,7 @@ This document outlines the features and standard library modules currently unsup
    - > ⚠️ **Encoding Mismatch**: Authoritative indices are 59 and 60, but SageVM currently uses indices 88 and 89.
 - [x] **Compiler Conformance**: Overhaul `src/svm/sgvm_compiler.sage` remapping logic to align with authoritative `bytecode.h` indices (Shifted GPU and local variables).
 - [ ] **Loop Control Opcodes**: Implement interpreter support for `OP_BREAK` (49) and `OP_CONTINUE` (50) in `src/svm/sgvm_vm.sage` (currently stubs).
+- [ ] **SRVM GPU Implementation**: Implement missing register-based GPU opcodes in `src/srvm/srvm_vm.sage` to replace the legacy 2D instruction set.
 - [ ] **SVM Builtin Gaps**: Implement missing string/collection utilities (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`) in `src/svm/sgvm_vm.sage`.
 - [ ] **SRVM Opcode Gaps**: Implement missing register-based opcodes in `src/srvm/srvm_vm.sage`:
   - `VMO_IMPORT`, `VMO_EXEC_AST`
@@ -35,5 +36,5 @@ These tasks involve significant architectural additions or complex resource mana
 - **Recursion/Stack Depth**: 🟡 SRVM currently has limited call stack depth for deep recursion (e.g., recursive Fibonacci > 20).
 
 ## 🟣 Research / Future
-- **JIT/AOT Compilation**: 🟡 Currently in progress (Phase 4: JIT Compilation Target). Infrastructure (Memory Manager, RISC-V Emitter) and OSR hooks implemented.
+- [x] **JIT/AOT Compilation**: 🟡 Currently in progress (Phase 4: JIT Compilation Target). Infrastructure (Memory Manager, RISC-V Emitter) and OSR hooks implemented in `src/jit/`.
 - **Formal Verification**: Tools to mathematically prove the safety of a `.sgvm` binary before execution (as mentioned in `SPEC.md`).
