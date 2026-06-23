@@ -104,6 +104,18 @@ class MetalVM:
         self.globals["reflect_get_methods"] = "__builtin_reflect_get_methods"
         self.globals["reflect_get_class"] = "__builtin_reflect_get_class"
 
+    proc is_protected(self, obj):
+        # Security helper: Check if an object is a protected module or host bridge
+        if not self.safe_mode:
+            return false
+
+        if type(obj) == "dict":
+            if dict_has(obj, "__host_mod__") or (dict_has(obj, "__type__") and obj["__type__"] == "module"):
+                return true
+        elif type(obj) == "module":
+            return true
+        return false
+
     proc run(self, code):
         self.code = code
         self.ip = 0
@@ -460,8 +472,13 @@ class MetalVM:
             let val = pop(self.stack)
             let idx = pop(self.stack)
             let obj = pop(self.stack)
-            obj[idx] = val
-            push(self.stack, val)
+
+            if self.is_protected(obj):
+                print "Error: Index assignment to protected object is restricted in safe mode"
+                push(self.stack, nil)
+            else:
+                obj[idx] = val
+                push(self.stack, val)
         elif op == OP_SLICE:
             let end_idx = pop(self.stack)
             let start_idx = pop(self.stack)
@@ -753,12 +770,17 @@ class MetalVM:
             let name = self.constants[idx]
             let val = pop(self.stack)
             let obj = pop(self.stack)
-            if type(obj) == "dict":
-                obj[name] = val
+
+            if self.is_protected(obj):
+                print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
+                push(self.stack, nil)
             else:
-                # Host property set bridge
-                obj[name] = val
-            push(self.stack, val)
+                if type(obj) == "dict":
+                    obj[name] = val
+                else:
+                    # Host property set bridge
+                    obj[name] = val
+                push(self.stack, val)
         elif op == OP_IMPORT:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
