@@ -251,8 +251,8 @@ SGVM exposes several host-level functions directly in the global scope for perfo
 | `gc_collect()` | Manually triggers garbage collection. |
 | `gc_stats()` | Returns a dictionary with GC statistics. |
 | `gc_enable()` / `gc_disable()` | Enables or disables the host garbage collector. |
-| `reflect_get_methods(obj)` | Returns a list of method names available on an object. |
-| `reflect_get_class(obj)` | Returns the class object for a given instance. |
+| `reflect_get_methods(obj)` | Returns a list of method names available on an object (SVM-only). |
+| `reflect_get_class(obj)` | Returns the class object for a given instance (SVM-only). |
 | `push(arr, val)` | Pushes a value onto an array. |
 | `pop(arr)` | Pops the last value from an array and returns it. |
 | `chr(val)` | Converts an integer ASCII code to a character string. |
@@ -269,7 +269,7 @@ SGVM exposes several host-level functions directly in the global scope for perfo
 | `upper(str)` / `lower(str)` | Converts a string to upper or lower case. |
 | `strip(str)` | Removes leading and trailing whitespace from a string. |
 
-*Note: String and collection utilities are optimized for the SRVM backend and may be delegated to host implementations in the SVM backend.*
+*Note: String and collection utilities (push, pop, chr, ord, startswith, endswith, etc.) are currently implemented in the SRVM backend. They are identified gaps in the SVM interpreter (`sgvm_vm.sage`) and are planned for future restoration.*
 
 ## Multi-threading & GIL
 
