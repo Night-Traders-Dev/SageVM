@@ -17,3 +17,7 @@
 ## 2026-06-22 - [Smart CLI Path Suggestions and Artifact Feedback]
 **Learning:** Providing smart path suggestions when a file is not found (e.g., checking for .sgvm or .sgrv extensions) significantly reduces user friction and makes the tool feel more helpful. Additionally, reporting the size of generated binaries provides immediate, valuable feedback about the result of a compilation.
 **Action:** In CLI tools, implement "Did you mean?" suggestions for common file extensions and always report artifact metadata (like size) on successful generation.
+
+## 2026-06-24 - [CLI Verification Consistency]
+**Learning:** UX polish must be applied consistently across all command handlers; "partial polish" (e.g., only in the 'run' command) makes neglected commands feel broken by comparison. Centralizing verification logic prevents crashes and ensures a high-quality experience regardless of the user's entry point.
+**Action:** Refactor cross-cutting UX concerns (like file verification and suggestions) into shared helpers to ensure uniform quality across the entire CLI surface area.
