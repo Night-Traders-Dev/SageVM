@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.14] - 2026-06-24
+
+### Added
+- **Type Profiling**: Added `srvm_profiler.sage` to the SRVM pipeline for speculative type inference.
+- **Network Shim**: Added `src/svm/net.sage` to provide a guest-accessible shim for the native network module.
+
+### Changed
+- **Opcode Alignment**: Synchronized SVM opcode indices 59-86 with the authoritative `bytecode.h`, resolving long-standing encoding mismatches for the GPU instruction set.
+- **Documentation Sync**: Updated `ARCHITECTURE.md` and `SPEC.md` to reflect the resolved opcode alignment and new JIT/Profiling components.
+
 ## [0.9.13] - 2026-06-23
 
 ### Added

@@ -20,9 +20,9 @@ This document outlines the features and standard library modules currently unsup
 - [ ] **Regex & JSON Support**: Restore `re` and `json` module bridging in `src/svm/sgvm_vm.sage`.
 - [x] **Local Variable Opcodes**: Implement interpreter support for `OP_GET_LOCAL` and `OP_SET_LOCAL` in `src/svm/sgvm_vm.sage`.
    - > ⚠️ **Encoding Mismatch**: Authoritative indices are 59 and 60, but SageVM currently uses indices 88 and 89.
-- [ ] **Compiler Conformance**: Overhaul `src/svm/sgvm_compiler.sage` remapping logic to align with authoritative `bytecode.h` indices.
+- [x] **Compiler Conformance**: Overhaul `src/svm/sgvm_compiler.sage` remapping logic to align with authoritative `bytecode.h` indices.
    - [x] Local variable remapping (88, 89)
-   - [ ] GPU opcode remapping (59-86)
+   - [x] GPU opcode remapping (59-86)
 - [ ] **Loop Control Opcodes**: Implement interpreter support for `OP_BREAK` (49) and `OP_CONTINUE` (50) in `src/svm/sgvm_vm.sage` (currently stubs).
 - [ ] **SRVM GPU Implementation**: Implement missing register-based GPU opcodes in `src/srvm/srvm_vm.sage` to replace the legacy 2D instruction set.
 - [ ] **SVM Builtin Gaps**: Implement missing string/collection utilities (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`) in `src/svm/sgvm_vm.sage`.
@@ -38,5 +38,5 @@ These tasks involve significant architectural additions or complex resource mana
 - **Recursion/Stack Depth**: 🟡 SRVM currently has limited call stack depth for deep recursion (e.g., recursive Fibonacci > 20).
 
 ## 🟣 Research / Future
-- [x] **JIT/AOT Compilation**: 🟡 Currently in progress (Phase 4: JIT Compilation Target). Infrastructure (Memory Manager, RISC-V Emitter) and OSR hooks implemented in `src/jit/`.
+- [x] **JIT/AOT Compilation**: 🟢 Initial components (Memory Manager, RISC-V Emitter, Type Profiler) and OSR hooks implemented in `src/jit/` and `src/srvm/`.
 - **Formal Verification**: Tools to mathematically prove the safety of a `.sgvm` binary before execution (as mentioned in `SPEC.md`).

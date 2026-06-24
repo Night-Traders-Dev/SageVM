@@ -80,15 +80,16 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-06-23**
+**Last Conformance Sync: 2026-06-24**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions not found in the core `bytecode.h`:
 - `OP_MATH_PRINTM` (87): Native matrix visualization.
+- `OP_GET_LOCAL` (88): Get a local variable value.
+- `OP_SET_LOCAL` (89): Set a local variable value.
 - `OP_HALT` (255): Unconditional VM termination.
 
 ### 9.2 Known Incompatibilities
-- **Opcode Shift (SVM)**: There is a major encoding mismatch starting at index 59. The authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` (59) and `BC_OP_SET_LOCAL` (60), which shifts all subsequent GPU opcodes by +2. SageVM (SVM) currently maintains a legacy mapping where `OP_GPU_POLL_EVENTS` starts at 59, and `OP_GET_LOCAL` / `OP_SET_LOCAL` are mapped to 88 and 89 respectively. These local variable opcodes are now fully supported in the interpreter via compiler remapping.
-- **Secondary Collision (87-88)**: The shift in `bytecode.h` results in `BC_OP_GPU_CMD_PUSH_CONST` (87) and `BC_OP_GPU_CMD_DISPATCH` (88) colliding with SageVM's `OP_MATH_PRINTM` (87) and the legacy mapping for `OP_GET_LOCAL` (88).
-- **GPU Instruction Set**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes in the core spec.
+- **Opcode Alignment (Resolved)**: GPU opcodes (59-86) are now fully aligned with the authoritative `bytecode.h`. The previous encoding shift caused by missing local variable opcodes at 59-60 has been resolved by implementing them as SageVM extensions (88-89), ensuring binary compatibility for the GPU instruction set.
+- **GPU Instruction Set (SRVM)**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes in the core spec.
 - **Raise Encoding**: Historically, the `sgvmc` compiler (SVM) expected an incorrect encoding (`0x44`) for `OP_RAISE` which conflicted with `OP_GPU_END_COMMANDS`. This was resolved in v0.9.7; `OP_RAISE` is now correctly mapped to 58. Note that `sgvmc` still contains a hazardous legacy remapping for `0x44` -> 58.
