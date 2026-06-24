@@ -109,7 +109,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-06-23**
+**Last Conformance Sync: 2026-06-24**
 
 > 🔴 **CRITICAL ENCODING MISMATCH**: SageVM currently uses a different encoding for opcodes 59 and above compared to the authoritative `bytecode.h`. In SageVM, 59 starts the GPU instruction set, whereas in `bytecode.h`, 59 is `BC_OP_GET_LOCAL`. This causes a binary-compatibility shift that must be addressed in future versions.
 
