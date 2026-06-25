@@ -17,3 +17,8 @@
 **Vulnerability:** The MetalVM allowed guest code to mutate module wrappers and host objects via 'OP_SET_PROPERTY' and 'OP_SET_INDEX'. In 'safe_mode', an attacker could overwrite module functions (e.g., math.sqrt) with malicious logic or potentially reach the underlying host module and hijack its functionality.
 **Learning:** Preventing access to sensitive modules is not enough if the VM allows mutation of shared objects that are still reachable. Sandbox boundaries must include write-protection for all host-provided structures.
 **Prevention:** Implement strict write-protection for modules, module wrappers, and host objects within the VM's property and index assignment handlers.
+
+## 2026-06-25 - Resource Exhaustion (DoS) in SRVM (RISC-V VM)
+**Vulnerability:** The SRVM interpreter lacked limits for call stack depth, try-handler depth, and array allocation size. A malicious script could cause host memory exhaustion or stack overflow via deep recursion or massive array creation (CWE-770).
+**Learning:** Resource limits must be consistently applied across all execution engines in a multi-architecture VM substrate. Porting an architecture (like RISC-V) often involves porting its security boundaries as well.
+**Prevention:** Standardize resource limit constants across all VM implementations and enforce them in core dispatchers and allocation handlers.

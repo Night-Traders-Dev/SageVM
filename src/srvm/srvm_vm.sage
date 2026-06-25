@@ -30,6 +30,11 @@ class SageVMState:
         self.heap = {} 
         self.call_stack = [] # Stack of [chunk_idx, pc, ra]
         self.try_stack = [] # Stack of [catch_pc, call_stack_depth]
+
+        # Security: Limits to prevent Denial of Service (DoS) via resource exhaustion
+        self.max_call_depth = 1024
+        self.max_try_depth = 1024
+        self.max_array_size = 1000000
         
         # Register x2 is typically stack pointer (sp)
         self.x[2] = len(self.stack)
@@ -252,12 +257,23 @@ class SRVM:
             elif sub_op == srvm_core.VMO_PRINTM:
                 print str(self.state.x[10])
             elif sub_op == srvm_core.VMO_PUSH_ENV:
+                # Security: Prevent environment stack exhaustion (DoS)
+                if len(self.state.call_stack) >= self.state.max_call_depth:
+                    print "Error: Call depth limit exceeded"
+                    self.state.running = false
+                    return
                 push(self.state.call_stack, self.state.heap)
                 self.state.heap = {}
             elif sub_op == srvm_core.VMO_POP_ENV:
                 if len(self.state.call_stack) > 0:
                     self.state.heap = pop(self.state.call_stack)
             elif sub_op == srvm_core.VMO_CALL:
+                # Security: Prevent infinite recursion from exhausting host resources (DoS)
+                if len(self.state.call_stack) >= self.state.max_call_depth:
+                    print "Error: Call depth limit exceeded"
+                    self.state.running = false
+                    return
+
                 let func_obj = self.state.x[instr.rs2] 
                 var target_chunk = -1
                 if type(func_obj) == "number": target_chunk = int(func_obj)
@@ -343,6 +359,12 @@ class SRVM:
                 elif type(obj) == "dict": self.state.x[instr.rd] = len(obj)
                 else: self.state.x[instr.rd] = 0
             elif sub_op == srvm_core.VMO_SETUP_TRY:
+                # Security: Prevent nested handlers from exhausting VM memory (DoS)
+                if len(self.state.try_stack) >= self.state.max_try_depth:
+                    print "Error: Handler depth limit exceeded"
+                    self.state.running = false
+                    return
+
                 let catch_offset = instr.imm_i
                 push(self.state.try_stack, [self.state.pc + catch_offset, len(self.state.call_stack)])
             elif sub_op == srvm_core.VMO_END_TRY:
@@ -395,6 +417,12 @@ class SRVM:
                 self.state.x[instr.rd] = {"type": "function", "chunk_idx": chunk_idx}
             elif sub_op == srvm_core.OBJ_ARRAY_NEW:
                 let size = int(self.state.x[10])
+                # Security: Prevent memory exhaustion via large array allocation (DoS)
+                if size < 0 or size > self.state.max_array_size:
+                    print "Error: Array size limit exceeded: " + str(size)
+                    self.state.running = false
+                    return
+
                 let init_val = self.state.x[11]
                 var arr = []
                 var i = 0
