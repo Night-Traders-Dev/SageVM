@@ -136,7 +136,7 @@ class SGVMCLI:
 
         if riscv:
             let runner = srvm_runner.SRVMRunner()
-            runner.run_file(input_file, debug)
+            runner.run_file(input_file, debug, safe, not no_ffi)
         else:
             let runner = sgvm_runner.SGVMRunner()
             runner.run_file(input_file, debug, safe, not no_ffi)

@@ -22,3 +22,8 @@
 **Vulnerability:** The SRVM interpreter lacked limits for call stack depth, try-handler depth, and array allocation size. A malicious script could cause host memory exhaustion or stack overflow via deep recursion or massive array creation (CWE-770).
 **Learning:** Resource limits must be consistently applied across all execution engines in a multi-architecture VM substrate. Porting an architecture (like RISC-V) often involves porting its security boundaries as well.
 **Prevention:** Standardize resource limit constants across all VM implementations and enforce them in core dispatchers and allocation handlers.
+
+## 2026-06-25 - Hardening the RISC-V VM Sandbox
+**Vulnerability:** The Sage RISC-V VM (SRVM) lacked the mutation-protection sandbox features present in the SVM backend. Guest code could mutate host-provided modules or objects even when `--safe` was ostensibly requested.
+**Learning:** In a multi-backend system, security features like sandboxing must be treated as first-class citizens and ported with parity across all execution engines to avoid "backend-hopping" escapes.
+**Prevention:** Maintain a unified security specification and audit all VM backends for consistent enforcement of object protection and FFI gating.
