@@ -80,16 +80,16 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-06-24**
+**Last Conformance Sync: 2026-06-25**
 
 ### 9.1 SageVM Extensions
-The following opcodes are SageVM-specific extensions not found in the core `bytecode.h`:
-- `OP_MATH_PRINTM` (87): Native matrix visualization.
-- `OP_GET_LOCAL` (88): Get a local variable value.
-- `OP_SET_LOCAL` (89): Set a local variable value.
+The following opcodes are SageVM-specific extensions or legacy mappings:
+- `OP_MATH_PRINTM` (87): Native matrix visualization (Collides with authoritative `BC_OP_GPU_CMD_PUSH_CONST`).
+- `OP_GET_LOCAL` (88): Get a local variable value (Collides with authoritative `BC_OP_GPU_CMD_DISPATCH`).
+- `OP_SET_LOCAL` (89): Set a local variable value (Authoritative index is 60).
 - `OP_HALT` (255): Unconditional VM termination.
 
 ### 9.2 Known Incompatibilities
-- **Opcode Alignment (Resolved)**: GPU opcodes (59-86) are now fully aligned with the authoritative `bytecode.h`. The previous encoding shift caused by missing local variable opcodes at 59-60 has been resolved by implementing them as SageVM extensions (88-89), ensuring binary compatibility for the GPU instruction set.
+- **Opcode Alignment Regression**: As of the latest sync, the authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59) and `BC_OP_SET_LOCAL` (60), which has shifted the entire GPU instruction block (indices 61-88). SageVM currently maintains a legacy mapping where GPU opcodes start at 59, leading to a 2-opcode shift across the entire Phase 16 instruction set and collisions for trailing SageVM-specific opcodes.
 - **GPU Instruction Set (SRVM)**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes in the core spec.
 - **Raise Encoding**: Historically, the `sgvmc` compiler (SVM) expected an incorrect encoding (`0x44`) for `OP_RAISE` which conflicted with `OP_GPU_END_COMMANDS`. This was resolved in v0.9.7; `OP_RAISE` is now correctly mapped to 58. Note that `sgvmc` still contains a hazardous legacy remapping for `0x44` -> 58.
