@@ -21,3 +21,7 @@
 ## 2026-06-24 - [CLI Verification Consistency]
 **Learning:** UX polish must be applied consistently across all command handlers; "partial polish" (e.g., only in the 'run' command) makes neglected commands feel broken by comparison. Centralizing verification logic prevents crashes and ensures a high-quality experience regardless of the user's entry point.
 **Action:** Refactor cross-cutting UX concerns (like file verification and suggestions) into shared helpers to ensure uniform quality across the entire CLI surface area.
+
+## 2026-06-25 - [Color Suppression for Accessibility and Compatibility]
+**Learning:** Hardcoded ANSI escape sequences can cause readability issues for users with specific color sensitivities or in environments that don't support color (like dumb terminals or certain CI logs). Respecting NO_COLOR and TERM=dumb is a standard but often overlooked UX requirement for CLI tools.
+**Action:** Always check for NO_COLOR and TERM environment variables before emitting ANSI color codes in CLI applications.
