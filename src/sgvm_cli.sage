@@ -36,6 +36,27 @@ class SGVMCLI:
         # Dispatcher for SGVM tools
         return nil
 
+    proc verify_input(self, input_file, is_compile):
+        let data = io.readbytes(input_file)
+        if data == nil:
+            print COLOR_RED + "❌ Error: Could not read file: " + COLOR_RESET + input_file
+
+            # Suggest alternative extensions if they exist
+            if not endswith(input_file, ".sgvm") and not endswith(input_file, ".sgrv") and not endswith(input_file, ".sage"):
+                if io.readbytes(input_file + ".sgvm") != nil:
+                    print COLOR_YELLOW + "💡 Tip: Did you mean " + COLOR_CYAN + input_file + ".sgvm" + COLOR_YELLOW + "?" + COLOR_RESET
+                elif io.readbytes(input_file + ".sgrv") != nil:
+                    print COLOR_YELLOW + "💡 Tip: Did you mean " + COLOR_CYAN + input_file + ".sgrv" + COLOR_YELLOW + "?" + COLOR_RESET
+                elif io.readbytes(input_file + ".sage") != nil:
+                    print COLOR_YELLOW + "💡 Tip: " + COLOR_CYAN + input_file + ".sage" + COLOR_YELLOW + " exists. Try compiling it first." + COLOR_RESET
+            return nil
+
+        if not is_compile and endswith(input_file, ".sage"):
+            print COLOR_YELLOW + "💡 Tip: It looks like you're trying to process a Sage source file with a binary tool." + COLOR_RESET
+            print "   Try compiling it first: " + COLOR_CYAN + "sagevm compile " + input_file + COLOR_RESET
+
+        return data
+
     proc run(self):
         # In compiled binary, sys might be shadowed or nil in some scopes
         # Try to use it directly
@@ -105,23 +126,8 @@ class SGVMCLI:
             return
         
         # Verify file existence
-        let data = io.readbytes(input_file)
-        if data == nil:
-            print COLOR_RED + "❌ Error: Could not read file: " + COLOR_RESET + input_file
-
-            # Suggest alternative extensions if they exist
-            if not endswith(input_file, ".sgvm") and not endswith(input_file, ".sgrv") and not endswith(input_file, ".sage"):
-                if io.readbytes(input_file + ".sgvm") != nil:
-                    print COLOR_YELLOW + "💡 Tip: Did you mean " + COLOR_CYAN + input_file + ".sgvm" + COLOR_YELLOW + "?" + COLOR_RESET
-                elif io.readbytes(input_file + ".sgrv") != nil:
-                    print COLOR_YELLOW + "💡 Tip: Did you mean " + COLOR_CYAN + input_file + ".sgrv" + COLOR_YELLOW + "?" + COLOR_RESET
-                elif io.readbytes(input_file + ".sage") != nil:
-                    print COLOR_YELLOW + "💡 Tip: " + COLOR_CYAN + input_file + ".sage" + COLOR_YELLOW + " exists. Try compiling it first." + COLOR_RESET
-            return
-
-        if endswith(input_file, ".sage"):
-            print COLOR_YELLOW + "💡 Tip: It looks like you're trying to run a Sage source file." + COLOR_RESET
-            print "   Try compiling it first: " + COLOR_CYAN + "sagevm compile " + input_file + COLOR_RESET
+        let data = self.verify_input(input_file, false)
+        if data == nil: return
 
         # Auto-detect RISC-V header
         if len(data) >= 4:
@@ -163,6 +169,8 @@ class SGVMCLI:
             print "Usage: " + COLOR_BOLD + "sagevm compile" + COLOR_RESET + " <input.sage> [output.sgvm] [--shebang] [--riscv]"
             return
         
+        if self.verify_input(input_file, true) == nil: return
+
         if output_file == "":
             var base = input_file
             if endswith(input_file, ".sage"):
@@ -222,8 +230,10 @@ class SGVMCLI:
             return
         
         # Auto-detect RISC-V header
-        let data = io.readbytes(input_file)
-        if data != nil and len(data) >= 4:
+        let data = self.verify_input(input_file, false)
+        if data == nil: return
+
+        if len(data) >= 4:
             if int(data[0]) == 83 and int(data[1]) == 71 and int(data[2]) == 82 and int(data[3]) == 86:
                 riscv = true
 
@@ -259,8 +269,10 @@ class SGVMCLI:
             return
         
         # Auto-detect RISC-V header
-        let data = io.readbytes(input_file)
-        if data != nil and len(data) >= 4:
+        let data = self.verify_input(input_file, false)
+        if data == nil: return
+
+        if len(data) >= 4:
             if int(data[0]) == 83 and int(data[1]) == 71 and int(data[2]) == 82 and int(data[3]) == 86:
                 riscv = true
 
