@@ -52,6 +52,8 @@ class MetalVM:
         self.return_value = nil
         self.returning = false
         self.call_stack = [{"ip": 0, "code": [], "constants": []}]
+        # Performance: Cache local_base to avoid dictionary lookups in hot loop
+        self.current_local_base = 0
         self.setup_builtins()
 
     proc setup_builtins(self):
@@ -527,6 +529,8 @@ class MetalVM:
                         push(self.call_stack, {"ip": self.ip, "code": self.code, "local_base": local_base})
                         self.code = self.chunks[callee["__chunk__"]]
                         self.ip = 0
+                        # Performance: Update cached local_base for the new frame
+                        self.current_local_base = local_base
                         push(self.scopes, {})
                         j = 0
                         while j < argc:
@@ -547,6 +551,8 @@ class MetalVM:
                             push(self.call_stack, {"ip": self.ip, "code": self.code, "local_base": local_base, "__is_constructor__": true, "__instance__": instance})
                             self.code = self.chunks[init_func["__chunk__"]]
                             self.ip = 0
+                            # Performance: Update cached local_base for the new frame
+                            self.current_local_base = local_base
                             push(self.scopes, {})
                             # Pass self as __arg0
                             push(self.stack, instance)
@@ -615,6 +621,8 @@ class MetalVM:
                 push(self.call_stack, {"ip": self.ip, "code": self.code, "local_base": local_base})
                 self.code = self.chunks[method["__chunk__"]]
                 self.ip = 0
+                # Performance: Update cached local_base for the new frame
+                self.current_local_base = local_base
                 push(self.scopes, {})
                 
                 if is_class_call:
@@ -701,6 +709,13 @@ class MetalVM:
                 if dict_has(frame, "local_base"):
                     while len(self.stack) > frame["local_base"]:
                         pop(self.stack)
+
+                # Performance: Restore local_base from the parent frame
+                if len(self.call_stack) > 0:
+                    let top = self.call_stack[len(self.call_stack)-1]
+                    if dict_has(top, "local_base"): self.current_local_base = top["local_base"]
+                    else: self.current_local_base = 0
+                else: self.current_local_base = 0
                 if dict_has(frame, "__is_constructor__"):
                     push(self.stack, frame["__instance__"])
                 else:
@@ -864,6 +879,13 @@ class MetalVM:
                 self.code = h["code"]
                 self.ip = h["ip"]
                 
+                # Performance: Update local_base after unwinding
+                if len(self.call_stack) > 0:
+                    let top = self.call_stack[len(self.call_stack)-1]
+                    if dict_has(top, "local_base"): self.current_local_base = top["local_base"]
+                    else: self.current_local_base = 0
+                else: self.current_local_base = 0
+
                 # Clear operand stack to the state when the handler was established
                 while len(self.stack) > h["stack_size"]:
                     pop(self.stack)
@@ -888,28 +910,22 @@ class MetalVM:
             else:
                 print "Error: OP_EXEC_AST_STMT requires a string constant"
         elif op == OP_GET_LOCAL:
-            let idx = ut.read_be16(self.code, self.ip)
+            # Performance: Inline BE16 and use cached local_base
+            let idx = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
             self.ip = self.ip + 2
-            # Find local_base from the top call frame
-            let frame = self.call_stack[len(self.call_stack)-1]
-            if dict_has(frame, "local_base"):
-                let base = frame["local_base"]
-                if base + idx < len(self.stack):
-                    push(self.stack, self.stack[base + idx])
-                else:
-                    push(self.stack, nil)
-            else:
-                push(self.stack, nil)
+            let base = self.current_local_base
+            if base + idx < len(self.stack):
+                push(self.stack, self.stack[base + idx])
+            else: push(self.stack, nil)
         elif op == OP_SET_LOCAL:
-            let idx = ut.read_be16(self.code, self.ip)
+            # Performance: Inline BE16 and use cached local_base
+            let idx = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
             self.ip = self.ip + 2
             let val = pop(self.stack)
-            let frame = self.call_stack[len(self.call_stack)-1]
-            if dict_has(frame, "local_base"):
-                let base = frame["local_base"]
-                while base + idx >= len(self.stack):
-                    push(self.stack, nil)
-                self.stack[base + idx] = val
+            let base = self.current_local_base
+            while base + idx >= len(self.stack):
+                push(self.stack, nil)
+            self.stack[base + idx] = val
             push(self.stack, val)
         elif op == OP_BREAK:
             print "Error: Unexpected loop break opcode"
