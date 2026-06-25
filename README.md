@@ -9,7 +9,7 @@ SageVM is a high-performance, pure SageLang implementation of the Sage Virtual M
 - **Delegation Bridge**: Full guest-to-host delegation for GPU, I/O, and native modules.
 - **OOP & Exceptions**: Native support for classes, inheritance, and exception handling (`try/catch/finally`) across both architectures.
 - **Matrix Visualization**: Native `math.printm` support for formatted matrix output.
-- **Unified CLI**: A single tool to compile, run, and debug both `.sgvm` (stack) and `.sgrv` (RISC-V) binaries.
+- **Unified CLI**: A single tool to compile, run, and debug both `.sgvm` (stack) and `.sgrv` (RISC-V) binaries, featuring ANSI color feedback and automatic architecture detection.
 
 ## Installation
 
@@ -23,8 +23,8 @@ This produces the `sagevm` binary (and symlinks for `sgvm`/`sgvmc`).
 
 ## Unified CLI (sagevm)
 
-- **`sagevm run <file.sgvm|.sgrv> [--debug] [--safe] [--no-ffi] [--riscv]`**: Execute a compiled binary. Auto-detects architecture via magic headers.
-- **`sagevm compile <file.sage> [output.sgvm] [--shebang] [--riscv]`**: Compile source to binary. Use `--riscv` for register-based output.
+- **`sagevm run <file.sgvm|.sgrv> [--debug] [--safe] [--no-ffi] [--riscv]`**: Execute a compiled binary. Auto-detects architecture via magic headers (SGRV vs SGVM).
+- **`sagevm compile <file.sage> [output.sgvm] [--shebang] [--riscv]`**: Compile source to binary. Use `--riscv` for register-based output. Reports final binary size on success.
 - **`sagevm dis <file.sgvm|.sgrv> [--sage | --svm] [--riscv]`**: Disassemble binary into readable instructions. Auto-detects architecture.
 - **`sagevm hex <file.sgvm|.sgrv> [--riscv]`**: Low-level binary hexdump. Auto-detects architecture.
 - **`sagevm version`**: Show version information.

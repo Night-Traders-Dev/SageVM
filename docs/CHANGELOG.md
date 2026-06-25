@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.15] - 2026-06-25
+
+### Added
+- **CLI Feedback**: Implemented ANSI colorized output and centralized tip system for improved user experience.
+- **Binary Metrics**: Added reporting of generated binary size (bytes/KB) to the `compile` command.
+- **Auto-Detection**: Integrated 4-byte magic header inspection into the unified CLI to automatically route commands to the correct architecture (SVM vs. SRVM).
+
+### Changed
+- **Unified Handlers**: Refactored CLI command handlers to leverage centralized `verify_input` for consistent validation across all tools.
+
+### Fixed
+- **Documentation Parity**: Identified and documented the critical sandboxing gap in the SRVM backend and truthiness conformance bug in the SVM interpreter.
+
 ## [0.9.14] - 2026-06-24
 
 ### Added

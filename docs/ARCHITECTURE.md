@@ -18,6 +18,8 @@ To support the ongoing development of both architectures, SageVM provides a unif
 - **SGVM (Stack)**: Magic `SGVM`. Disassembled into high-level `.sage`-like pseudo-code or low-level `.svm` bytecode.
 - **SGRV (RISC-V)**: Magic `SGRV`. Disassembled into standard RISC-V assembly with custom SageVM system extensions (`ldc`, `vm_nop`, etc.).
 
+The CLI provides colorized feedback (Red for errors, Green for success, Yellow for tips, Cyan for headers) to improve scannability and offers helpful tips when users attempt to use binary tools on source files.
+
 This pipeline ensures that developers can inspect the low-level structure of their compiled programs regardless of the target architecture.
 
 ---
@@ -109,7 +111,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-06-24**
+**Last Conformance Sync: 2026-06-25**
 
 > 🟢 **Opcode Alignment Resolved**: As of the latest sync, GPU opcodes (59-86) in SageVM are now fully aligned with the authoritative `bytecode.h`. The previous encoding shift caused by missing local variable opcodes has been resolved by mapping `OP_GET_LOCAL` and `OP_SET_LOCAL` as SageVM extensions.
 

@@ -25,7 +25,7 @@ The Sage Virtual Machine (SGVM) is the portable execution substrate for SageOS. 
 5. **Chunks**: Length (4 bytes) + Fixed-width 32-bit instructions.
 
 ### 2.3 Diagnostic Tooling
-Both formats are fully supported by the unified SageVM CLI tools:
+Both formats are fully supported by the unified SageVM CLI tools, which utilize 4-byte magic header inspection for automatic architecture detection:
 - `sagevm dis`: Disassembles both stack and register-based binaries.
 - `sagevm hex`: Provides a low-level structural view of both binary formats.
 
@@ -46,7 +46,7 @@ In the SageVM implementation, truthiness follows strict rules for boolean contex
 - **Falsy**: `0` (number), `nil`, `false`.
 - **Truthy**: `true`, non-zero numbers, empty/non-empty strings (""), empty/non-empty arrays ([]), and empty/non-empty dictionaries ({}).
 
-*Note: While standard SageLang may treat empty collections as falsy, the current `MetalVM` and `MetalRV64` implementations treat all non-nil, non-zero objects as truthy.*
+*Note: While standard SageLang may treat empty collections as falsy, the current `MetalVM` implementation erroneously treats empty strings as falsy by inheriting host SageLang behavior. This is a documented conformance bug.*
 
 ## 5. Bytecode Verification & Runtime Safety
 (Note: Full static bytecode verification is currently a roadmap item for the SageLang-based interpreter. Runtime enforcement is currently used to ensure safety.)
@@ -80,7 +80,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-06-24**
+**Last Conformance Sync: 2026-06-25**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions not found in the core `bytecode.h`:
