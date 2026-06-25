@@ -11,12 +11,23 @@ import srvm_disassembler_logic
 import srvm_hexdump_logic
 from sgvm_compiler import sys_exec, io_readfile, io_writebytes
 
-let COLOR_RESET  = "\x1b[0m"
-let COLOR_BOLD   = "\x1b[1m"
-let COLOR_RED    = "\x1b[31m"
-let COLOR_GREEN  = "\x1b[32m"
-let COLOR_YELLOW = "\x1b[33m"
-let COLOR_CYAN   = "\x1b[36m"
+var COLOR_RESET  = ""
+var COLOR_BOLD   = ""
+var COLOR_RED    = ""
+var COLOR_GREEN  = ""
+var COLOR_YELLOW = ""
+var COLOR_CYAN   = ""
+
+# Check for NO_COLOR or TERM=dumb to disable colors
+let env_no_color = sys.getenv("NO_COLOR")
+let env_term = sys.getenv("TERM")
+if env_no_color == nil and env_term != "dumb":
+    COLOR_RESET  = "\x1b[0m"
+    COLOR_BOLD   = "\x1b[1m"
+    COLOR_RED    = "\x1b[31m"
+    COLOR_GREEN  = "\x1b[32m"
+    COLOR_YELLOW = "\x1b[33m"
+    COLOR_CYAN   = "\x1b[36m"
 
 proc print_help():
     print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET + " - The Sage Virtual Machine"
