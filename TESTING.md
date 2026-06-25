@@ -30,7 +30,10 @@ As of June 2026, several tests are expected to fail due to documented but unimpl
 - `array_methods.sage`: Missing `push` and `pop` builtins.
 - `strings.sage`: Missing `chr`, `ord`, `startswith`, and `endswith` builtins.
 - `array_ops.sage`: String slicing returns `nil` due to float-to-int conversion issues in the VM.
-- `oop.sage`: Known opcode collision at index 59 (local variables vs GPU).
+- `dict_builtins.sage`: Missing `dict_has`, `dict_keys`, and `dict_values` builtins.
+- `string_methods.sage`: Missing `upper`, `lower`, `strip`, `replace`, `split`, and `join` builtins.
+- `contains_builtin.sage`: Missing `contains` builtin.
+- `truthiness_expanded.sage`: Incorrectly treats empty strings as falsy (inherited from host SageLang behavior).
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
