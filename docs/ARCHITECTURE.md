@@ -109,15 +109,13 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-06-23**
+**Last Conformance Sync: 2026-06-24**
 
-> 🔴 **CRITICAL ENCODING MISMATCH**: SageVM currently uses a different encoding for opcodes 59 and above compared to the authoritative `bytecode.h`. In SageVM, 59 starts the GPU instruction set, whereas in `bytecode.h`, 59 is `BC_OP_GET_LOCAL`. This causes a binary-compatibility shift that must be addressed in future versions.
+> 🟢 **Opcode Alignment Resolved**: As of the latest sync, GPU opcodes (59-86) in SageVM are now fully aligned with the authoritative `bytecode.h`. The previous encoding shift caused by missing local variable opcodes has been resolved by mapping `OP_GET_LOCAL` and `OP_SET_LOCAL` as SageVM extensions.
 
-> 🔴 **CRITICAL COLLISION ALERT**: Opcodes 87 and 88 in SageVM (`OP_MATH_PRINTM`, `OP_GET_LOCAL`) now collide with the tail of the authoritative GPU instruction set (`BC_OP_GPU_CMD_PUSH_CONST`, `BC_OP_GPU_CMD_DISPATCH`).
+> ⚠️ **Compiler Implementation Gap**: `sgvmc` (`src/svm/sgvm_compiler.sage`) currently lacks binary emission logic for `OP_MATH_PRINTM` (87). Local variable opcodes (88-89) are now correctly remapped in the compiler's second pass.
 
-> ⚠️ **Compiler Implementation Gap**: `sgvmc` (`src/svm/sgvm_compiler.sage`) currently lacks binary emission logic for `OP_MATH_PRINTM` (87). While local variable opcodes (88-89) are now correctly remapped, most GPU opcodes (59-86) are still emitted using host indices that do not match the VM's legacy mapping.
-
-The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`. (Note: Values marked with `*` mismatch the authoritative `bytecode.h`).
+The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 
 | Opcode | Value | Auth. Index | Description |
 |--------|-------|-------------|-------------|
@@ -180,37 +178,37 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`. 
 | OP_SETUP_TRY | 56 | 56 | Push an exception handler |
 | OP_END_TRY | 57 | 57 | Pop the current exception handler |
 | OP_RAISE | 58 | 58 | Raise an exception |
-| OP_GPU_POLL_EVENTS | 59* | 61 | gpu.poll_events() |
-| OP_GPU_WINDOW_SHOULD_CLOSE | 60* | 62 | gpu.window_should_close() -> bool |
-| OP_GPU_GET_TIME | 61* | 63 | gpu.get_time() -> number |
-| OP_GPU_KEY_PRESSED | 62* | 64 | gpu.key_pressed(key) -> bool |
-| OP_GPU_KEY_DOWN | 63* | 65 | gpu.key_down(key) -> bool |
-| OP_GPU_MOUSE_POS | 64* | 66 | gpu.mouse_pos() -> dict{x,y} |
-| OP_GPU_MOUSE_DELTA | 65* | 67 | gpu.mouse_delta() -> dict{x,y} |
-| OP_GPU_UPDATE_INPUT | 66* | 68 | gpu.update_input() |
-| OP_GPU_BEGIN_COMMANDS | 67* | 69 | gpu.begin_commands(cmd) |
-| OP_GPU_END_COMMANDS | 68* | 70 | gpu.end_commands(cmd) |
-| OP_GPU_CMD_BEGIN_RP | 69* | 71 | gpu.cmd_begin_render_pass(cmd, rp, fb, w, h, clear) |
-| OP_GPU_CMD_END_RP | 70* | 72 | gpu.cmd_end_render_pass(cmd) |
-| OP_GPU_CMD_DRAW | 71* | 73 | gpu.cmd_draw(cmd, verts, inst, first_v, first_i) |
-| OP_GPU_CMD_BIND_GP | 72* | 74 | gpu.cmd_bind_graphics_pipeline(cmd, pipe) |
-| OP_GPU_CMD_BIND_DS | 73* | 75 | gpu.cmd_bind_descriptor_set(cmd, layout, set, bp) |
-| OP_GPU_CMD_SET_VP | 74* | 76 | gpu.cmd_set_viewport(cmd, x, y, w, h, mind, maxd) |
-| OP_GPU_CMD_SET_SC | 75* | 77 | gpu.cmd_set_scissor(cmd, x, y, w, h) |
-| OP_GPU_CMD_BIND_VB | 76* | 78 | gpu.cmd_bind_vertex_buffer(cmd, buf) |
-| OP_GPU_CMD_BIND_IB | 77* | 79 | gpu.cmd_bind_index_buffer(cmd, buf) |
-| OP_GPU_CMD_DRAW_IDX | 78* | 80 | gpu.cmd_draw_indexed(cmd, idx_count, ...) |
-| OP_GPU_SUBMIT_SYNC | 79* | 81 | gpu.submit_with_sync(cmd, wait, signal, fence) |
-| OP_GPU_ACQUIRE_IMG | 80* | 82 | gpu.acquire_next_image(sem) -> number |
-| OP_GPU_PRESENT | 81* | 83 | gpu.present(sem, img_idx) |
-| OP_GPU_WAIT_FENCE | 82* | 84 | gpu.wait_fence(fence, timeout) |
-| OP_GPU_RESET_FENCE | 83* | 85 | gpu.reset_fence(fence) |
-| OP_GPU_UPDATE_UNIFORM | 84* | 86 | gpu.update_uniform(handle, data) |
-| OP_GPU_CMD_PUSH_CONST | 85* | 87 | gpu.cmd_push_constants(cmd, layout, stages, data) |
-| OP_GPU_CMD_DISPATCH | 86* | 88 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
-| OP_MATH_PRINTM | 87* | - | math.printm(matrix) [SageVM Extension] (Collides with BC_OP_GPU_CMD_PUSH_CONST @ 87) |
-| OP_GET_LOCAL | 88* | 59 | Get a local variable value (Collides with BC_OP_GPU_CMD_DISPATCH @ 88) |
-| OP_SET_LOCAL | 89* | 60 | Set a local variable value |
+| OP_GPU_POLL_EVENTS | 59 | 59 | gpu.poll_events() |
+| OP_GPU_WINDOW_SHOULD_CLOSE | 60 | 60 | gpu.window_should_close() -> bool |
+| OP_GPU_GET_TIME | 61 | 61 | gpu.get_time() -> number |
+| OP_GPU_KEY_PRESSED | 62 | 62 | gpu.key_pressed(key) -> bool |
+| OP_GPU_KEY_DOWN | 63 | 63 | gpu.key_down(key) -> bool |
+| OP_GPU_MOUSE_POS | 64 | 64 | gpu.mouse_pos() -> dict{x,y} |
+| OP_GPU_MOUSE_DELTA | 65 | 65 | gpu.mouse_delta() -> dict{x,y} |
+| OP_GPU_UPDATE_INPUT | 66 | 66 | gpu.update_input() |
+| OP_GPU_BEGIN_COMMANDS | 67 | 67 | gpu.begin_commands(cmd) |
+| OP_GPU_END_COMMANDS | 68 | 68 | gpu.end_commands(cmd) |
+| OP_GPU_CMD_BEGIN_RP | 69 | 69 | gpu.cmd_begin_render_pass(cmd, rp, fb, w, h, clear) |
+| OP_GPU_CMD_END_RP | 70 | 70 | gpu.cmd_end_render_pass(cmd) |
+| OP_GPU_CMD_DRAW | 71 | 71 | gpu.cmd_draw(cmd, verts, inst, first_v, first_i) |
+| OP_GPU_CMD_BIND_GP | 72 | 72 | gpu.cmd_bind_graphics_pipeline(cmd, pipe) |
+| OP_GPU_CMD_BIND_DS | 73 | 73 | gpu.cmd_bind_descriptor_set(cmd, layout, set, bp) |
+| OP_GPU_CMD_SET_VP | 74 | 74 | gpu.cmd_set_viewport(cmd, x, y, w, h, mind, maxd) |
+| OP_GPU_CMD_SET_SC | 75 | 75 | gpu.cmd_set_scissor(cmd, x, y, w, h) |
+| OP_GPU_CMD_BIND_VB | 76 | 76 | gpu.cmd_bind_vertex_buffer(cmd, buf) |
+| OP_GPU_CMD_BIND_IB | 77 | 77 | gpu.cmd_bind_index_buffer(cmd, buf) |
+| OP_GPU_CMD_DRAW_IDX | 78 | 78 | gpu.cmd_draw_indexed(cmd, idx_count, ...) |
+| OP_GPU_SUBMIT_SYNC | 79 | 79 | gpu.submit_with_sync(cmd, wait, signal, fence) |
+| OP_GPU_ACQUIRE_IMG | 80 | 80 | gpu.acquire_next_image(sem) -> number |
+| OP_GPU_PRESENT | 81 | 81 | gpu.present(sem, img_idx) |
+| OP_GPU_WAIT_FENCE | 82 | 82 | gpu.wait_fence(fence, timeout) |
+| OP_GPU_RESET_FENCE | 83 | 83 | gpu.reset_fence(fence) |
+| OP_GPU_UPDATE_UNIFORM | 84 | 84 | gpu.update_uniform(handle, data) |
+| OP_GPU_CMD_PUSH_CONST | 85 | 85 | gpu.cmd_push_constants(cmd, layout, stages, data) |
+| OP_GPU_CMD_DISPATCH | 86 | 86 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
+| OP_MATH_PRINTM | 87 | - | math.printm(matrix) [SageVM Extension] |
+| OP_GET_LOCAL | 88 | - | Get a local variable value [SageVM Extension] |
+| OP_SET_LOCAL | 89 | - | Set a local variable value [SageVM Extension] |
 | OP_HALT | 0xFF | - | Halt execution [SageVM Extension] |
 
 ## Native Bridge
@@ -221,7 +219,7 @@ The following modules are currently bridged:
 - **math**: Native SageLang `math` module.
 - **io**: Native SageLang `io` module.
 - **sys**: Native SageLang `sys` module.
-- **net**: Native SageLang `net` module.
+- **net**: Native SageLang `net` module (currently implemented via a shim in `src/svm/net.sage`).
 - **thread**: Native SageLang `thread` module (host-level threading).
 - **gpu**: Native SageLang `gpu` module (Vulkan/OpenGL acceleration).
 - **ml_native**: Native SageLang `ml_native` module (Machine Learning acceleration).
@@ -249,6 +247,11 @@ A dedicated manager for handling executable memory pages, implementing standard 
 A low-level component responsible for translating the SRVM's RV64I Intermediate Representation (IR) into native machine instructions.
 - **Instruction Generation**: Direct mapping of RV64I opcodes (e.g., `ADD`, `ADDI`) to binary instruction streams.
 - **Memory Integration**: Tight coupling with the `ExecutableMemoryManager` for safe code emission into managed pages.
+
+### 6.3 Type Profiler (`src/srvm/srvm_profiler.sage`)
+A speculative optimization component that analyzes bytecode to infer data types for stack slots and local variables.
+- **Speculative Analysis**: Infers types (Int, Float, Str, Obj) to enable optimized native code generation in the JIT pipeline.
+- **Feedback Loop**: Provides type information to the code emitter for specialized instruction selection.
 
 ## Core Builtins
 
