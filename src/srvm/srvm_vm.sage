@@ -35,6 +35,8 @@ class SageVMState:
         self.max_call_depth = 1024
         self.max_try_depth = 1024
         self.max_array_size = 1000000
+        self.safe_mode = false
+        self.ffi_enabled = true
         
         # Register x2 is typically stack pointer (sp)
         self.x[2] = len(self.stack)
@@ -43,6 +45,18 @@ class SRVM:
     proc init(self):
         self.state = SageVMState()
         self.trace = false
+
+    proc is_protected(self, obj):
+        # Security helper: Check if an object is a protected module or host bridge
+        if not self.state.safe_mode:
+            return false
+
+        if type(obj) == "dict":
+            if dict_has(obj, "__host_mod__") or (dict_has(obj, "__type__") and obj["__type__"] == "module"):
+                return true
+        elif type(obj) == "module":
+            return true
+        return false
 
     proc run(self, bytecode):
         # Initial chunk (0)
@@ -411,7 +425,10 @@ class SRVM:
                 let name_idx = int(self.state.x[10])
                 let val = self.state.x[11]
                 let name = self.state.constants[name_idx]
-                if type(obj) == "dict": obj[name] = val
+                if self.is_protected(obj):
+                    print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
+                elif type(obj) == "dict":
+                    obj[name] = val
             elif sub_op == srvm_core.OBJ_NEW_FUNC:
                 let chunk_idx = int(self.state.x[10])
                 self.state.x[instr.rd] = {"type": "function", "chunk_idx": chunk_idx}
@@ -445,7 +462,9 @@ class SRVM:
                 let obj = self.state.x[instr.rs2]
                 let raw_idx = self.state.x[10]
                 let val = self.state.x[11]
-                if type(obj) == "dict":
+                if self.is_protected(obj):
+                    print "Error: Index assignment to protected object is restricted in safe mode"
+                elif type(obj) == "dict":
                     obj[raw_idx] = val
                 elif type(obj) == "list":
                     let idx = int(raw_idx)
