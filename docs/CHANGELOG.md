@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.16] - 2026-06-26
+
+### Added
+- **SRVM Sandboxing**: Implemented security sandboxing for the RISC-V backend, including `is_protected` checks for host modules and `safe_mode` enforcement.
+- **SRVM Resource Limits**: Integrated mandatory runtime limits for call depth (1,024), try depth (1,024), and max array size (1,000,000) in the SRVM interpreter.
+
+### Fixed
+- **Makefile Resilience**: Added a mock `curl/curl.h` and automated workaround in the `test` target to allow building the SageLang host on systems without `libcurl` installed.
+
 ## [0.9.15] - 2026-06-25
 
 ### Added
