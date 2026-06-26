@@ -67,22 +67,10 @@ class SRVM:
         self.state.pc = 0
         self.state.running = true
         
-        # JIT State
-        var hot_counts = {}
-        
         while self.state.running and self.state.pc < len(self.state.bytecode):
             # Fetch
             if self.state.pc + 4 > len(self.state.bytecode):
                 break
-            
-            # Hot-path detection hook
-            let pc_key = str(self.state.current_chunk_idx) + ":" + str(self.state.pc)
-            if not dict_has(hot_counts, pc_key): hot_counts[pc_key] = 0
-            hot_counts[pc_key] = hot_counts[pc_key] + 1
-            
-            if hot_counts[pc_key] == 1000: # Threshold for JITing
-                # TODO: Trigger JIT compilation and OSR
-                if self.trace: print "JIT trigger at " + pc_key
             
             let b0 = self.state.bytecode[self.state.pc]
             let b1 = self.state.bytecode[self.state.pc+1]

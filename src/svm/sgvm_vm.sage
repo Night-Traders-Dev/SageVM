@@ -122,29 +122,24 @@ class MetalVM:
         self.code = code
         self.ip = 0
         self.halted = false
+        let stack = self.stack
+        let max_stack = self.max_stack_depth
         host_thread.lock(g_gil)
         while not self.halted and self.ip < len(self.code):
-            if not self.run_step():
+            # Performance: Inlined run_step and cached common properties
+            if len(stack) > max_stack:
+                print "Error: Stack overflow"
+                self.halted = true
+                break
+
+            let op = int(self.code[self.ip])
+            if self.trace:
+                print "IP: " + str(self.ip) + " OP: " + str(op) + " Stack: " + str(stack)
+
+            self.ip = self.ip + 1
+            if not self.execute_op(op):
                 break
         host_thread.unlock(g_gil)
-
-    proc run_step(self):
-        let ut = self.utils
-        if self.ip >= len(self.code):
-            return false
-        
-        # Security: Prevent stack-based memory exhaustion (DoS)
-        if len(self.stack) > self.max_stack_depth:
-            print "Error: Stack overflow"
-            self.halted = true
-            return false
-
-        let op = int(self.code[self.ip])
-        if self.trace:
-            print "IP: " + str(self.ip) + " OP: " + str(op) + " Stack: " + str(self.stack)
-        
-        self.ip = self.ip + 1
-        return self.execute_op(op)
 
     proc call_builtin(self, callee, args):
         let argc = len(args)
