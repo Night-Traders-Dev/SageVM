@@ -25,3 +25,11 @@
 ## 2026-06-25 - [Color Suppression for Accessibility and Compatibility]
 **Learning:** Hardcoded ANSI escape sequences can cause readability issues for users with specific color sensitivities or in environments that don't support color (like dumb terminals or certain CI logs). Respecting NO_COLOR and TERM=dumb is a standard but often overlooked UX requirement for CLI tools.
 **Action:** Always check for NO_COLOR and TERM environment variables before emitting ANSI color codes in CLI applications.
+
+## 2026-06-26 - [Actionable Post-Command Guidance]
+**Learning:** Guiding the user to the next logical step in their workflow (e.g., suggesting 'run' after a successful 'compile') reduces cognitive load and creates a "delightful" flow. Explicitly printing the exact command they need makes the tool feel smarter and more helpful.
+**Action:** When a command generates an artifact, always provide a colorized example of how to use or execute that artifact in the next step.
+
+## 2026-06-26 - [Preventing Common Command/File Mismatches]
+**Learning:** Users sometimes lose track of a file's state (source vs. binary) and attempt incompatible operations (like compiling an already compiled binary).
+**Action:** Implement symmetric proactive checks: suggest 'compile' when running a source file, and suggest 'run' when compiling a binary file (detected via extension or magic bytes).
