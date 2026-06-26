@@ -26,7 +26,7 @@ This document outlines the features and standard library modules currently unsup
 - [ ] **Loop Control Opcodes**: Implement interpreter support for `OP_BREAK` (49) and `OP_CONTINUE` (50) in `src/svm/sgvm_vm.sage` (currently stubs).
 - [ ] **Local Variable Opcodes (Conformance)**: Implement `OP_GET_LOCAL` (59) and `OP_SET_LOCAL` (60) in `sgvm_vm.sage` to match authoritative indices.
 - [ ] **SRVM GPU Implementation**: Implement missing register-based GPU opcodes in `src/srvm/srvm_vm.sage` to replace the legacy 2D instruction set.
-- [ ] **SRVM Sandboxing**: Implement `safe_mode` and `no_ffi` enforcement for the RISC-V backend to achieve parity with SVM security.
+- [x] **SRVM Sandboxing**: Implement `safe_mode` and `no_ffi` enforcement for the RISC-V backend to achieve parity with SVM security.
 - [ ] **SVM Builtin Gaps**: Implement missing string/collection utilities (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`) in `src/svm/sgvm_vm.sage`.
 - [ ] **SRVM Opcode Gaps**: Implement missing register-based opcodes in `src/srvm/srvm_vm.sage`:
   - `VMO_IMPORT`, `VMO_EXEC_AST`

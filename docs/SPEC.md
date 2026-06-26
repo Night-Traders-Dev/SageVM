@@ -56,7 +56,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
 - **Type Safety**: Operations are performed on valid operand types.
 - **Boundary Checks**: No out-of-bounds access to memory or object arenas.
   - **SVM**: Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
-  - **SRVM**: The fixed stack area is initialized with 1,000 slots.
+  - **SRVM**: The fixed stack area is initialized with 1,000 slots. Recursive call depth and exception handler nesting are limited to 1,024 frames. Max array size is 1,000,000 entries.
 - **Path Sanitization**: Compiler validates input and output file paths against shell metacharacters to prevent command injection.
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions.
 
@@ -80,7 +80,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-06-25**
+**Last Conformance Sync: 2026-06-26**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
