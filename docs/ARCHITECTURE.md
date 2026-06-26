@@ -116,7 +116,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 **Last Conformance Sync: 2026-06-26**
 
-> ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` and `BC_OP_SET_LOCAL` at indices 59 and 60, shifting the entire GPU instruction block (formerly 59-86) to 61-88. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 2-opcode shift and collisions for SageVM extensions.
+> ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` and `BC_OP_SET_LOCAL` at indices 59 and 60, shifting the entire GPU instruction block (formerly 59-86) to 61-88. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 2-opcode shift and collisions for SageVM extensions (e.g., `OP_GET_LOCAL` at 88 vs. authoritative 59).
 
 > ⚠️ **Compiler Implementation Gap**: `sgvmc` (`src/svm/sgvm_compiler.sage`) currently lacks binary emission logic for `OP_MATH_PRINTM` (87). Local variable opcodes (88-89) are now correctly remapped in the compiler's second pass, but they diverge from the new authoritative indices (59-60).
 
