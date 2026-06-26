@@ -1,0 +1,5 @@
+Testing mem module...
+Allocated 8 bytes
+Size: 8
+Read value: nil
+Freed
