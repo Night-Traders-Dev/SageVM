@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.17] - 2026-06-27
+
+### Added
+- **SVM Security Parity**: Implemented internal resource limits (stack, call, handler depth) and module protection guards (`is_protected` checks) in the SVM interpreter to achieve parity with the RISC-V backend.
+- **SRVM Builtin Expansion**: Confirmed implementation of 13 string and collection utility builtins (`startswith`, `contains`, `replace`, etc.) in the RISC-V backend.
+
+### Fixed
+- **Documentation Alignment**: Synchronized technical specifications with the current 0.9.8 implementation state and identified gaps in the SVM disassembler's opcode mapping.
+
 ## [0.9.16] - 2026-06-26
 
 ### Added

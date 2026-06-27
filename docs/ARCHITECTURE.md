@@ -114,9 +114,11 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-06-26**
+**Last Conformance Sync: 2026-06-27**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` and `BC_OP_SET_LOCAL` at indices 59 and 60, shifting the entire GPU instruction block (formerly 59-86) to 61-88. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 2-opcode shift and collisions for SageVM extensions (e.g., `OP_GET_LOCAL` at 88 vs. authoritative 59).
+
+> ⚠️ **Disassembler Logic Gap**: The SVM disassembler (`src/svm/sgvm_disassembler_logic.sage`) currently lacks descriptive labels for local variable (88-89), matrix (87), and GPU (59-86) opcodes, displaying them as `unknown_N` in disassembled output.
 
 > ⚠️ **Compiler Implementation Gap**: `sgvmc` (`src/svm/sgvm_compiler.sage`) currently lacks binary emission logic for `OP_MATH_PRINTM` (87). Local variable opcodes (88-89) are now correctly remapped in the compiler's second pass, but they diverge from the new authoritative indices (59-60).
 
@@ -304,9 +306,9 @@ To maintain consistency within the SageLang-based interpreter, a **Global Interp
 
 ## Sandboxing & Isolation
 
-For high-isolation environments, SGVM provides several security features:
+For high-isolation environments, SGVM provides several security features implemented across both SVM and SRVM backends:
 - **Resource Limits**: The host environment can enforce memory allocation limits on the guest VM.
-- **Module Restriction**: Access to sensitive host modules can be restricted by omitting them from the global scope during VM initialization.
+- **Module Restriction & Guards**: Access to sensitive host modules is restricted in `safe_mode`. Guest code is prevented from mutating host modules or module wrappers via `is_protected(obj)` checks in property and index assignments.
 - **Internal Execution Limits**: To prevent Denial of Service (DoS) via resource exhaustion, the VM enforces the following internal limits:
   - **Maximum Stack Depth**: 65,536 (Maximum depth of the operand stack).
   - **Maximum Call Depth**: 1,024 (Maximum recursion depth for function calls).
