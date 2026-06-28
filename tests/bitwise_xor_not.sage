@@ -1,0 +1,5 @@
+print "10 ^ 7 = " + str(10 ^ 7)
+print "-1 ^ 1 = " + str(-1 ^ 1)
+print "~0 = " + str(~0)
+print "~-1 = " + str(~-1)
+print "~10 = " + str(~10)
