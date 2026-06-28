@@ -33,6 +33,8 @@ proc print_help():
     print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET + " - The Sage Virtual Machine"
     print "Usage: " + COLOR_BOLD + "sagevm" + COLOR_RESET + " <command> [options]"
     print ""
+    print "Documentation: " + COLOR_CYAN + "https://night-traders-dev.github.io/SageVM-Docs/" + COLOR_RESET
+    print ""
     print COLOR_BOLD + "Commands:" + COLOR_RESET
     print "  🚀 " + COLOR_CYAN + "run" + COLOR_RESET + " <file.sgvm|sgrv> Execute a compiled binary"
     print "  🛠️  " + COLOR_CYAN + "compile" + COLOR_RESET + " <file.sage>     Compile Sage source to binary"
