@@ -37,7 +37,10 @@ def run_suite():
             continue
 
         # Run
-        res = subprocess.run(["./sgvm", sgvm_path], capture_output=True, text=True)
+        run_cmd = ["./sgvm"]
+        if f.startswith("security_"):
+            run_cmd.append("--safe")
+        res = subprocess.run(run_cmd + [sgvm_path], capture_output=True, text=True)
 
         # Filter out VM debug logs and strip whitespace
         actual_lines = [line for line in res.stdout.splitlines() if not line.startswith("DEBUG:")]
