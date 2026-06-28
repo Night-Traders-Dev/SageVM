@@ -95,7 +95,7 @@ class SGVMCLI:
         
         # Handle standard version and help flags before any dispatch
         if cmd == "-v" or cmd == "--version" or cmd == "version":
-            print COLOR_CYAN + COLOR_BOLD + "SageVM v0.9.8" + COLOR_RESET
+            print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
             return
         if cmd == "-h" or cmd == "--help" or cmd == "help":
             print_help()
@@ -124,6 +124,22 @@ class SGVMCLI:
             self.handle_hex(args)
         elif cmd != "":
             print COLOR_RED + "❌ Unknown command: " + COLOR_RESET + cmd
+
+            # Suggest closest match
+            let valid_cmds = ["run", "compile", "dis", "hex", "version"]
+            var best_match = ""
+            var i_cmd = 0
+            while i_cmd < len(valid_cmds):
+                let v = valid_cmds[i_cmd]
+                if startswith(v, cmd) or startswith(cmd, v):
+                    best_match = v
+                    i_cmd = len(valid_cmds)
+                else:
+                    i_cmd = i_cmd + 1
+
+            if best_match != "":
+                print COLOR_YELLOW + "💡 Tip: Did you mean " + COLOR_CYAN + best_match + COLOR_YELLOW + "?" + COLOR_RESET
+
             print ""
             print_help()
 
@@ -141,7 +157,7 @@ class SGVMCLI:
             elif a == "--no-ffi": no_ffi = true
             elif a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "SageVM v0.9.8" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print "Usage: " + COLOR_BOLD + "sagevm run" + COLOR_RESET + " <file.sgvm|sgrv> [--debug] [--safe] [--no-ffi] [--riscv]"
@@ -182,7 +198,7 @@ class SGVMCLI:
             if a == "--shebang": use_shebang = true
             elif a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "SageVM v0.9.8" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print "Usage: " + COLOR_BOLD + "sagevm compile" + COLOR_RESET + " <input.sage> [output.sgvm|sgrv] [--shebang] [--riscv]"
@@ -246,7 +262,7 @@ class SGVMCLI:
             elif a == "--sage": mode = "sage"
             elif a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "SageVM v0.9.8" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print "Usage: " + COLOR_BOLD + "sagevm dis" + COLOR_RESET + " <file.sgvm|sgrv> [--sage | --svm] [--riscv]"
@@ -285,7 +301,7 @@ class SGVMCLI:
             let a = args[i]
             if a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "SageVM v0.9.8" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print "Usage: " + COLOR_BOLD + "sagevm hex" + COLOR_RESET + " <file.sgvm|sgrv> [--riscv]"
