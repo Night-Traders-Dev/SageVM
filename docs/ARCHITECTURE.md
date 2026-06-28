@@ -114,7 +114,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-06-27**
+**Last Conformance Sync: 2026-06-28**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` and `BC_OP_SET_LOCAL` at indices 59 and 60, shifting the entire GPU instruction block (formerly 59-86) to 61-88. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 2-opcode shift and collisions for SageVM extensions (e.g., `OP_GET_LOCAL` at 88 vs. authoritative 59).
 
@@ -211,8 +211,8 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_GPU_WAIT_FENCE | 82 | 84 | gpu.wait_fence(fence, timeout) |
 | OP_GPU_RESET_FENCE | 83 | 85 | gpu.reset_fence(fence) |
 | OP_GPU_UPDATE_UNIFORM | 84 | 86 | gpu.update_uniform(handle, data) |
-| OP_GPU_CMD_PUSH_CONST | 85 | 87 | gpu.cmd_push_constants(cmd, layout, stages, data) |
-| OP_GPU_CMD_DISPATCH | 86 | 88 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
+| OP_GPU_CMD_PUSH_CONST | 85 | 87 | gpu.cmd_push_constants(cmd, layout, stages, data) [Collision: PRINTM] |
+| OP_GPU_CMD_DISPATCH | 86 | 88 | gpu.cmd_dispatch(cmd, gx, gy, gz) [Collision: GET_LOCAL] |
 | OP_MATH_PRINTM | 87 | (87) | math.printm(matrix) [Collision: PUSH_CONST] |
 | OP_GET_LOCAL | 88 | 59 | Get a local variable value [Collision: DISPATCH] |
 | OP_SET_LOCAL | 89 | 60 | Set a local variable value |
