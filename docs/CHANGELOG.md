@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.18] - 2026-06-28
+
+### Added
+- **Native Bridge Expansion**: Implemented or successfully bridged `mem.read`, `struct.def`, `math.sin`, and `math.cos` in the SVM backend.
+- **Type Profiling**: Integrated `srvm_profiler.sage` into the RISC-V pipeline for speculative type inference.
+
+### Changed
+- **Interpreter Optimization (SVM)**: Inlined instruction decoding and operand fetching into the main execution loop; cached `current_local_base` to accelerate local variable access.
+- **Interpreter Optimization (SRVM)**: Removed legacy JIT hot-path detection stubs from the RISC-V interpreter loop, yielding significant performance gains in arithmetic benchmarks.
+
+### Fixed
+- **Opcode Conformance**: Performed a comprehensive audit against `bytecode.h` and synchronized documentation regarding the Phase 16 GPU instruction shift and local variable collisions.
+
 ## [0.9.17] - 2026-06-27
 
 ### Added

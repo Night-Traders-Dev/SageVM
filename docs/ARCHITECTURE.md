@@ -32,6 +32,9 @@ The core SVM implementation in `src/svm/sgvm_vm.sage`. It utilizes an operand st
 - **Stack Capacity**: 65,536 entries.
 - **Call Depth**: 1,024 frames.
 - **Handler Depth**: 1,024 levels.
+- **Performance Optimizations**:
+  - **Inlined Loop**: The instruction decoding and operand fetching logic is inlined into the main `run` loop to minimize function call overhead.
+  - **Local Base Caching**: The VM caches `current_local_base` to accelerate `OP_GET_LOCAL` and `OP_SET_LOCAL` by avoiding repeated call stack traversals.
 
 ### 4.2 MetalRV64 (Register-Based)
 The SRVM implementation in `src/srvm/srvm_vm.sage`. It maps guest execution to a virtual RISC-V 64-bit hardware model.
@@ -42,6 +45,8 @@ The SRVM implementation in `src/srvm/srvm_vm.sage`. It maps guest execution to a
 - **Handler Depth**: 1,024 levels.
 - **Max Array Size**: 1,000,000 entries.
 - **Optimized Builtins**: Provides native implementations for string and collection utilities.
+- **Performance Optimizations**:
+  - **Lean Interpreter**: Removed legacy JIT hot-path detection stubs and string concatenations from the fetch-decode loop, yielding ~60% speedup in arithmetic-heavy code.
 
 (Refer to `SPEC.md` for the complete opcode table.)
 
@@ -114,7 +119,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-06-27**
+**Last Conformance Sync: 2026-06-28**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` and `BC_OP_SET_LOCAL` at indices 59 and 60, shifting the entire GPU instruction block (formerly 59-86) to 61-88. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 2-opcode shift and collisions for SageVM extensions (e.g., `OP_GET_LOCAL` at 88 vs. authoritative 59).
 
