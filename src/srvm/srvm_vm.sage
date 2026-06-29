@@ -406,14 +406,18 @@ class SRVM:
                 let obj = self.state.x[instr.rs2]
                 let name_idx = int(self.state.x[10])
                 let name = self.state.constants[name_idx]
-                if type(obj) == "dict": self.state.x[instr.rd] = obj[name]
+                if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                    self.state.x[instr.rd] = nil
+                elif type(obj) == "dict": self.state.x[instr.rd] = obj[name]
                 else: self.state.x[instr.rd] = nil
             elif sub_op == srvm_core.OBJ_SET_PROP:
                 let obj = self.state.x[instr.rs2]
                 let name_idx = int(self.state.x[10])
                 let val = self.state.x[11]
                 let name = self.state.constants[name_idx]
-                if self.is_protected(obj):
+                if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                    print "Error: Access to internal property '" + name + "' is restricted in safe mode"
+                elif self.is_protected(obj):
                     print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
                 elif type(obj) == "dict":
                     obj[name] = val
@@ -438,7 +442,9 @@ class SRVM:
             elif sub_op == srvm_core.OBJ_GET_INDEX:
                 let obj = self.state.x[instr.rs2]
                 let raw_idx = self.state.x[10]
-                if type(obj) == "dict":
+                if self.state.safe_mode and type(raw_idx) == "string" and startswith(raw_idx, "__") and not startswith(raw_idx, "__arg"):
+                    self.state.x[instr.rd] = nil
+                elif type(obj) == "dict":
                     self.state.x[instr.rd] = obj[raw_idx]
                 elif type(obj) == "list":
                     let idx = int(raw_idx)
@@ -450,7 +456,9 @@ class SRVM:
                 let obj = self.state.x[instr.rs2]
                 let raw_idx = self.state.x[10]
                 let val = self.state.x[11]
-                if self.is_protected(obj):
+                if self.state.safe_mode and type(raw_idx) == "string" and startswith(raw_idx, "__") and not startswith(raw_idx, "__arg"):
+                    print "Error: Index assignment to internal key '" + raw_idx + "' is restricted in safe mode"
+                elif self.is_protected(obj):
                     print "Error: Index assignment to protected object is restricted in safe mode"
                 elif type(obj) == "dict":
                     obj[raw_idx] = val
