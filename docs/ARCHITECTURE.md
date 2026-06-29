@@ -218,7 +218,7 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_GPU_UPDATE_UNIFORM | 84 | 86 | gpu.update_uniform(handle, data) |
 | OP_GPU_CMD_PUSH_CONST | 85 | 87 | gpu.cmd_push_constants(cmd, layout, stages, data) [Collision: PRINTM] |
 | OP_GPU_CMD_DISPATCH | 86 | 88 | gpu.cmd_dispatch(cmd, gx, gy, gz) [Collision: GET_LOCAL] |
-| OP_MATH_PRINTM | 87 | (87) | math.printm(matrix) [Collision: PUSH_CONST] |
+| OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: PUSH_CONST] |
 | OP_GET_LOCAL | 88 | 59 | Get a local variable value [Collision: DISPATCH] |
 | OP_SET_LOCAL | 89 | 60 | Set a local variable value |
 | OP_HALT | 0xFF | - | Halt execution [SageVM Extension] |
@@ -228,7 +228,7 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 SGVM provides a high-performance native bridge to the host SageLang environment. This allows guest bytecode to call standard library functions directly without the overhead of guest-side implementations.
 
 The following modules are currently bridged:
-- **math**: Native SageLang `math` module.
+- **math**: Native SageLang `math` module (including `abs`, `sqrt`, `sin`, `cos`).
 - **io**: Native SageLang `io` module.
 - **sys**: Native SageLang `sys` module.
 - **net**: Native SageLang `net` module (currently implemented via a shim in `src/svm/net.sage`).
