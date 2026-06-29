@@ -33,3 +33,7 @@
 ## 2026-06-26 - [Preventing Common Command/File Mismatches]
 **Learning:** Users sometimes lose track of a file's state (source vs. binary) and attempt incompatible operations (like compiling an already compiled binary).
 **Action:** Implement symmetric proactive checks: suggest 'compile' when running a source file, and suggest 'run' when compiling a binary file (detected via extension or magic bytes).
+
+## 2026-06-29 - [Search Recovery and "No Results" Gracefulness]
+**Learning:** An empty search state can be a dead-end for users. Providing a clear, visually distinct "No results" state with an immediate action to reset filters (e.g., a "Clear search" button) reduces frustration and encourages further exploration without requiring manual deletion of input.
+**Action:** Always implement an actionable recovery path (like a "Reset" or "Clear" button) when a user's search or filter criteria return no results.
