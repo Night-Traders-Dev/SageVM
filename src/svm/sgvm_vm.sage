@@ -807,6 +807,7 @@ class MetalVM:
                 try:
                     if name == "math":
                         let m = {"pi": 3.141592653589793, "e": 2.718281828459045}
+                        m["__type__"] = "module"
                         m["abs"] = math.abs
                         m["sqrt"] = math.sqrt
                         m["sin"] = math.sin
@@ -816,12 +817,14 @@ class MetalVM:
                     elif name == "io": push(self.stack, io)
                     elif name == "sys":
                         let s = {"args": sys.args()}
+                        s["__type__"] = "module"
                         s["exec"] = "__builtin_sys_exec"
                         s["exit"] = sys.exit
                         push(self.stack, s)
                     elif name == "net": push(self.stack, net)
                     elif name == "gpu":
                         let g = {}
+                        g["__type__"] = "module"
                         g["poll_events"] = gpu.poll_events
                         g["get_time"] = gpu.get_time
                         g["mouse_pos"] = gpu.mouse_pos

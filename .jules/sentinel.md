@@ -27,3 +27,8 @@
 **Vulnerability:** The Sage RISC-V VM (SRVM) lacked the mutation-protection sandbox features present in the SVM backend. Guest code could mutate host-provided modules or objects even when `--safe` was ostensibly requested.
 **Learning:** In a multi-backend system, security features like sandboxing must be treated as first-class citizens and ported with parity across all execution engines to avoid "backend-hopping" escapes.
 **Prevention:** Maintain a unified security specification and audit all VM backends for consistent enforcement of object protection and FFI gating.
+
+## 2026-06-28 - Sandbox Escape via Untagged Reconstructed Modules
+**Vulnerability:** In SVM, certain modules (math, sys, gpu) are reconstructed as dictionaries during `OP_IMPORT`. Because these dictionaries lacked the `__type__: "module"` tag, they were not recognized as protected objects by `is_protected`, allowing guests to hijack their functions even in `safe_mode`.
+**Learning:** Security tags must be applied to all representations of sensitive objects, including those dynamically reconstructed at runtime, not just to native module wrappers or initial globals.
+**Prevention:** Ensure all execution paths that expose sensitive host functionality (like `OP_IMPORT` or `OBJ_GET_GLOBAL`) consistently apply security metadata to the returned objects.

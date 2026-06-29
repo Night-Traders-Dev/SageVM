@@ -1,0 +1,2 @@
+Error: Modification of protected object 'sqrt' is restricted in safe mode
+SUCCESS: math.sqrt protected (write failed silently)

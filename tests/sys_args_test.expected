@@ -1,0 +1,3 @@
+sys.args type: array
+sys.args is array: true
+sys.args length >= 0: true

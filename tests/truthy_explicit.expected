@@ -1,0 +1,12 @@
+true is truthy
+false is falsy
+nil is falsy
+1 is truthy
+0 is falsy
+-1 is truthy
+empty string is truthy
+non-empty string is truthy
+empty array is truthy
+non-empty array is truthy
+empty dict is truthy
+non-empty dict is truthy
