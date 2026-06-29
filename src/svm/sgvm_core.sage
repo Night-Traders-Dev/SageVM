@@ -186,6 +186,15 @@ class SGVMUtils:
                 break
         return self.my_substr(s, start, eidx - start)
 
+    proc strip_comment(self, line):
+        # Remove # comments from a line of .svm text
+        var i = 0
+        while i < len(line):
+            if line[i] == "#":
+                return self.my_substr(line, 0, i)
+            i = i + 1
+        return line
+
     proc read_be16(self, bs, off):
         return self.my_int(bs[off]) * 256 + self.my_int(bs[off+1])
 

@@ -145,7 +145,7 @@ class SGVMCompiler:
         var chunk_count = 0
         var function_count = 0
         while i < len(lines):
-            let line = ut.trim(lines[i])
+            let line = ut.trim(ut.strip_comment(lines[i]))
             if startswith(line, "functions "):
                 function_count = ut.parse_int_field(line, 10)
             elif startswith(line, "chunks "):
@@ -178,12 +178,12 @@ class SGVMCompiler:
                 push(params, empty_params)
                 
                 i = i + 1
-                let pline = ut.trim(lines[i])
+                let pline = ut.trim(ut.strip_comment(lines[i]))
                 let pcount = ut.parse_int_field(pline, 7)
                 var pidx = 0
                 while pidx < pcount:
                     i = i + 1
-                    let param_len_line = ut.trim(lines[i])
+                    let param_len_line = ut.trim(ut.strip_comment(lines[i]))
                     let plen = ut.parse_int_field(param_len_line, 6)
                     i = i + 1
                     let hex = ut.trim(lines[i])
@@ -211,7 +211,7 @@ class SGVMCompiler:
                 j = 0
                 while j < count:
                     i = i + 1
-                    let cl = ut.trim(lines[i])
+                    let cl = ut.trim(ut.strip_comment(lines[i]))
                     if startswith(cl, "number "):
                         let cl_len = len(cl)
                         let num_sub = ut.my_substr(cl, 7, cl_len)
@@ -284,7 +284,7 @@ class SGVMCompiler:
         self.current_chunk = -1
         var i = 0
         while i < len(lines):
-            let line = ut.trim(lines[i])
+            let line = ut.trim(ut.strip_comment(lines[i]))
             if line == "chunk" or line == "function":
                 self.current_chunk = self.current_chunk + 1
             elif startswith(line, "code "):
