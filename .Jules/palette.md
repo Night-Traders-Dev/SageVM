@@ -37,3 +37,7 @@
 ## 2026-06-29 - [Search Recovery and "No Results" Gracefulness]
 **Learning:** An empty search state can be a dead-end for users. Providing a clear, visually distinct "No results" state with an immediate action to reset filters (e.g., a "Clear search" button) reduces frustration and encourages further exploration without requiring manual deletion of input.
 **Action:** Always implement an actionable recovery path (like a "Reset" or "Clear" button) when a user's search or filter criteria return no results.
+
+## 2026-06-30 - [Auto-scrolling Console UX]
+**Learning:** Real-time console or log outputs that don't auto-scroll force users to manually interact with the UI to see progress, breaking the "interactive" feel.
+**Action:** Always implement an auto-scroll to bottom mechanism (e.g., via `useEffect` and `scrollTop`) for live execution logs or console outputs.
