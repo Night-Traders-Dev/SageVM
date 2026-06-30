@@ -160,7 +160,14 @@ class SGVMCLI:
                 print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
-                print "Usage: " + COLOR_BOLD + "sagevm run" + COLOR_RESET + " <file.sgvm|sgrv> [--debug] [--safe] [--no-ffi] [--riscv]"
+                print COLOR_CYAN + COLOR_BOLD + "🚀 SageVM Runner" + COLOR_RESET
+                print "Usage: " + COLOR_BOLD + "sagevm run" + COLOR_RESET + " <file.sgvm|sgrv> [options]"
+                print ""
+                print COLOR_BOLD + "Options:" + COLOR_RESET
+                print "  --debug    Enable verbose debug logging"
+                print "  --safe     Enable safe mode (restricts sensitive modules)"
+                print "  --no-ffi   Disable Foreign Function Interface (FFI)"
+                print "  --riscv    Force execution using the RISC-V backend"
                 return
             else: input_file = a
             i = i + 1
@@ -201,7 +208,12 @@ class SGVMCLI:
                 print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
-                print "Usage: " + COLOR_BOLD + "sagevm compile" + COLOR_RESET + " <input.sage> [output.sgvm|sgrv] [--shebang] [--riscv]"
+                print COLOR_CYAN + COLOR_BOLD + "🛠️  SageVM Compiler" + COLOR_RESET
+                print "Usage: " + COLOR_BOLD + "sagevm compile" + COLOR_RESET + " <input.sage> [output.sgvm|sgrv] [options]"
+                print ""
+                print COLOR_BOLD + "Options:" + COLOR_RESET
+                print "  --shebang  Add #!/usr/bin/env sagevm run to output"
+                print "  --riscv    Force compilation to RISC-V binary (.sgrv)"
                 return
             else:
                 if pos_idx == 0: input_file = a
@@ -265,7 +277,13 @@ class SGVMCLI:
                 print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
-                print "Usage: " + COLOR_BOLD + "sagevm dis" + COLOR_RESET + " <file.sgvm|sgrv> [--sage | --svm] [--riscv]"
+                print COLOR_CYAN + COLOR_BOLD + "🔍 SageVM Disassembler" + COLOR_RESET
+                print "Usage: " + COLOR_BOLD + "sagevm dis" + COLOR_RESET + " <file.sgvm|sgrv> [options]"
+                print ""
+                print COLOR_BOLD + "Options:" + COLOR_RESET
+                print "  --sage     Generate readable Sage source code (default)"
+                print "  --svm      Generate low-level SVM assembly"
+                print "  --riscv    Force disassembly using RISC-V logic"
                 return
             else: input_file = a
             i = i + 1
@@ -304,7 +322,11 @@ class SGVMCLI:
                 print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
-                print "Usage: " + COLOR_BOLD + "sagevm hex" + COLOR_RESET + " <file.sgvm|sgrv> [--riscv]"
+                print COLOR_CYAN + COLOR_BOLD + "📦 SageVM Hexdump Utility" + COLOR_RESET
+                print "Usage: " + COLOR_BOLD + "sagevm hex" + COLOR_RESET + " <file.sgvm|sgrv> [options]"
+                print ""
+                print COLOR_BOLD + "Options:" + COLOR_RESET
+                print "  --riscv    Force hexdump using RISC-V logic"
                 return
             else: input_file = a
             i = i + 1
