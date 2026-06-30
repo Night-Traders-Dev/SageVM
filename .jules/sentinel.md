@@ -42,3 +42,8 @@
 **Vulnerability:** In both SVM and SRVM, guest code could access internal VM metadata and host bridges stored in dictionaries via properties or keys starting with `__`. For example, `math.__host_mod__` leaked the underlying host bridge object, and `__builtin__` tags could be inspected or manipulated.
 **Learning:** Preventing access to sensitive globals is insufficient if those sensitive objects are reachable as properties of allowed objects. Access control must be enforced at the property and index resolution levels.
 **Prevention:** Implement a strict blacklist for internal-use keys (e.g., `__` prefix) in the VM's property and index access handlers when running in `safe_mode`.
+
+## 2026-06-30 - Command Injection Hardening via Path Validation
+**Vulnerability:** The SGVMC compiler used `sys.exec` to invoke the host `sage` compiler, passing user-provided file paths. While some characters were already forbidden, the list was incomplete, leaving risks for shell expansion (globbing) or complex command chaining via characters like `#`, `*`, `?`, or `!`.
+**Learning:** When passing input to a shell-based execution function, path validation must be exhaustive. Merely blocking `;` or `&` is insufficient if the shell supports features like globbing or history expansion which can be abused for injection or DoS.
+**Prevention:** Implement a central, robust `is_safe_path` helper with a strict blacklist of all shell-sensitive characters and use it consistently for all filesystem paths before they reach a shell-executing function.
