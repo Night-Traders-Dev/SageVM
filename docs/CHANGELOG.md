@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.19] - 2026-06-29
+
+### Added
+- **Native Bridge Expansion**: Bridged `math.abs` and `math.sqrt` to host functions in the SVM backend, resolving previous return-nil gaps.
+
+### Changed
+- **Documentation Sync**: Synchronized architectural and technical specifications with the current implementation state, specifically documenting inlined loop optimizations and local base caching.
+
 ## [0.9.18] - 2026-06-28
 
 ### Added
