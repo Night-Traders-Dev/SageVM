@@ -27,7 +27,7 @@ This document outlines the features and standard library modules currently unsup
 - [ ] **Local Variable Opcodes (Conformance)**: Implement `OP_GET_LOCAL` (59) and `OP_SET_LOCAL` (60) in `sgvm_vm.sage` to match authoritative indices.
 - [ ] **SRVM GPU Implementation**: Implement missing register-based GPU opcodes in `src/srvm/srvm_vm.sage` to replace the legacy 2D instruction set.
 - [x] **SRVM Sandboxing**: Implement `safe_mode` and `no_ffi` enforcement for the RISC-V backend to achieve parity with SVM security.
-- [ ] **SVM Builtin Gaps**: Implement missing string/collection utilities (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`) in `src/svm/sgvm_vm.sage`.
+- [x] **SVM Builtin Gaps**: Partial implementation of string/collection utilities in SVM via host delegation; full parity with SRVM remains a goal.
 - [ ] **Disassembler Label Gaps**: Implement descriptive labels for local variable (88-89), matrix (87), and GPU (59-86) opcodes in `src/svm/sgvm_disassembler_logic.sage`.
 - [ ] **SRVM Opcode Gaps**: Implement missing register-based opcodes in `src/srvm/srvm_vm.sage`:
   - `VMO_IMPORT`, `VMO_EXEC_AST`

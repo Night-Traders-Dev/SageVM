@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.20] - 2026-06-30
+
+### Fixed
+- **Sandbox Hardening**: Implemented strict runtime protection in both SVM and SRVM backends to block property and index access for internal `__` prefixed identifiers in `safe_mode`, preventing internal state leakage and sandbox escapes.
+
+### Changed
+- **Documentation Sync**: Updated architectural and technical specifications to reflect recent security hardening and synchronized implementation status for builtins and math functions.
+
 ## [0.9.19] - 2026-06-29
 
 ### Added

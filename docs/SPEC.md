@@ -59,6 +59,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
   - **SRVM**: The fixed stack area is initialized with 1,000 slots. Recursive call depth and exception handler nesting are limited to 1,024 frames. Max array size is 1,000,000 entries.
 - **Path Sanitization**: Compiler validates input and output file paths against shell metacharacters to prevent command injection.
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions.
+- **Internal State Protection**: In `safe_mode`, runtime enforcement blocks all property and index access for identifiers starting with `__` (excluding the `__arg` prefix). This ensures that internal descriptors like `__host_mod__`, `__builtin__`, and `__type__` remain inaccessible to guest code, preventing sandbox escapes and internal state inspection.
 
 ## 6. Execution Modes
 SGVM supports multiple execution strategies:
@@ -80,7 +81,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-06-28**
+**Last Conformance Sync: 2026-06-30**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:

@@ -119,7 +119,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-06-28**
+**Last Conformance Sync: 2026-06-30**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` and `BC_OP_SET_LOCAL` at indices 59 and 60, shifting the entire GPU instruction block (formerly 59-86) to 61-88. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 2-opcode shift and collisions for SageVM extensions (e.g., `OP_GET_LOCAL` at 88 vs. authoritative 59).
 
@@ -314,6 +314,7 @@ To maintain consistency within the SageLang-based interpreter, a **Global Interp
 For high-isolation environments, SGVM provides several security features implemented across both SVM and SRVM backends:
 - **Resource Limits**: The host environment can enforce memory allocation limits on the guest VM.
 - **Module Restriction & Guards**: Access to sensitive host modules is restricted in `safe_mode`. Guest code is prevented from mutating host modules or module wrappers via `is_protected(obj)` checks in property and index assignments.
+- **Internal Property Protection**: In `safe_mode`, both SVM and SRVM backends strictly block property and index access for all identifiers starting with `__` (except `__arg` for function arguments). This prevents guest code from inspecting or tampering with internal VM state, host bridge objects (like `__host_mod__`), or builtin descriptors.
 - **Internal Execution Limits**: To prevent Denial of Service (DoS) via resource exhaustion, the VM enforces the following internal limits:
   - **Maximum Stack Depth**: 65,536 (Maximum depth of the operand stack).
   - **Maximum Call Depth**: 1,024 (Maximum recursion depth for function calls).
