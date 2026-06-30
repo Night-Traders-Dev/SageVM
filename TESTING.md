@@ -23,7 +23,7 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 2. Runs the compiled bytecode using `./sgvm`.
 3. Filters out `DEBUG:` logs and compares the output against the corresponding `.expected` file.
 
-Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, and binary structures are located here.
+Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, and functions with many arguments are located here.
 
 ### Known Issues
 As of June 2026, several tests are expected to fail due to documented but unimplemented features in the SVM backend:
@@ -37,6 +37,7 @@ As of June 2026, several tests are expected to fail due to documented but unimpl
 - `math_trig.sage`: `math.sin` and `math.cos` return nil.
 - `mem_builtin.sage`: `mem.read` returns nil.
 - `struct_builtin.sage`: `struct.def` returns nil.
+- `all_types.sage`: Returns "dict" for modules, functions, classes, and instances instead of specific type names.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.

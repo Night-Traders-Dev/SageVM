@@ -1,0 +1,9 @@
+Array slice [1:4]:
+3
+2
+3
+4
+String slice [1:4]:
+ell
+Negative slice [0:-1]:
+4

@@ -1,0 +1,11 @@
+1: number
+3.14: number
+nil: nil
+true: bool
+string: string
+array: array
+dict: dict
+module: dict
+function: dict
+class: dict
+instance: dict
