@@ -124,6 +124,7 @@ class MetalVM:
         self.halted = false
         let stack = self.stack
         let max_stack = self.max_stack_depth
+        let constants = self.constants
         host_thread.lock(g_gil)
         while not self.halted and self.ip < len(self.code):
             # Performance: Inlined run_step and cached common properties
@@ -137,8 +138,48 @@ class MetalVM:
                 print "IP: " + str(self.ip) + " OP: " + str(op) + " Stack: " + str(stack)
 
             self.ip = self.ip + 1
-            if not self.execute_op(op):
-                break
+
+            # Hot-path dispatch: inline most frequent opcodes to avoid function call overhead
+            if op == OP_ADD:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] + b
+            elif op == OP_SUB:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] - b
+            elif op == OP_CONSTANT:
+                let idx = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
+                self.ip = self.ip + 2
+                push(stack, constants[idx])
+            elif op == OP_GET_LOCAL:
+                let idx = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
+                self.ip = self.ip + 2
+                let addr = self.current_local_base + idx
+                if addr < len(stack): push(stack, stack[addr])
+                else: push(stack, nil)
+            elif op == OP_SET_LOCAL:
+                let idx = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
+                self.ip = self.ip + 2
+                let val = pop(stack)
+                let addr = self.current_local_base + idx
+                while addr >= len(stack): push(stack, nil)
+                stack[addr] = val
+                push(stack, val)
+            elif op == OP_LOOP_BACK:
+                self.ip = self.ip - ((int(self.code[self.ip]) << 8) | int(self.code[self.ip+1]))
+            elif op == OP_JUMP_IF_FALSE:
+                let target = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
+                self.ip = self.ip + 2
+                if not stack[len(stack)-1]: self.ip = target
+            elif op == OP_LESS:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] < b
+            elif op == OP_POP:
+                pop(stack)
+            elif op == OP_JUMP:
+                self.ip = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
+            else:
+                if not self.execute_op(op):
+                    break
         host_thread.unlock(g_gil)
 
     proc call_builtin(self, callee, args):
