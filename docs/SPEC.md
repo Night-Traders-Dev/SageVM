@@ -80,7 +80,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-06-28**
+**Last Conformance Sync: 2026-06-30**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
