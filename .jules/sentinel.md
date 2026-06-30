@@ -32,3 +32,13 @@
 **Vulnerability:** In SVM, certain modules (math, sys, gpu) are reconstructed as dictionaries during `OP_IMPORT`. Because these dictionaries lacked the `__type__: "module"` tag, they were not recognized as protected objects by `is_protected`, allowing guests to hijack their functions even in `safe_mode`.
 **Learning:** Security tags must be applied to all representations of sensitive objects, including those dynamically reconstructed at runtime, not just to native module wrappers or initial globals.
 **Prevention:** Ensure all execution paths that expose sensitive host functionality (like `OP_IMPORT` or `OBJ_GET_GLOBAL`) consistently apply security metadata to the returned objects.
+
+## 2026-06-29 - Sandbox Information Leak via Internal Properties
+**Vulnerability:** In both SVM and SRVM, guest code could access internal VM metadata and host bridges stored in dictionaries via properties or keys starting with . For example,  leaked the underlying host bridge object, and  tags could be inspected or manipulated.
+**Learning:** Preventing access to sensitive globals is insufficient if those sensitive objects are reachable as properties of allowed objects. Access control must be enforced at the property and index resolution levels.
+**Prevention:** Implement a strict blacklist for internal-use keys (e.g.,  prefix) in the VM's property and index access handlers when running in .
+
+## 2026-06-29 - Sandbox Information Leak via Internal Properties
+**Vulnerability:** In both SVM and SRVM, guest code could access internal VM metadata and host bridges stored in dictionaries via properties or keys starting with `__`. For example, `math.__host_mod__` leaked the underlying host bridge object, and `__builtin__` tags could be inspected or manipulated.
+**Learning:** Preventing access to sensitive globals is insufficient if those sensitive objects are reachable as properties of allowed objects. Access control must be enforced at the property and index resolution levels.
+**Prevention:** Implement a strict blacklist for internal-use keys (e.g., `__` prefix) in the VM's property and index access handlers when running in `safe_mode`.

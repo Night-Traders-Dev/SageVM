@@ -464,13 +464,19 @@ class MetalVM:
         elif op == OP_GET_INDEX:
             let idx = pop(self.stack)
             let obj = pop(self.stack)
-            push(self.stack, obj[idx])
+            if self.safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                push(self.stack, nil)
+            else:
+                push(self.stack, obj[idx])
         elif op == OP_SET_INDEX:
             let val = pop(self.stack)
             let idx = pop(self.stack)
             let obj = pop(self.stack)
 
-            if self.is_protected(obj):
+            if self.safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
+                push(self.stack, nil)
+            elif self.is_protected(obj):
                 print "Error: Index assignment to protected object is restricted in safe mode"
                 push(self.stack, nil)
             else:
@@ -762,7 +768,10 @@ class MetalVM:
             self.ip = self.ip + 2
             let name = self.constants[idx]
             let obj = pop(self.stack)
-            if type(obj) == "dict":
+
+            if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                push(self.stack, nil)
+            elif type(obj) == "dict":
                 if dict_has(obj, name):
                     push(self.stack, obj[name])
                 elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
@@ -781,7 +790,10 @@ class MetalVM:
             let val = pop(self.stack)
             let obj = pop(self.stack)
 
-            if self.is_protected(obj):
+            if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                print "Error: Access to internal property '" + name + "' is restricted in safe mode"
+                push(self.stack, nil)
+            elif self.is_protected(obj):
                 print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
                 push(self.stack, nil)
             else:
