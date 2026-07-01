@@ -181,6 +181,8 @@ class SGVMCLI:
         let data = self.verify_input(input_file, false)
         if data == nil: return
 
+        print COLOR_CYAN + "🚀 Running " + COLOR_BOLD + input_file + COLOR_RESET + "..."
+
         # Auto-detect RISC-V header
         if len(data) >= 4:
             if int(data[0]) == 83 and int(data[1]) == 71 and int(data[2]) == 82 and int(data[3]) == 86:
@@ -227,6 +229,8 @@ class SGVMCLI:
             return
         
         if self.verify_input(input_file, true) == nil: return
+
+        print COLOR_CYAN + "🛠️  Compiling " + COLOR_BOLD + input_file + COLOR_RESET + "..."
 
         if output_file == "":
             var base = input_file
