@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.20] - 2026-07-01
+
+### Added
+- **Sandbox Hardening (Internal Properties)**: Implemented strict protection in `safe_mode` for internal `__` prefixed properties (excluding `__arg`) and protected host modules in the SVM backend.
+- **Native Bridge Expansion**: Continued expansion of `math` module native bridges (`abs`, `sqrt`, `sin`, `cos`) in the SVM backend.
+
+### Changed
+- **Interpreter Optimization (SVM)**: Achieved a 4.3x speedup by inlining BE16 decoding and caching VM state (stack, constants) in local variables within the `MetalVM.run` loop.
+- **Documentation Sync**: Synchronized technical specifications with the 2026-07-01 conformance audit, documenting the 2-opcode shift regression in Phase 16.
+
 ## [0.9.19] - 2026-06-29
 
 ### Added
