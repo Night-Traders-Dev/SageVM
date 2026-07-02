@@ -227,6 +227,43 @@ class MetalVM:
                 stack[len(stack)-1] = stack[len(stack)-1] < b
             elif op == OP_POP:
                 pop(stack)
+            elif op == OP_NOT:
+                # Performance: Inline NOT to avoid execute_op call
+                stack[len(stack)-1] = not stack[len(stack)-1]
+            elif op == OP_NEGATE:
+                # Performance: Inline NEGATE to avoid execute_op call
+                stack[len(stack)-1] = -stack[len(stack)-1]
+            elif op == OP_ARRAY_LEN:
+                # Performance: Inline ARRAY_LEN to avoid execute_op call
+                stack[len(stack)-1] = len(stack[len(stack)-1])
+            elif op == OP_PUSH_ENV:
+                # Performance: Inline PUSH_ENV
+                push(self.scopes, {})
+            elif op == OP_POP_ENV:
+                # Performance: Inline POP_ENV
+                pop(self.scopes)
+            elif op == OP_GET_INDEX:
+                # Performance: Inline GET_INDEX
+                let idx = pop(stack)
+                let obj = pop(stack)
+                if self.safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                    push(stack, nil)
+                else:
+                    push(stack, obj[idx])
+            elif op == OP_SET_INDEX:
+                # Performance: Inline SET_INDEX
+                let val = pop(stack)
+                let idx = pop(stack)
+                let obj = pop(stack)
+                if self.safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                    print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
+                    push(stack, nil)
+                elif self.is_protected(obj):
+                    print "Error: Index assignment to protected object is restricted in safe mode"
+                    push(stack, nil)
+                else:
+                    obj[idx] = val
+                    push(stack, val)
             elif op == OP_JUMP:
                 self.ip = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
             else:
@@ -446,8 +483,6 @@ class MetalVM:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a % b)
-        elif op == OP_NEGATE:
-            push(self.stack, -pop(self.stack))
         elif op == OP_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
@@ -494,8 +529,6 @@ class MetalVM:
             let b = pop(self.stack)
             let a = pop(self.stack)
             push(self.stack, a >> b)
-        elif op == OP_NOT:
-            push(self.stack, not pop(self.stack))
         elif op == OP_TRUTHY:
             push(self.stack, not (not pop(self.stack)))
         elif op == OP_JUMP:
@@ -554,38 +587,11 @@ class MetalVM:
                 d[key] = val
                 j = j + 1
             push(self.stack, d)
-        elif op == OP_GET_INDEX:
-            let idx = pop(self.stack)
-            let obj = pop(self.stack)
-            if self.safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
-                push(self.stack, nil)
-            else:
-                push(self.stack, obj[idx])
-        elif op == OP_SET_INDEX:
-            let val = pop(self.stack)
-            let idx = pop(self.stack)
-            let obj = pop(self.stack)
-
-            if self.safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
-                print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
-                push(self.stack, nil)
-            elif self.is_protected(obj):
-                print "Error: Index assignment to protected object is restricted in safe mode"
-                push(self.stack, nil)
-            else:
-                obj[idx] = val
-                push(self.stack, val)
         elif op == OP_SLICE:
             let end_idx = pop(self.stack)
             let start_idx = pop(self.stack)
             let obj = pop(self.stack)
             push(self.stack, slice(obj, start_idx, end_idx))
-        elif op == OP_ARRAY_LEN:
-            push(self.stack, len(pop(self.stack)))
-        elif op == OP_PUSH_ENV:
-            push(self.scopes, {})
-        elif op == OP_POP_ENV:
-            pop(self.scopes)
         elif op == OP_DEFINE_FUNCTION:
             let name_idx = ut.read_be16(self.code, self.ip)
             let chunk_idx = ut.read_be16(self.code, self.ip + 2)
