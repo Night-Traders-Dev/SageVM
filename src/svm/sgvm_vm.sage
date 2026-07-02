@@ -170,6 +170,59 @@ class MetalVM:
                 let target = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
                 self.ip = self.ip + 2
                 if not stack[len(stack)-1]: self.ip = target
+            elif op == OP_MUL:
+                # Performance: Inline multiplication to avoid execute_op call
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] * b
+            elif op == OP_DIV:
+                # Performance: Inline division to avoid execute_op call
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] / b
+            elif op == OP_EQUAL:
+                # Performance: Inline equality check to avoid execute_op call
+                let b = pop(stack)
+                stack[len(stack)-1] = (stack[len(stack)-1] == b)
+            elif op == OP_NOT_EQUAL:
+                # Performance: Inline inequality check to avoid execute_op call
+                let b = pop(stack)
+                stack[len(stack)-1] = (stack[len(stack)-1] != b)
+            elif op == OP_GET_GLOBAL:
+                # Performance: Inline global variable access and constant indexing
+                let idx = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
+                self.ip = self.ip + 2
+                let name = constants[idx]
+                var found = false
+                var si = len(self.scopes) - 1
+                while si >= 0:
+                    if dict_has(self.scopes[si], name):
+                        push(stack, self.scopes[si][name])
+                        found = true
+                        si = -1
+                    else:
+                        si = si - 1
+                if not found:
+                    if dict_has(self.globals, name):
+                        push(stack, self.globals[name])
+                    else:
+                        push(stack, nil)
+            elif op == OP_SET_GLOBAL:
+                # Performance: Inline global variable assignment
+                let idx = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
+                self.ip = self.ip + 2
+                let name = constants[idx]
+                let val = pop(stack)
+                var si = len(self.scopes) - 1
+                var updated = false
+                while si >= 0:
+                    if dict_has(self.scopes[si], name):
+                        self.scopes[si][name] = val
+                        updated = true
+                        si = -1
+                    else:
+                        si = si - 1
+                if not updated:
+                    self.globals[name] = val
+                push(stack, val)
             elif op == OP_LESS:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] < b
