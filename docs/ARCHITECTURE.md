@@ -120,7 +120,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-01**
+**Last Conformance Sync: 2026-07-02**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` and `BC_OP_SET_LOCAL` at indices 59 and 60, shifting the entire GPU instruction block (formerly 59-86) to 61-88. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 2-opcode shift and collisions for SageVM extensions (e.g., `OP_GET_LOCAL` at 88 vs. authoritative 59).
 
@@ -314,7 +314,10 @@ To maintain consistency within the SageLang-based interpreter, a **Global Interp
 
 For high-isolation environments, SGVM provides several security features implemented across both SVM and SRVM backends:
 - **Resource Limits**: The host environment can enforce memory allocation limits on the guest VM.
-- **Module Restriction & Guards**: Access to sensitive host modules is restricted in `safe_mode`. Guest code is prevented from mutating host modules or module wrappers via `is_protected(obj)` checks in property and index assignments.
+- **Module Restriction & Guards**: Access to sensitive host modules is restricted in `safe_mode`.
+  - **Deferred Initialization**: SVM (`MetalVM`) defers the population of sensitive host modules until after `safe_mode` has been configured, preventing race conditions or eager loading bypasses.
+  - **Mutation Protection**: Guest code is prevented from mutating host modules or module wrappers via `is_protected(obj)` checks in property and index assignments.
+  - **Builtin Protection**: SRVM enforces strict protection for objects tagged with `__builtin__`, ensuring core utility functions cannot be shadowed or corrupted in the guest environment.
 - **Internal Execution Limits**: To prevent Denial of Service (DoS) via resource exhaustion, the VM enforces the following internal limits:
   - **Maximum Stack Depth**: 65,536 (Maximum depth of the operand stack).
   - **Maximum Call Depth**: 1,024 (Maximum recursion depth for function calls).
