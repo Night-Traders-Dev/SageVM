@@ -14,7 +14,7 @@ This document outlines the features and standard library modules currently unsup
 - [x] **AST Delegation**: Full implementation of `OP_EXEC_AST_STMT` to allow execution of non-lowered code via `sys.exec()`.
 - [x] **Matrix Visualization**: Native interpretation for `OP_MATH_PRINTM` (87) (Note: currently lacks `sgvmc` binary emission logic).
 - [x] **Native Bridge Modules**: Re-implemented and exposed `ffi`, `mem`, and `struct` native modules to guest VM (including `mem.read`, `struct.def`, `math.sin/cos`, and `math.abs/sqrt` expansion).
-- **Security Sandboxing**: Implemented `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules.
+- [x] **Security Sandboxing**: Implemented `safe_mode` and `ffi_enabled` flags to restrict access to sensitive native modules, including internal property protection and module guards.
 
 ## 🟡 Medium Difficulty (Native Bridging)
 - [ ] **Regex & JSON Support**: Restore `re` and `json` module bridging in `src/svm/sgvm_vm.sage`.
