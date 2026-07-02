@@ -1,8 +1,10 @@
 import os
 import subprocess
 import sys
+import re
 
 def run_suite():
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     test_dir = "tests"
     if not os.path.exists(test_dir):
         print(f"Error: {test_dir} directory not found.")
@@ -42,8 +44,14 @@ def run_suite():
             run_cmd.append("--safe")
         res = subprocess.run(run_cmd + [sgvm_path], capture_output=True, text=True)
 
-        # Filter out VM debug logs and strip whitespace
-        actual_lines = [line for line in res.stdout.splitlines() if not line.startswith("DEBUG:")]
+        # Filter out VM debug logs, status messages, and strip ANSI codes
+        raw_stdout = ansi_escape.sub('', res.stdout)
+        actual_lines = []
+        for line in raw_stdout.splitlines():
+            if line.startswith("DEBUG:"): continue
+            if "🚀 Running" in line: continue
+            if "🛠️ Compiling" in line: continue
+            actual_lines.append(line)
         actual_output = "\n".join(actual_lines).strip()
 
         if not os.path.exists(expected_path):
