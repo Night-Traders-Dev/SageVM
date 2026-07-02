@@ -54,7 +54,6 @@ class MetalVM:
         self.call_stack = [{"ip": 0, "code": [], "constants": []}]
         # Performance: Cache local_base to avoid dictionary lookups in hot loop
         self.current_local_base = 0
-        self.setup_builtins()
 
     proc setup_builtins(self):
         # Native Bridge: Expose host standard library to guest VM
