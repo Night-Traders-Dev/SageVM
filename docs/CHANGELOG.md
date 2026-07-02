@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.21] - 2026-07-02
+
+### Added
+- **Sandbox Hardening (SRVM)**: Implemented strict protection for objects tagged with `__builtin__` in the RISC-V backend, preventing guest corruption of core utility functions in `safe_mode`.
+
+### Fixed
+- **Critical Sandbox Bypass (SVM)**: Resolved a high-severity safe mode bypass in `MetalVM` by deferring sensitive module initialization until after the VM's security posture has been fully configured.
+
+### Changed
+- **Documentation Sync**: Updated technical specifications and architectural documentation to reflect the latest security hardening and conformance state as of 2026-07-02.
+
 ## [0.9.20] - 2026-07-01
 
 ### Added
