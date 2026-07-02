@@ -23,10 +23,10 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 2. Runs the compiled bytecode using `./sgvm`.
 3. Filters out `DEBUG:` logs and compares the output against the corresponding `.expected` file.
 
-Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, and instance properties are located here.
+Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, and large constant pools are located here.
 
 ### Known Issues
-As of June 2026, several tests are expected to fail due to documented but unimplemented features in the SVM backend:
+As of July 2026, several tests are expected to fail due to documented but unimplemented features in the SVM backend:
 - `array_methods.sage`: Missing `push` and `pop` builtins.
 - `strings.sage`: Missing `chr`, `ord`, `startswith`, and `endswith` builtins.
 - `array_ops.sage`: String slicing returns `nil` due to float-to-int conversion issues in the VM.
@@ -38,6 +38,7 @@ As of June 2026, several tests are expected to fail due to documented but unimpl
 - `mem_builtin.sage`: `mem.read` returns nil.
 - `struct_builtin.sage`: `struct.def` returns nil.
 - `all_types.sage`: Returns "dict" for modules, functions, classes, and instances instead of specific type names.
+- `nested_scopes.sage`: Nested functions cannot access parent local variables (lack of closures); they only see global scope or own locals.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
