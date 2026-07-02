@@ -373,37 +373,38 @@ class SGVMCompiler:
                         j = j + 6
             i = i + 1
 
+    proc is_safe_path(self, path):
+        if path == nil or len(path) == 0:
+            return false
+        if startswith(path, "-"):
+            return false
+
+        # Security: Whitelist approach for path validation (CWE-78)
+        let safe_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/._- "
+        var i = 0
+        while i < len(path):
+            if not contains(safe_chars, path[i]):
+                return false
+            i = i + 1
+        return true
+
     proc compile(self, input_file, output_file, use_shebang):
         let ut = self.utils
 
-        # Security: Prevent command injection via shell metacharacters in file paths
-        # Space is allowed. Shell metacharacters and quotes are forbidden.
-        let forbidden = "; & | $ ( ) ` > < \\ \n ' \""
-
-        var fi = 0
-        while fi < len(input_file):
-            let c = input_file[fi]
-            if c != " " and contains(forbidden, c):
-                print "Error: Illegal character in input path: " + c
-                return false
-            fi = fi + 1
-
-        var fo = 0
-        while fo < len(output_file):
-            let c = output_file[fo]
-            if c != " " and contains(forbidden, c):
-                print "Error: Illegal character in output path: " + c
-                return false
-            fo = fo + 1
+        # Security: Prevent command injection and flag injection via robust path validation
+        if not self.is_safe_path(input_file):
+            print "Error: Illegal characters or format in input path: " + input_file
+            return false
+        if not self.is_safe_path(output_file):
+            print "Error: Illegal characters or format in output path: " + output_file
+            return false
 
         var svm_file = input_file
         if endswith(input_file, ".sage"):
             let ext = ".svm"
             svm_file = input_file + ext
-            var cmd = "sage --emit-vm "
-            cmd = cmd + input_file
-            cmd = cmd + " -o "
-            cmd = cmd + svm_file
+            # Security: Wrap paths in single quotes to prevent shell interpretation (Defense in depth)
+            var cmd = "sage --emit-vm '" + input_file + "' -o '" + svm_file + "'"
             let status = sys_exec(cmd)
             if status != 0:
                 print "Error: Failed to generate SVM from " + input_file
