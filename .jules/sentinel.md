@@ -34,11 +34,11 @@
 **Prevention:** Ensure all execution paths that expose sensitive host functionality (like `OP_IMPORT` or `OBJ_GET_GLOBAL`) consistently apply security metadata to the returned objects.
 
 ## 2026-06-29 - Sandbox Information Leak via Internal Properties
-**Vulnerability:** In both SVM and SRVM, guest code could access internal VM metadata and host bridges stored in dictionaries via properties or keys starting with . For example,  leaked the underlying host bridge object, and  tags could be inspected or manipulated.
-**Learning:** Preventing access to sensitive globals is insufficient if those sensitive objects are reachable as properties of allowed objects. Access control must be enforced at the property and index resolution levels.
-**Prevention:** Implement a strict blacklist for internal-use keys (e.g.,  prefix) in the VM's property and index access handlers when running in .
-
-## 2026-06-29 - Sandbox Information Leak via Internal Properties
 **Vulnerability:** In both SVM and SRVM, guest code could access internal VM metadata and host bridges stored in dictionaries via properties or keys starting with `__`. For example, `math.__host_mod__` leaked the underlying host bridge object, and `__builtin__` tags could be inspected or manipulated.
 **Learning:** Preventing access to sensitive globals is insufficient if those sensitive objects are reachable as properties of allowed objects. Access control must be enforced at the property and index resolution levels.
 **Prevention:** Implement a strict blacklist for internal-use keys (e.g., `__` prefix) in the VM's property and index access handlers when running in `safe_mode`.
+
+## 2026-07-02 - Hardening SGVMC Compiler against Command Injection
+**Vulnerability:** The SGVM compiler used a weak blacklist for path validation and lacked argument quoting when invoking the SageLang host via a shell command. Maliciously crafted paths could bypass the blacklist and execute arbitrary commands on the host.
+**Learning:** Blacklists are fragile and often insufficient for shell-based command construction. Even "safe" characters like spaces can be problematic if not handled correctly with quoting. Whitelisting is the only robust approach.
+**Prevention:** Use a strict whitelist for all inputs that end up in a shell command, explicitly block leading hyphens to prevent flag injection, and always use single-quoting for arguments to provide defense-in-depth.
