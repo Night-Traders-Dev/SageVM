@@ -1,0 +1,12 @@
+--- OR ---
+true
+Side effect: true
+true
+Side effect: false
+false
+--- AND ---
+false
+Side effect: true
+true
+Side effect: false
+false
