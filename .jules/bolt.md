@@ -11,3 +11,7 @@
 ## 2026-07-01 - Arithmetic and Global Access Inlining
 **Learning:** Inlining the logic for arithmetic (MUL/DIV), comparison (EQUAL/NOT_EQUAL), and global variable access (GET_GLOBAL/SET_GLOBAL) directly into the `MetalVM.run` loop achieved a ~3x speedup (~14.6s to ~4.8s) in arithmetic-heavy benchmarks by eliminating the overhead of repeated `execute_op` function calls.
 **Action:** Prioritize inlining the most frequent opcodes (found via profiling or common patterns like loop counters) into the main interpreter loop.
+
+## 2026-07-04 - Interpreter State Caching and Opcode Inlining
+**Learning:** Caching interpreter state (`ip`, `code`, `current_local_base`, `scopes`, `globals`) as local variables in the `MetalVM.run` loop significantly reduces property access overhead, providing a ~10-15% speedup in arithmetic-heavy loops. Inlining common opcodes like `OP_NIL`, `OP_TRUE`, `OP_FALSE`, `OP_DUP`, and comparison operators further reduces the frequency of `execute_op` calls.
+**Action:** When optimizing an interpreter, always prioritize caching the instruction pointer and current code chunk. Ensuring that most loop-related opcodes are inlined prevents costly function call overhead during dispatch.
