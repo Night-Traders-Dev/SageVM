@@ -76,6 +76,15 @@ let VMO_PRINT    = 0x09
 let VMO_ARRAY_LEN = 0x0A
 let VMO_PRINTM   = 0x0B
 let VMO_EXEC_AST = 0x0C
+let VMO_CMP_BINARY = 0x0D   # Generic binary comparison (type in funct7)
+
+# Comparison types for VMO_CMP_BINARY (stored in funct7 field)
+let CMP_EQ  = 0   # Equal (==)
+let CMP_NEQ = 1   # Not equal (!=)
+let CMP_LT  = 2   # Less than (<)
+let CMP_GT  = 3   # Greater than (>)
+let CMP_LE  = 4   # Less or equal (<=)
+let CMP_GE  = 5   # Greater or equal (>=)
 
 # Object Ops (funct7)
 let OBJ_GET_GLOBAL = 0x00

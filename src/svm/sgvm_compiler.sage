@@ -405,6 +405,7 @@ class SGVMCompiler:
             svm_file = input_file + ext
             # Security: Wrap paths in single quotes to prevent shell interpretation (Defense in depth)
             var cmd = "sage --emit-vm '" + input_file + "' -o '" + svm_file + "'"
+            
             let status = sys_exec(cmd)
             if status != 0:
                 print "Error: Failed to generate SVM from " + input_file

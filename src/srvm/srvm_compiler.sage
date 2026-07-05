@@ -171,18 +171,53 @@ class StackToRiscVTranslator:
             elif op == sgvm_core.OP_EQUAL:
                 let rs2 = pop(self.reg_stack)
                 let rs1 = pop(self.reg_stack)
-                let rt = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_XOR, 0, rt, rs1, rs2))
-                let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_SLTIU, rd, rt, 1))
-                push(self.reg_stack, rd)
+                # ADDI x10, rs1, 0  -> a0 = rs1
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
+                # ADDI x11, rs2, 0  -> a1 = rs2
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
+                # VMO_CMP_BINARY with funct7=CMP_EQ
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_EQ, 0, srvm_core.VMO_CMP_BINARY, 0))
+                push(self.reg_stack, 10)
+
+            elif op == sgvm_core.OP_NOT_EQUAL:
+                let rs2 = pop(self.reg_stack)
+                let rs1 = pop(self.reg_stack)
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_NEQ, 0, srvm_core.VMO_CMP_BINARY, 0))
+                push(self.reg_stack, 10)
 
             elif op == sgvm_core.OP_LESS:
                 let rs2 = pop(self.reg_stack)
                 let rs1 = pop(self.reg_stack)
-                let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_SLT, 0, rd, rs1, rs2))
-                push(self.reg_stack, rd)
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_LT, 0, srvm_core.VMO_CMP_BINARY, 0))
+                push(self.reg_stack, 10)
+
+            elif op == sgvm_core.OP_GREATER:
+                let rs2 = pop(self.reg_stack)
+                let rs1 = pop(self.reg_stack)
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_GT, 0, srvm_core.VMO_CMP_BINARY, 0))
+                push(self.reg_stack, 10)
+
+            elif op == sgvm_core.OP_GREATER_EQUAL:
+                let rs2 = pop(self.reg_stack)
+                let rs1 = pop(self.reg_stack)
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_GE, 0, srvm_core.VMO_CMP_BINARY, 0))
+                push(self.reg_stack, 10)
+
+            elif op == sgvm_core.OP_LESS_EQUAL:
+                let rs2 = pop(self.reg_stack)
+                let rs1 = pop(self.reg_stack)
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_LE, 0, srvm_core.VMO_CMP_BINARY, 0))
+                push(self.reg_stack, 10)
 
             elif op == sgvm_core.OP_GET_INDEX:
                 let idx = pop(self.reg_stack)
