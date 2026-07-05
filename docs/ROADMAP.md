@@ -37,7 +37,8 @@ This document outlines the features and standard library modules currently unsup
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.
 
-- **Truthiness Conformance**: Resolve the bug in `src/svm/sgvm_vm.sage` where empty strings are erroneously treated as falsy (inherited from host SageLang) instead of truthy.
+- [ ] **Truthiness Conformance**: Resolve the bug in `src/svm/sgvm_vm.sage` where empty strings are erroneously treated as falsy (inherited from host SageLang) instead of truthy.
+- [ ] **SVM Lexical Capture/Closures**: Implement support for lexical capture in the SVM interpreter to allow functions to access outer scope variables (verified gap in `tests/nested_scopes.sage`).
 - **Networking**: Full implementation of `socket` and `http` modules, requiring a safe abstraction of the host's networking stack.
 - **Bytecode Verifier**: Pre-execution verification for constant pool integrity and jump target validity.
 - **Recursion/Stack Depth**: 🟡 SRVM currently has limited call stack depth for deep recursion (e.g., recursive Fibonacci > 20).
