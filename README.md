@@ -4,6 +4,17 @@ SageVM is a high-performance, pure SageLang implementation of the Sage Virtual M
 
 ## Features (v0.9.8)
 
+
+## Recent Updates
+
+- **Interpreter Hot-Loop Optimization**: Cleaned up the dispatch loop and restored missing `OP_TRUTHY` and `OP_PRINT` opcode branches.
+
+- **Variable Caching & State Synchronization**: Corrected state synchronization logic for the new stack-based local variable caching mechanism in `MetalVM.run`.
+
+- **Command Injection Prevention Fix**: Recompiled the VM using the updated SageLang `is_safe_command` validation logic to allow `sagevm compile` to properly parse spaces and single quotes when interacting with the host system.
+
+
+
 - **Dual-Architecture Engine**: Seamlessly switch between Stack VM (SVM) and RISC-V Register VM (SRVM).
 - **100% Opcode Parity**: Supports all 89 SVM opcodes and the standard RV64I base instruction set.
 - **Delegation Bridge**: Full guest-to-host delegation for GPU, I/O, and native modules.
