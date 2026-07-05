@@ -1,3 +1,8 @@
+# Test string repetition with *
+# This is a known missing feature in SVM
+print "abc" * 3
+print "!" * 10
+print 5 * "x"
 # Test string repetition
 # BUG: SVM currently doesn't support string repetition with * and fails with
 # "Runtime Error: Operands must be numbers."
