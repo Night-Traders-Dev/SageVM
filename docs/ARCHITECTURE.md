@@ -120,7 +120,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-02**
+**Last Conformance Sync: 2026-07-05**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` and `BC_OP_SET_LOCAL` at indices 59 and 60, shifting the entire GPU instruction block (formerly 59-86) to 61-88. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 2-opcode shift and collisions for SageVM extensions (e.g., `OP_GET_LOCAL` at 88 vs. authoritative 59).
 
@@ -222,7 +222,7 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: PUSH_CONST] |
 | OP_GET_LOCAL | 88 | 59 | Get a local variable value [Collision: DISPATCH] |
 | OP_SET_LOCAL | 89 | 60 | Set a local variable value |
-| OP_HALT | 0xFF | - | Halt execution [SageVM Extension] |
+| OP_HALT | 255 | - | Halt execution [SageVM Extension] |
 
 ## Native Bridge
 
