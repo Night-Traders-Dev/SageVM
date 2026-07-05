@@ -1,0 +1,6 @@
+Testing division by zero:
+true
+Testing modulo by zero:
+true
+Testing division by zero with variables:
+true
