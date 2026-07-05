@@ -43,8 +43,8 @@ SageLang code follows a strictly defined path to execution:
 
 ### 4.1 Truthiness
 In the SageVM implementation, truthiness follows strict rules for boolean context evaluation (e.g., `OP_JUMP_IF_FALSE`, `OP_TRUTHY`):
-- **Falsy**: `0` (number), `nil`, `false`.
-- **Truthy**: `true`, non-zero numbers, empty/non-empty strings (""), empty/non-empty arrays ([]), and empty/non-empty dictionaries ({}).
+- **Falsy**: `0` (number), `nil`, `false`, and erroneously "" (empty string).
+- **Truthy**: `true`, non-zero numbers, non-empty strings, empty/non-empty arrays ([]), and empty/non-empty dictionaries ({}).
 
 *Note: While standard SageLang may treat empty collections as falsy, the current `MetalVM` implementation erroneously treats empty strings as falsy by inheriting host SageLang behavior. This is a documented conformance bug.*
 
@@ -53,6 +53,7 @@ In the SageVM implementation, truthiness follows strict rules for boolean contex
 
 Before and during execution, production SGVM bytecode MUST pass verification and runtime checks that ensure:
 - **Control Flow Integrity**: No illegal jumps; recursive depth is limited to 1,024 frames (`max_call_depth`).
+- **Lexical Integrity**: The current SVM implementation does not support lexical capture (closures). Functions rely on the dynamic execution stack and global scope; attempts to use lexical variables from outer scopes will resolve to `nil` or global values unless passed explicitly.
 - **Type Safety**: Operations are performed on valid operand types.
 - **Boundary Checks**: No out-of-bounds access to memory or object arenas. Execution state is accelerated by caching `current_local_base` for local variable access.
   - **SVM**: Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
@@ -80,7 +81,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-07-02**
+**Last Conformance Sync: 2026-07-04**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
