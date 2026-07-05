@@ -41,3 +41,7 @@
 ## 2026-06-30 - [Auto-scrolling Console UX]
 **Learning:** Real-time console or log outputs that don't auto-scroll force users to manually interact with the UI to see progress, breaking the "interactive" feel.
 **Action:** Always implement an auto-scroll to bottom mechanism (e.g., via `useEffect` and `scrollTop`) for live execution logs or console outputs.
+
+## 2026-07-05 - [Search Recovery and Accessibility in Opcode Reference]
+**Learning:** Providing a clear "Clear all filters" button in a zero-results state significantly improves user flow by allowing immediate recovery without manual input clearing. Adding ARIA labels to search inputs and clear buttons ensures the interface remains accessible to screen reader users.
+**Action:** Always implement a "Clear all filters" button for empty search results and ensure all search-related interactive elements have descriptive ARIA labels.

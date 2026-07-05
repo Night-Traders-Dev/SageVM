@@ -121,6 +121,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 ## 5. Bytecode Opcodes
 
 **Last Conformance Sync: 2026-07-05**
+**Last Conformance Sync: 2026-07-04**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` and `BC_OP_SET_LOCAL` at indices 59 and 60, shifting the entire GPU instruction block (formerly 59-86) to 61-88. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 2-opcode shift and collisions for SageVM extensions (e.g., `OP_GET_LOCAL` at 88 vs. authoritative 59).
 
@@ -237,8 +238,8 @@ The following modules are currently bridged:
 - **gpu**: Native SageLang `gpu` module (Vulkan/OpenGL acceleration).
 - **ml_native**: Native SageLang `ml_native` module (Machine Learning acceleration).
 - **ffi**: Foreign Function Interface for calling host C libraries.
-- **mem**: Direct host memory management and raw access.
-- **struct**: Binary data structure packing/unpacking.
+- **mem**: Direct host memory management and raw access (including `alloc`, `free`, `read`, `write`, `size`).
+- **struct**: Binary data structure packing/unpacking (including `def`, `new`, `get`, `set`, `size`).
 - **gc**: (Experimental stub) Native SageLang garbage collector interface.
 - **reflect**: (Experimental stub) Native SageLang reflection interface.
 

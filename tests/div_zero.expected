@@ -1,0 +1,12 @@
+Testing division by zero:
+true
+Testing modulo by zero:
+true
+Testing division by zero with variables:
+true
+10 / 0:
+nil
+10 % 0:
+nil
+1.0 / 0.0:
+nil
