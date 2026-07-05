@@ -223,7 +223,7 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: PUSH_CONST] |
 | OP_GET_LOCAL | 88 | 59 | Get a local variable value [Collision: DISPATCH] |
 | OP_SET_LOCAL | 89 | 60 | Set a local variable value |
-| OP_HALT | 0xFF | - | Halt execution [SageVM Extension] |
+| OP_HALT | 255 | - | Halt execution [SageVM Extension] |
 
 ## Native Bridge
 
