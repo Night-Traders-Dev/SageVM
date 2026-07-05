@@ -23,3 +23,16 @@ if true and side_effect(false, "AND PASS"):
     print "AND 2 FAIL"
 else:
     print "AND 2 OK"
+proc side_effect(val):
+    print "Side effect: " + str(val)
+    return val
+
+print "--- OR ---"
+print true or side_effect(true)
+print false or side_effect(true)
+print false or side_effect(false)
+
+print "--- AND ---"
+print false and side_effect(false)
+print true and side_effect(true)
+print true and side_effect(false)

@@ -27,7 +27,8 @@ This document outlines the features and standard library modules currently unsup
 - [ ] **Local Variable Opcodes (Conformance)**: Implement `OP_GET_LOCAL` (59) and `OP_SET_LOCAL` (60) in `sgvm_vm.sage` to match authoritative indices.
 - [ ] **SRVM GPU Implementation**: Implement missing register-based GPU opcodes in `src/srvm/srvm_vm.sage` to replace the legacy 2D instruction set.
 - [x] **SRVM Sandboxing**: Implement `safe_mode` and `no_ffi` enforcement for the RISC-V backend to achieve parity with SVM security.
-- [ ] **SVM Builtin Gaps**: Implement missing string/collection utilities (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`) in `src/svm/sgvm_vm.sage`.
+- [ ] **SVM Builtin Gaps**: Implement missing string/collection utilities (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`, `contains`) in `src/svm/sgvm_vm.sage`.
+- [ ] **String Repetition**: Implement `OP_MUL` support for string repetition with `*` in `src/svm/sgvm_vm.sage`.
 - [ ] **Disassembler Label Gaps**: Implement descriptive labels for local variable (88-89), matrix (87), and GPU (59-86) opcodes in `src/svm/sgvm_disassembler_logic.sage`.
 - [ ] **SRVM Opcode Gaps**: Implement missing register-based opcodes in `src/srvm/srvm_vm.sage`:
   - `VMO_IMPORT`, `VMO_EXEC_AST`
@@ -36,7 +37,8 @@ This document outlines the features and standard library modules currently unsup
 ## 🔴 High Difficulty (Complex Systems)
 These tasks involve significant architectural additions or complex resource management.
 
-- **Truthiness Conformance**: Resolve the bug in `src/svm/sgvm_vm.sage` where empty strings are erroneously treated as falsy (inherited from host SageLang) instead of truthy.
+- [ ] **Truthiness Conformance**: Resolve the bug in `src/svm/sgvm_vm.sage` where empty strings are erroneously treated as falsy (inherited from host SageLang) instead of truthy.
+- [ ] **SVM Lexical Capture/Closures**: Implement support for lexical capture in the SVM interpreter to allow functions to access outer scope variables (verified gap in `tests/nested_scopes.sage`).
 - **Networking**: Full implementation of `socket` and `http` modules, requiring a safe abstraction of the host's networking stack.
 - **Bytecode Verifier**: Pre-execution verification for constant pool integrity and jump target validity.
 - **Recursion/Stack Depth**: 🟡 SRVM currently has limited call stack depth for deep recursion (e.g., recursive Fibonacci > 20).

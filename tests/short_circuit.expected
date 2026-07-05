@@ -6,3 +6,15 @@ Testing AND short-circuit:
 AND 1 OK
 AND PASS
 AND 2 OK
+--- OR ---
+true
+Side effect: true
+true
+Side effect: false
+false
+--- AND ---
+false
+Side effect: true
+true
+Side effect: false
+false
