@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.22] - 2026-07-05
+
+### Added
+- **Compiler Security Hardening**: Upgraded `sgvmc` path validation to use a robust, whitelist-based `is_safe_path` helper, preventing command and flag injection via malicious file paths.
+
+### Changed
+- **Native Bridge Expansion (SVM)**: Finalized and verified native bridge coverage for `math` (`abs`, `sqrt`, `sin`, `cos`), `mem` (`read`), and `struct` (`def`) in the SVM backend.
+- **Documentation Sync**: Updated architectural and technical specifications to reflect the 2026-07-05 conformance state and newly identified SVM implementation gaps.
 ## [0.9.22] - 2026-07-04
 
 ### Changed
