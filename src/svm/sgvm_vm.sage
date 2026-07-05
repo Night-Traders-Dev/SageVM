@@ -122,6 +122,11 @@ class MetalVM:
         self.ip = 0
         self.halted = false
         # Performance: Cache properties as locals to avoid property access in hot loop
+
+        # Performance: Cache frequently used properties as local variables
+        var ip = 0
+        var code_bytes = code
+        var halted = false
         let stack = self.stack
         let max_stack = self.max_stack_depth
         let constants = self.constants
@@ -133,13 +138,21 @@ class MetalVM:
 
         host_thread.lock(g_gil)
         while not self.halted and ip < len(current_code):
+        let trace = self.trace
+        let safe_mode = self.safe_mode
+        var local_base = self.current_local_base
+
+        host_thread.lock(g_gil)
+        while not halted and ip < len(code_bytes):
             if len(stack) > max_stack:
                 print "Error: Stack overflow"
-                self.halted = true
+                halted = true
                 break
 
             let op = int(current_code[ip])
             if self.trace:
+            let op = int(code_bytes[ip])
+            if trace:
                 print "IP: " + str(ip) + " OP: " + str(op) + " Stack: " + str(stack)
 
             ip = ip + 1
@@ -153,6 +166,7 @@ class MetalVM:
                 stack[len(stack)-1] = stack[len(stack)-1] - b
             elif op == OP_CONSTANT:
                 let idx = (int(current_code[ip]) << 8) | int(current_code[ip+1])
+                let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
                 ip = ip + 2
                 push(stack, constants[idx])
             elif op == OP_NIL:
@@ -176,6 +190,16 @@ class MetalVM:
                 ip = ip + 2
                 let val = pop(stack)
                 let addr = current_local_base + idx
+                let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
+                ip = ip + 2
+                let addr = local_base + idx
+                if addr < len(stack): push(stack, stack[addr])
+                else: push(stack, nil)
+            elif op == OP_SET_LOCAL:
+                let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
+                ip = ip + 2
+                let val = pop(stack)
+                let addr = local_base + idx
                 while addr >= len(stack): push(stack, nil)
                 stack[addr] = val
                 push(stack, val)
@@ -183,27 +207,27 @@ class MetalVM:
                 ip = ip - ((int(current_code[ip]) << 8) | int(current_code[ip+1]))
             elif op == OP_JUMP_IF_FALSE:
                 let target = (int(current_code[ip]) << 8) | int(current_code[ip+1])
+                ip = ip - ((int(code_bytes[ip]) << 8) | int(code_bytes[ip+1]))
+            elif op == OP_JUMP_IF_FALSE:
+                let target = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
                 ip = ip + 2
                 if not stack[len(stack)-1]: ip = target
             elif op == OP_MUL:
-                # Performance: Inline multiplication to avoid execute_op call
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] * b
             elif op == OP_DIV:
-                # Performance: Inline division to avoid execute_op call
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] / b
             elif op == OP_EQUAL:
-                # Performance: Inline equality check to avoid execute_op call
                 let b = pop(stack)
                 stack[len(stack)-1] = (stack[len(stack)-1] == b)
             elif op == OP_NOT_EQUAL:
-                # Performance: Inline inequality check to avoid execute_op call
                 let b = pop(stack)
                 stack[len(stack)-1] = (stack[len(stack)-1] != b)
             elif op == OP_GET_GLOBAL:
                 # Performance: Inline global variable access and constant indexing
                 let idx = (int(current_code[ip]) << 8) | int(current_code[ip+1])
+                let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
                 ip = ip + 2
                 let name = constants[idx]
                 var found = false
@@ -212,6 +236,8 @@ class MetalVM:
                     let sc = scopes[si]
                     if dict_has(sc, name):
                         push(stack, sc[name])
+                    if dict_has(scopes[si], name):
+                        push(stack, scopes[si][name])
                         found = true
                         si = -1
                     else:
@@ -224,6 +250,7 @@ class MetalVM:
             elif op == OP_SET_GLOBAL:
                 # Performance: Inline global variable assignment
                 let idx = (int(current_code[ip]) << 8) | int(current_code[ip+1])
+                let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
                 ip = ip + 2
                 let name = constants[idx]
                 let val = pop(stack)
@@ -233,6 +260,8 @@ class MetalVM:
                     let sc = scopes[si]
                     if dict_has(sc, name):
                         sc[name] = val
+                    if dict_has(scopes[si], name):
+                        scopes[si][name] = val
                         updated = true
                         si = -1
                     else:
@@ -256,14 +285,53 @@ class MetalVM:
                 pop(stack)
             elif op == OP_TRUTHY:
                 stack[len(stack)-1] = not (not stack[len(stack)-1])
+                stack[len(stack)-1] = stack[len(stack)-1] < b
+            elif op == OP_LESS_EQUAL:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] <= b
+            elif op == OP_GREATER:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] > b
+            elif op == OP_GREATER_EQUAL:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] >= b
+            elif op == OP_POP:
+                pop(stack)
+            elif op == OP_NIL:
+                push(stack, nil)
+            elif op == OP_TRUE:
+                push(stack, true)
+            elif op == OP_FALSE:
+                push(stack, false)
+            elif op == OP_DUP:
+                let distance = int(code_bytes[ip])
+                ip = ip + 1
+                push(stack, stack[len(stack)-1-distance])
+            elif op == OP_MOD:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] % b
+            elif op == OP_BIT_AND:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] & b
+            elif op == OP_BIT_OR:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] | b
+            elif op == OP_BIT_XOR:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] ^ b
+            elif op == OP_BIT_NOT:
+                stack[len(stack)-1] = ~stack[len(stack)-1]
+            elif op == OP_SHIFT_LEFT:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] << b
+            elif op == OP_SHIFT_RIGHT:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] >> b
             elif op == OP_NOT:
-                # Performance: Inline NOT to avoid execute_op call
                 stack[len(stack)-1] = not stack[len(stack)-1]
             elif op == OP_NEGATE:
-                # Performance: Inline NEGATE to avoid execute_op call
                 stack[len(stack)-1] = -stack[len(stack)-1]
             elif op == OP_ARRAY_LEN:
-                # Performance: Inline ARRAY_LEN to avoid execute_op call
                 stack[len(stack)-1] = len(stack[len(stack)-1])
             elif op == OP_PUSH_ENV:
                 # Performance: Inline PUSH_ENV
@@ -273,20 +341,21 @@ class MetalVM:
                 pop(scopes)
             elif op == OP_PRINT:
                 print pop(stack)
+                push(scopes, {})
+            elif op == OP_POP_ENV:
+                pop(scopes)
             elif op == OP_GET_INDEX:
-                # Performance: Inline GET_INDEX
                 let idx = pop(stack)
                 let obj = pop(stack)
-                if self.safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     push(stack, nil)
                 else:
                     push(stack, obj[idx])
             elif op == OP_SET_INDEX:
-                # Performance: Inline SET_INDEX
                 let val = pop(stack)
                 let idx = pop(stack)
                 let obj = pop(stack)
-                if self.safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
                     push(stack, nil)
                 elif self.is_protected(obj):
@@ -301,12 +370,30 @@ class MetalVM:
                 self.ip = ip
                 self.code = current_code
                 self.current_local_base = current_local_base
+                ip = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
+            else:
+                # Synchronize local state back to self before calling non-inlined execute_op
+                self.ip = ip
+                self.halted = halted
+                self.current_local_base = local_base
                 if not self.execute_op(op):
+                    # execute_op may have modified halted/ip/local_base
+                    halted = self.halted
                     break
                 ip = self.ip
                 current_code = self.code
                 current_local_base = self.current_local_base
         self.ip = ip
+                # Restore local state after execute_op
+                ip = self.ip
+                code_bytes = self.code
+                halted = self.halted
+                local_base = self.current_local_base
+
+        # Final synchronization
+        self.ip = ip
+        self.halted = halted
+        self.current_local_base = local_base
         host_thread.unlock(g_gil)
 
     proc call_builtin(self, callee, args):

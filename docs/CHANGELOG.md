@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.22] - 2026-07-04
+
+### Changed
+- **Documentation Sync**: Updated technical specifications and architectural documentation to reflect the latest conformance audit and architectural findings as of 2026-07-04.
+
 ## [0.9.21] - 2026-07-02
 
 ### Added
