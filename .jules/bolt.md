@@ -11,3 +11,7 @@
 ## 2026-07-01 - Arithmetic and Global Access Inlining
 **Learning:** Inlining the logic for arithmetic (MUL/DIV), comparison (EQUAL/NOT_EQUAL), and global variable access (GET_GLOBAL/SET_GLOBAL) directly into the `MetalVM.run` loop achieved a ~3x speedup (~14.6s to ~4.8s) in arithmetic-heavy benchmarks by eliminating the overhead of repeated `execute_op` function calls.
 **Action:** Prioritize inlining the most frequent opcodes (found via profiling or common patterns like loop counters) into the main interpreter loop.
+
+## 2026-07-04 - Local Variable Caching and State Synchronization
+**Learning:** Caching `self` properties (like `ip`, `code`, `stack`, and `current_local_base`) as local variables in the `MetalVM.run` loop provided an ~11% speedup. However, it is critical to synchronize these locals back from `self` after calling any non-inlined method (like `execute_op`) because operations like function calls or returns can swap the active code chunk (`self.code`) and reset the instruction pointer.
+**Action:** Use local variable caching for VM hot loops, but always implement "sync-on-fallback" logic when dispatching to external handlers.
