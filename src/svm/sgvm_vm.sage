@@ -55,6 +55,18 @@ class MetalVM:
         # Performance: Cache local_base to avoid dictionary lookups in hot loop
         self.current_local_base = 0
 
+    proc safe_get_constant(self, idx):
+        if idx >= 0 and idx < len(self.constants): return self.constants[idx]
+        print "Error: Constant pool index out of bounds: " + str(idx)
+        self.halted = true
+        return nil
+
+    proc safe_get_chunk(self, idx):
+        if idx >= 0 and idx < len(self.chunks): return self.chunks[idx]
+        print "Error: Chunk index out of bounds: " + str(idx)
+        self.halted = true
+        return []
+
     proc setup_builtins(self):
         # Native Bridge: Expose host standard library to guest VM
         self.globals["math"] = {"__host_mod__": math, "printm": "__builtin_math_printm"}
@@ -158,7 +170,12 @@ class MetalVM:
             elif op == OP_CONSTANT:
                 let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
                 ip = ip + 2
-                push(stack, constants[idx])
+                if idx >= 0 and idx < len(constants):
+                    push(stack, constants[idx])
+                else:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
             elif op == OP_GET_LOCAL:
                 let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
                 ip = ip + 2
@@ -194,6 +211,10 @@ class MetalVM:
             elif op == OP_GET_GLOBAL:
                 let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
                 ip = ip + 2
+                if idx < 0 or idx >= len(constants):
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
                 let name = constants[idx]
                 var found = false
                 var si = len(scopes) - 1
@@ -212,6 +233,10 @@ class MetalVM:
             elif op == OP_SET_GLOBAL:
                 let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
                 ip = ip + 2
+                if idx < 0 or idx >= len(constants):
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
                 let name = constants[idx]
                 let val = pop(stack)
                 var si = len(scopes) - 1
@@ -460,7 +485,7 @@ class MetalVM:
         if op == OP_CONSTANT:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
-            push(self.stack, self.constants[idx])
+            push(self.stack, self.safe_get_constant(idx))
         elif op == OP_NIL:
             push(self.stack, nil)
         elif op == OP_TRUE:
@@ -476,7 +501,8 @@ class MetalVM:
         elif op == OP_GET_GLOBAL:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
-            let name = self.constants[idx]
+            let name = self.safe_get_constant(idx)
+            if self.halted: return false
             if self.trace: print "DEBUG: GET_GLOBAL " + name
             var found = false
             var si = len(self.scopes) - 1
@@ -505,7 +531,8 @@ class MetalVM:
         elif op == OP_SET_GLOBAL:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
-            let name = self.constants[idx]
+            let name = self.safe_get_constant(idx)
+            if self.halted: return false
             let val = pop(self.stack)
             var si = len(self.scopes) - 1
             var updated = false
@@ -658,6 +685,10 @@ class MetalVM:
         elif op == OP_LOAD_FUNCTION:
             let chunk_idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
+            if chunk_idx < 0 or chunk_idx >= len(self.chunks):
+                print "Error: Chunk index out of bounds: " + str(chunk_idx)
+                self.halted = true
+                return false
             push(self.stack, {"__type__": "function", "__chunk__": chunk_idx})
         elif op == OP_CALL:
             let argc = int(self.code[self.ip])
@@ -683,7 +714,12 @@ class MetalVM:
                             return false
                         let local_base = len(self.stack)
                         push(self.call_stack, {"ip": self.ip, "code": self.code, "local_base": local_base})
-                        self.code = self.chunks[callee["__chunk__"]]
+                        let c_idx = callee["__chunk__"]
+                        if c_idx < 0 or c_idx >= len(self.chunks):
+                            print "Error: Chunk index out of bounds: " + str(c_idx)
+                            self.halted = true
+                            return false
+                        self.code = self.chunks[c_idx]
                         self.ip = 0
                         # Performance: Update cached local_base for the new frame
                         self.current_local_base = local_base
