@@ -42,3 +42,8 @@
 **Vulnerability:** The SGVM compiler used a weak blacklist for path validation and lacked argument quoting when invoking the SageLang host via a shell command. Maliciously crafted paths could bypass the blacklist and execute arbitrary commands on the host.
 **Learning:** Blacklists are fragile and often insufficient for shell-based command construction. Even "safe" characters like spaces can be problematic if not handled correctly with quoting. Whitelisting is the only robust approach.
 **Prevention:** Use a strict whitelist for all inputs that end up in a shell command, explicitly block leading hyphens to prevent flag injection, and always use single-quoting for arguments to provide defense-in-depth.
+
+## 2026-07-07 - Out-of-Bounds Access in VM Constant Pool and Chunks
+**Vulnerability:** The SVM and SRVM interpreters lacked bounds checking when indexing into the constant pool and code chunks using guest-provided indices. A malicious binary could provide indices outside the valid range, leading to 'nil' values being propagated into VM operations, causing unpredictable behavior or host-level runtime errors.
+**Learning:** Virtual machine implementations must strictly validate all indices decoded from guest bytecode before using them to access internal VM structures. Failure to do so can break the sandbox's integrity and lead to denial-of-service or information leakage.
+**Prevention:** Always implement explicit bounds checks at the point of access for all VM-internal collections (constants, chunks, stacks) and provide clean VM-level error reporting instead of letting errors propagate to the host.
