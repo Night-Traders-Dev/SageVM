@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-06]
+
+### Added
+- **SRVM Comparison Engine**: Added `VMO_CMP_BINARY` opcode to the SRVM core for generic binary comparisons (EQ, NEQ, LT, GT, LE, GE).
+- **SRVM Compiler Integration**: Integrated `VMO_CMP_BINARY` into the SRVM compiler's code emission pass to support complex conditional logic.
+
+### Changed
+- **Documentation Sync**: Synchronized architectural and technical specifications with the 2026-07-06 conformance state; documented the `VMO_CMP_BINARY` implementation gap in the SRVM interpreter.
+
 ## [0.9.22] - 2026-07-05
 
 ### Added
