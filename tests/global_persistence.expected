@@ -1,0 +1,4 @@
+Initial: 100
+After modification: 200
+Shadowed: 300
+After shadowing call: 200

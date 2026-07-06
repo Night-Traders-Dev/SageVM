@@ -1,0 +1,14 @@
+NOT true: false
+NOT false: true
+NOT nil: true
+NOT 10: false
+NOT 0: true
+NOT 'hi': false
+NOT '': true
+TRUTHY true: true
+TRUTHY false: false
+TRUTHY nil: false
+TRUTHY 10: true
+TRUTHY 0: false
+TRUTHY 'hi': true
+TRUTHY '': false

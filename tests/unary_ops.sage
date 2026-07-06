@@ -1,0 +1,17 @@
+# Test OP_NOT and OP_TRUTHY
+print "NOT true: " + str(not true)
+print "NOT false: " + str(not false)
+print "NOT nil: " + str(not nil)
+print "NOT 10: " + str(not 10)
+print "NOT 0: " + str(not 0)
+print "NOT 'hi': " + str(not "hi")
+print "NOT '': " + str(not "")
+
+# Explicit truthiness conversion (!! in many languages, not (not x) in Sage)
+print "TRUTHY true: " + str(not (not true))
+print "TRUTHY false: " + str(not (not false))
+print "TRUTHY nil: " + str(not (not nil))
+print "TRUTHY 10: " + str(not (not 10))
+print "TRUTHY 0: " + str(not (not 0))
+print "TRUTHY 'hi': " + str(not (not "hi"))
+print "TRUTHY '': " + str(not (not ""))
