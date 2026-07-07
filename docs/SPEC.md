@@ -55,7 +55,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
 - **Control Flow Integrity**: No illegal jumps; recursive depth is limited to 1,024 frames (`max_call_depth`).
 - **Lexical Integrity**: The current SVM implementation does not support lexical capture (closures). Functions rely on the dynamic execution stack and global scope; attempts to use lexical variables from outer scopes will resolve to `nil` or global values unless passed explicitly.
 - **Type Safety**: Operations are performed on valid operand types.
-- **Boundary Checks**: No out-of-bounds access to memory or object arenas. Execution state is accelerated by caching `current_local_base` for local variable access.
+- **Boundary Checks**: No out-of-bounds access to memory, object arenas, or VM-internal collections. Both SVM and SRVM interpreters implement explicit bounds checks for constant pool and chunk indexing to prevent host-level runtime errors or silent state corruption. Execution state is accelerated by caching `current_local_base` for local variable access.
   - **SVM**: Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
   - **SRVM**: The fixed stack area is initialized with 1,000 slots. Recursive call depth and exception handler nesting are limited to 1,024 frames. Max array size is 1,000,000 entries.
 - **Path Sanitization**: The compiler (`sgvmc`) validates all input and output file paths using a strict whitelist-based `is_safe_path` helper (blocking command injection, flag injection, and shell metacharacters).
@@ -81,7 +81,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-07-06**
+**Last Conformance Sync: 2026-07-07**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
