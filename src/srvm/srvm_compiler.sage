@@ -438,15 +438,21 @@ class StackToRiscVTranslator:
                 while k < argc:
                     push(args, pop(self.reg_stack))
                     k = k + 1
+                # Preserve the callee in t0 (x5) BEFORE argument placement,
+                # otherwise a callee allocated to x10 is clobbered when arg0
+                # is moved into x10 (the a0 slot).
+                let callee_reg = pop(self.reg_stack)
+                if callee_reg != 5:
+                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, callee_reg, 0))
                 k = argc - 1
                 while k >= 0:
                     let src = args[argc - 1 - k]
-                    let dest = 10 + k 
-                    if src != dest:
+                    let dest = 10 + k
+                    if src != dest and src != 5:
                         self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, dest, src, 0))
                     k = k - 1
-                let func_reg = pop(self.reg_stack)
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_CALL, func_reg))
+                # Call via t0 (x5), which holds the preserved callee.
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_CALL, 5))
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, 10, 0))
                 push(self.reg_stack, rd)
