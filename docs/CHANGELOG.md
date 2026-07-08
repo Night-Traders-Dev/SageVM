@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-07]
+
+### Fixed
+- **Interpreter Hardening**: Implemented explicit bounds checks for constant pool and chunk indexing across both SVM and SRVM interpreters to prevent out-of-bounds access vulnerabilities.
+
+### Changed
+- **Native Bridge Completion (SVM)**: Finalized and verified native bridge coverage for all `mem` (alloc, free, read, write, size) and `struct` (def, new, get, set, size) operations in the SVM backend.
+- **Documentation Sync**: Synchronized architectural and technical specifications with the 2026-07-07 conformance state.
+
 ## [2026-07-06]
 
 ### Added
