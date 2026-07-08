@@ -46,6 +46,20 @@ class SRVM:
         self.state = SageVMState()
         self.trace = false
 
+    proc safe_get_constant(self, idx):
+        if idx >= 0 and idx < len(self.state.constants):
+            return self.state.constants[idx]
+        print "Error: Constant pool index out of bounds: " + str(idx)
+        self.state.running = false
+        return nil
+
+    proc safe_get_chunk(self, idx):
+        if idx >= 0 and idx < len(self.state.chunks):
+            return self.state.chunks[idx]
+        print "Error: Chunk index out of bounds: " + str(idx)
+        self.state.running = false
+        return []
+
     proc is_protected(self, obj):
         # Security helper: Check if an object is a protected module or host bridge
         if not self.state.safe_mode:
@@ -140,12 +154,7 @@ class SRVM:
 
     proc handle_ldc(self, instr):
         let idx = (instr.decode_u_imm() >> 12) & 0xFFFFF
-        if idx >= 0 and idx < len(self.state.constants):
-            self.state.x[instr.rd] = self.state.constants[idx]
-        else:
-            if self.trace:
-                print "Constant pool access violation at " + str(idx)
-            self.state.running = false
+        self.state.x[instr.rd] = self.safe_get_constant(idx)
         self.state.pc = self.state.pc + 4
 
     proc handle_load(self, instr):
@@ -348,10 +357,12 @@ class SRVM:
                     self.state.pc = self.state.pc + 4
                     return
                 
-                if target_chunk >= 0 and target_chunk < len(self.state.chunks):
+                if target_chunk >= 0:
+                    let chunk = self.safe_get_chunk(target_chunk)
+                    if not self.state.running: return
                     push(self.state.call_stack, [self.state.current_chunk_idx, self.state.pc + 4, self.state.x[1]])
                     self.state.current_chunk_idx = target_chunk
-                    self.state.bytecode = self.state.chunks[target_chunk]
+                    self.state.bytecode = chunk
                     self.state.pc = 0
                     self.state.x[1] = 0
                     return
@@ -390,7 +401,8 @@ class SRVM:
         elif f3 == srvm_core.F3_OBJ_OPS:
             if sub_op == srvm_core.OBJ_GET_GLOBAL:
                 let idx = int(self.state.x[10]) # a0
-                let name = self.state.constants[idx]
+                let name = self.safe_get_constant(idx)
+                if not self.state.running: return
                 if dict_has(self.state.heap, name):
                     self.state.x[instr.rd] = self.state.heap[name]
                 elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print":
@@ -400,12 +412,14 @@ class SRVM:
             elif sub_op == srvm_core.OBJ_SET_GLOBAL:
                 let idx = int(self.state.x[10]) # a0
                 let val = self.state.x[11] # a1
-                let name = self.state.constants[idx]
+                let name = self.safe_get_constant(idx)
+                if not self.state.running: return
                 self.state.heap[name] = val
             elif sub_op == srvm_core.OBJ_GET_PROP:
                 let obj = self.state.x[instr.rs2]
                 let name_idx = int(self.state.x[10])
-                let name = self.state.constants[name_idx]
+                let name = self.safe_get_constant(name_idx)
+                if not self.state.running: return
                 if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     self.state.x[instr.rd] = nil
                 elif type(obj) == "dict": self.state.x[instr.rd] = obj[name]
@@ -414,7 +428,8 @@ class SRVM:
                 let obj = self.state.x[instr.rs2]
                 let name_idx = int(self.state.x[10])
                 let val = self.state.x[11]
-                let name = self.state.constants[name_idx]
+                let name = self.safe_get_constant(name_idx)
+                if not self.state.running: return
                 if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     print "Error: Access to internal property '" + name + "' is restricted in safe mode"
                 elif self.is_protected(obj):
