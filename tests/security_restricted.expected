@@ -1,0 +1,16 @@
+Error: Access to module 'sys' is restricted in safe mode
+Error: Access to module 'io' is restricted in safe mode
+Error: Access to module 'net' is restricted in safe mode
+Error: Access to module 'thread' is restricted in safe mode
+Error: Access to module 'gpu' is restricted in safe mode
+Error: Access to module 'ml_native' is restricted in safe mode
+Error: Access to module 'mem' is restricted in safe mode
+Error: Access to module 'ffi' is restricted in safe mode
+sys restricted: true
+io restricted: true
+net restricted: true
+thread restricted: true
+gpu restricted: true
+ml_native restricted: true
+mem restricted: true
+ffi restricted: true
