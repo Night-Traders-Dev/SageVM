@@ -14,7 +14,7 @@ make test
 ```
 The `test` target in the `Makefile` handles several environment-specific setup tasks:
 - Mocks `curl/curl.h` if missing in the SageLang submodule to allow compilation in restricted environments.
-- Bootstraps the `sage` host binary with custom `LDFLAGS` if it hasn't been built.
+- Bootstraps the `sage` host binary with `SAGE_NO_NET=1 SAGE_NO_GPU=1` and custom `LDFLAGS` if it hasn't been built. This avoids dependency issues (like missing `libglfw.so.3`) in restricted environments.
 - Ensures `sgvm` and `sgvmc` symlinks are present.
 - Executes `python3 tests/run_tests.py` to run the modern coverage suite.
 
@@ -41,6 +41,8 @@ As of July 2026, several tests are expected to fail due to documented but unimpl
 - `all_types.sage`: Returns "dict" for modules, functions, classes, and instances instead of specific type names.
 - `nested_scopes.sage`: Nested functions cannot access parent local variables (lack of closures); they only see global scope or own locals.
 - `string_repeat.sage`: Missing SVM implementation for string repetition with `*`.
+- `halt_op.sage`: `sys.exit()` fails to immediately halt the SVM execution as expected in the guest-to-host bridge environment.
+- `exec_ast.sage`: `exec()` (OP_EXEC_AST_STMT) fails to produce output via host `sys.exec` fallback.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
