@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-08]
+
+### Added
+- **SVM Hot-Loop Optimization**: Inlined over 35 frequent opcodes (arithmetic, bitwise, stack operations, jumps) directly into `MetalVM.run`, significantly reducing function call overhead.
+- **Matrix Visualization**: Implemented `math.printm` native builtin in the SVM interpreter for formatted matrix output.
+
+### Changed
+- **SVM State Synchronization**: Implemented robust state synchronization in `MetalVM.run` to protect VM internals (ip, code_bytes, local_base) when transitioning to non-inlined opcode execution.
+- **Compiler Security Hardening**: Updated `sgvmc` path validation to support spaces and implemented single-quote wrapping for host compiler calls to prevent command injection.
+
+### Fixed
+- **Halting Behavior**: Documented a bug where `sys.exit()` fails to immediately terminate the guest execution state when called through the host delegation bridge.
+
 ## [2026-07-07]
 
 ### Fixed

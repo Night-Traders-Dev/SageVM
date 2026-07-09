@@ -58,6 +58,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
 - **Boundary Checks**: No out-of-bounds access to memory, object arenas, or VM-internal collections. Both SVM and SRVM interpreters implement explicit bounds checks for constant pool and chunk indexing to prevent host-level runtime errors or silent state corruption. Execution state is accelerated by caching `current_local_base` for local variable access.
   - **SVM**: Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
   - **SRVM**: The fixed stack area is initialized with 1,000 slots. Recursive call depth and exception handler nesting are limited to 1,024 frames. Max array size is 1,000,000 entries.
+- **Halt Behavior**: Terminating the guest VM via standard mechanisms (e.g., `sys.exit()`) through the host delegation bridge may exhibit a delay in immediate state termination. This is a documented behavioral gap in the current guest-to-host bridge environment.
 - **Path Sanitization**: The compiler (`sgvmc`) validates all input and output file paths using a strict whitelist-based `is_safe_path` helper (blocking command injection, flag injection, and shell metacharacters).
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions.
 
@@ -81,7 +82,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-07-07**
+**Last Conformance Sync: 2026-07-08**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
@@ -91,6 +92,6 @@ The following opcodes are SageVM-specific extensions or legacy mappings:
 - `OP_HALT` (255): Unconditional VM termination.
 
 ### 9.2 Known Incompatibilities
-- **Opcode Alignment Regression**: As of the latest sync (2026-07-04), the authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59) and `BC_OP_SET_LOCAL` (60), which has shifted the entire GPU instruction block (indices 61-88). SageVM currently maintains a legacy mapping where GPU opcodes start at 59, leading to a 2-opcode shift across the entire Phase 16 instruction set and collisions for trailing SageVM-specific opcodes.
+- **Opcode Alignment Regression**: As of the latest sync (2026-07-08), the authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59) and `BC_OP_SET_LOCAL` (60), which has shifted the entire GPU instruction block (indices 61-88). SageVM currently maintains a legacy mapping where GPU opcodes start at 59, leading to a 2-opcode shift across the entire Phase 16 instruction set and collisions for trailing SageVM-specific opcodes.
 - **GPU Instruction Set (SRVM)**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes in the core spec.
 - **Raise Encoding**: Historically, the `sgvmc` compiler (SVM) expected an incorrect encoding (`0x44`) for `OP_RAISE` which conflicted with `OP_GPU_END_COMMANDS`. This was resolved in v0.9.7; `OP_RAISE` is now correctly mapped to 58. Note that `sgvmc` still contains a hazardous legacy remapping for `0x44` -> 58.

@@ -19,6 +19,7 @@ This document outlines the features and standard library modules currently unsup
 ## 🟡 Medium Difficulty (Native Bridging)
 - [ ] **Regex & JSON Support**: Restore `re` and `json` module bridging in `src/svm/sgvm_vm.sage`.
 - [x] **Local Variable Opcodes**: Implement interpreter support for `OP_GET_LOCAL` and `OP_SET_LOCAL` in `src/svm/sgvm_vm.sage`.
+   - [x] **Hot-loop inlining**: Inlined `OP_GET_LOCAL` and `OP_SET_LOCAL` into `MetalVM.run`.
    - > ⚠️ **Encoding Mismatch**: Authoritative indices are 59 and 60, but SageVM currently uses indices 88 and 89.
 - [ ] **Compiler Conformance**: Overhaul `src/svm/sgvm_compiler.sage` remapping logic to align with authoritative `bytecode.h` indices.
    - [ ] Local variable remapping (Update 88, 89 to 59, 60)
@@ -30,6 +31,8 @@ This document outlines the features and standard library modules currently unsup
 - [ ] **SVM Builtin Protection**: Implement `__builtin__` protection for the SVM backend to match SRVM security parity.
 - [ ] **SVM Builtin Gaps**: Implement missing string/collection utilities (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`, `contains`) in `src/svm/sgvm_vm.sage`.
 - [ ] **String Repetition**: Implement `OP_MUL` support for string repetition with `*` in `src/svm/sgvm_vm.sage`.
+- [ ] **Matrix Emission Gap**: Implement missing binary emission logic for `OP_MATH_PRINTM` (87) in `src/svm/sgvm_compiler.sage`.
+- [ ] **Immediate Halt Bug**: Resolve bug where `sys.exit()` called through host bridge fails to immediately terminate guest execution state.
 - [ ] **Disassembler Label Gaps**: Implement descriptive labels for local variable (88-89), matrix (87), and GPU (59-86) opcodes in `src/svm/sgvm_disassembler_logic.sage`.
 - [ ] **SRVM Opcode Gaps**: Implement missing register-based opcodes in `src/srvm/srvm_vm.sage`:
   - `VMO_IMPORT`, `VMO_EXEC_AST`, `VMO_CMP_BINARY`
