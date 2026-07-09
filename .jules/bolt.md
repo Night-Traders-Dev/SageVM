@@ -18,3 +18,7 @@
 ## 2026-07-04 - Local Variable Caching and State Synchronization
 **Learning:** Caching `self` properties (like `ip`, `code`, `stack`, and `current_local_base`) as local variables in the `MetalVM.run` loop provided an ~11% speedup. However, it is critical to synchronize these locals back from `self` after calling any non-inlined method (like `execute_op`) because operations like function calls or returns can swap the active code chunk (`self.code`) and reset the instruction pointer.
 **Action:** Use local variable caching for VM hot loops, but always implement "sync-on-fallback" logic when dispatching to external handlers.
+
+## 2026-06-26 - Hot-Loop Invariant Caching
+**Learning:** Caching `len(code_bytes)`, `len(constants)`, and `len(scopes)` as local variables in the SVM interpreter's `run` method provides a measurable speedup (~8-11%) by avoiding repeated builtin/property lookups in every iteration of the dispatch loop.
+**Action:** Identify and cache all invariants in interpreter dispatch loops. Ensure synchronization back to `self` only when necessary (e.g., after non-inlined opcode handlers).
