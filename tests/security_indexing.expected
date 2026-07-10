@@ -1,0 +1,5 @@
+Internal: nil
+Public: visible
+Error: Index assignment to internal key '__internal' is restricted in safe mode
+Internal after set: nil
+Public after set: modified

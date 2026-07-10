@@ -25,6 +25,11 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 
 Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, large constant pools, string concatenation, float arithmetic, GPU time, string repetition, short-circuiting, division by zero, unary operators, return values, and global persistence are located here.
 
+### Coverage Expansion (2026-07-08)
+- `halt_op.sage`: Verifies VM termination (bug flagged: `sys.exit` currently doesn't halt guest).
+- `security_indexing.sage`: Verifies `safe_mode` index protections for `__` internal keys.
+- `security_restricted.sage`: Verifies native module access blocks in `safe_mode`.
+
 ### Known Issues
 As of July 2026, several tests are expected to fail due to documented but unimplemented features in the SVM backend:
 - `array_methods.sage`: Missing `push` and `pop` builtins.
@@ -41,6 +46,7 @@ As of July 2026, several tests are expected to fail due to documented but unimpl
 - `all_types.sage`: Returns "dict" for modules, functions, classes, and instances instead of specific type names.
 - `nested_scopes.sage`: Nested functions cannot access parent local variables (lack of closures); they only see global scope or own locals.
 - `string_repeat.sage`: Missing SVM implementation for string repetition with `*`.
+- `halt_op.sage`: Fails because `sys.exit` currently does not halt the VM interpreter.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
