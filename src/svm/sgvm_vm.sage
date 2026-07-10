@@ -146,54 +146,49 @@ class MetalVM:
         let trace = self.trace
         let safe_mode = self.safe_mode
         var local_base = self.current_local_base
+        let code_len = len(code_bytes)
+        let const_len = len(constants)
 
         host_thread.lock(g_gil)
-        while not halted and ip < len(code_bytes):
+        while not halted and ip < code_len:
             if len(stack) > max_stack:
                 print "Error: Stack overflow"
                 halted = true
                 break
 
-            let op = int(code_bytes[ip])
+            let op = code_bytes[ip]
             if trace:
                 print "IP: " + str(ip) + " OP: " + str(op) + " Stack: " + str(stack)
 
             ip = ip + 1
 
             # Hot-path dispatch: inline most frequent opcodes to avoid function call overhead
-            if op == OP_ADD:
-                let b = pop(stack)
-                stack[len(stack)-1] = stack[len(stack)-1] + b
-            elif op == OP_SUB:
-                let b = pop(stack)
-                stack[len(stack)-1] = stack[len(stack)-1] - b
-            elif op == OP_CONSTANT:
-                let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
+            if op == OP_GET_LOCAL:
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if idx >= 0 and idx < len(constants):
+                push(stack, stack[local_base + idx])
+            elif op == OP_CONSTANT:
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                if idx >= 0 and idx < const_len:
                     push(stack, constants[idx])
                 else:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
-            elif op == OP_GET_LOCAL:
-                let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
-                ip = ip + 2
-                let addr = local_base + idx
-                if addr < len(stack): push(stack, stack[addr])
-                else: push(stack, nil)
+            elif op == OP_ADD:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] + b
             elif op == OP_SET_LOCAL:
-                let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 let val = pop(stack)
-                let addr = local_base + idx
-                while addr >= len(stack): push(stack, nil)
-                stack[addr] = val
+                stack[local_base + idx] = val
                 push(stack, val)
             elif op == OP_LOOP_BACK:
-                ip = ip - ((int(code_bytes[ip]) << 8) | int(code_bytes[ip+1]))
+                ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
             elif op == OP_JUMP_IF_FALSE:
-                let target = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
+                let target = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 if not stack[len(stack)-1]: ip = target
             elif op == OP_MUL:
@@ -202,6 +197,14 @@ class MetalVM:
             elif op == OP_DIV:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] / b
+            elif op == OP_LESS:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] < b
+            elif op == OP_POP:
+                pop(stack)
+            elif op == OP_SUB:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] - b
             elif op == OP_EQUAL:
                 let b = pop(stack)
                 stack[len(stack)-1] = (stack[len(stack)-1] == b)
@@ -209,9 +212,9 @@ class MetalVM:
                 let b = pop(stack)
                 stack[len(stack)-1] = (stack[len(stack)-1] != b)
             elif op == OP_GET_GLOBAL:
-                let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if idx < 0 or idx >= len(constants):
+                if idx < 0 or idx >= const_len:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
@@ -231,9 +234,9 @@ class MetalVM:
                     else:
                         push(stack, nil)
             elif op == OP_SET_GLOBAL:
-                let idx = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if idx < 0 or idx >= len(constants):
+                if idx < 0 or idx >= const_len:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
@@ -251,9 +254,6 @@ class MetalVM:
                 if not updated:
                     globals[name] = val
                 push(stack, val)
-            elif op == OP_LESS:
-                let b = pop(stack)
-                stack[len(stack)-1] = stack[len(stack)-1] < b
             elif op == OP_LESS_EQUAL:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] <= b
@@ -272,7 +272,7 @@ class MetalVM:
             elif op == OP_FALSE:
                 push(stack, false)
             elif op == OP_DUP:
-                let distance = int(code_bytes[ip])
+                let distance = code_bytes[ip]
                 ip = ip + 1
                 push(stack, stack[len(stack)-1-distance])
             elif op == OP_MOD:
@@ -330,7 +330,7 @@ class MetalVM:
                     obj[idx] = val
                     push(stack, val)
             elif op == OP_JUMP:
-                ip = (int(code_bytes[ip]) << 8) | int(code_bytes[ip+1])
+                ip = (code_bytes[ip] << 8) | code_bytes[ip+1]
             else:
                 # Synchronize local state back to self before calling non-inlined execute_op
                 self.ip = ip
@@ -343,6 +343,7 @@ class MetalVM:
                 # Restore local state after execute_op
                 ip = self.ip
                 code_bytes = self.code
+                code_len = len(code_bytes)
                 halted = self.halted
                 local_base = self.current_local_base
 
