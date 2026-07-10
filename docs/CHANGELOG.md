@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-08]
+
+### Changed
+- **Documentation Sync**: Synchronized architectural and technical specifications with the 2026-07-08 conformance state; documented the 2-opcode shift regression and implementation gaps in the SRVM interpreter.
+- **SRVM Conformance Audit**: Identified and documented missing implementations for `VMO_NOP`, `VMO_IMPORT`, and `VMO_EXEC_AST` in the RISC-V backend.
+
 ## [2026-07-07]
 
 ### Fixed
