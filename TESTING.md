@@ -23,7 +23,12 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 2. Runs the compiled bytecode using `./sgvm`.
 3. Filters out `DEBUG:` logs and compares the output against the corresponding `.expected` file.
 
-Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, large constant pools, string concatenation, float arithmetic, GPU time, string repetition, short-circuiting, division by zero, unary operators, return values, and global persistence are located here.
+Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, large constant pools, string concatenation, float arithmetic, GPU time, string repetition, short-circuiting, division by zero, unary operators, return values, global persistence, anonymous/higher-order functions, variable shadowing, and collection equality are located here.
+
+### Coverage Expansion (2026-07-10)
+- `anon_func.sage`: Tests higher-order functions and variable-bound functions.
+- `shadowing.sage`: Tests variable shadowing (local vs global).
+- `collection_eq.sage`: Tests deep equality for arrays and dictionaries (bug flagged: dictionary equality fails).
 
 ### Coverage Expansion (2026-07-08)
 - `halt_op.sage`: Verifies VM termination (bug flagged: `sys.exit` currently doesn't halt guest).
@@ -44,6 +49,7 @@ As of July 2026, several tests are expected to fail due to documented but unimpl
 - `mem_builtin.sage`: `mem.read` returns nil.
 - `struct_builtin.sage`: `struct.def` returns nil.
 - `all_types.sage`: Returns "dict" for modules, functions, classes, and instances instead of specific type names.
+- `collection_eq.sage`: Dictionary equality comparison always returns false in SVM.
 - `nested_scopes.sage`: Nested functions cannot access parent local variables (lack of closures); they only see global scope or own locals.
 - `string_repeat.sage`: Missing SVM implementation for string repetition with `*`.
 - `halt_op.sage`: Fails because `sys.exit` currently does not halt the VM interpreter.

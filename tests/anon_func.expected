@@ -1,0 +1,6 @@
+Square of 5 (via variable):
+25
+Applying square via apply(f, 5):
+25
+Result of add(5, 3):
+8
