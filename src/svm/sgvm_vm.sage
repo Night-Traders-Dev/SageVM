@@ -796,6 +796,10 @@ class MetalVM:
                 j = j + 1
             let obj = pop(self.stack)
 
+            if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                push(self.stack, nil)
+                return true
+
             var is_class_call = false
             var method = nil
             if dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
