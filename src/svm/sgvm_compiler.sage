@@ -18,6 +18,7 @@ from sgvm_core import OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT
 from sgvm_core import OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK
 from sgvm_core import OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY
 from sgvm_core import OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM
+from sgvm_core import OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_GET_LOCAL, OP_SET_LOCAL
 
 class SGVMCompiler:
     proc init(self):
@@ -316,6 +317,9 @@ class SGVMCompiler:
                     elif op == 0x0e: op = 14 # BC_OP_SLICE
                     elif op == 0x3b: op = 88 # BC_OP_GET_LOCAL
                     elif op == 0x3c: op = 89 # BC_OP_SET_LOCAL
+                    elif op == 0x3d: op = 90 # BC_OP_YIELD
+                    elif op == 0x3e: op = 91 # BC_OP_CREATE_GENERATOR
+                    elif op == 0x3f: op = 92 # BC_OP_GENERATOR_NEXT
                     
                     self.write_byte(op)
                     j = j + 2
@@ -356,6 +360,18 @@ class SGVMCompiler:
                         let val = ut.parse_hex_byte(hex, j)
                         self.write_byte(val)
                         j = j + 2
+                    elif op == 91: # CREATE_GENERATOR
+                        # Same format as DEFINE_FUNCTION: name_idx (u16 remapped) + fn_idx (u16 pass-through)
+                        let v1 = ut.parse_hex_byte(hex, j)
+                        let v2 = ut.parse_hex_byte(hex, j + 2)
+                        let local_idx = v1 * 256 + v2
+                        let ltg_raw = self.local_to_global_raw[self.current_chunk]
+                        let val = ltg_raw[local_idx]
+                        self.write_be16(val)
+                        let f1 = ut.parse_hex_byte(hex, j + 4)
+                        let f2 = ut.parse_hex_byte(hex, j + 6)
+                        self.write_be16(f1 * 256 + f2)
+                        j = j + 8
                     elif op == 88 or op == 89: # GET_LOCAL or SET_LOCAL
                         let v1 = ut.parse_hex_byte(hex, j)
                         let v2 = ut.parse_hex_byte(hex, j + 2)

@@ -92,6 +92,9 @@ let OP_GPU_CMD_DISPATCH         = 86
 let OP_MATH_PRINTM    = 87
 let OP_GET_LOCAL      = 88
 let OP_SET_LOCAL      = 89
+let OP_YIELD          = 90
+let OP_CREATE_GENERATOR = 91
+let OP_GENERATOR_NEXT = 92
 let OP_HALT           = 255
 
 class SGVMUtils:
