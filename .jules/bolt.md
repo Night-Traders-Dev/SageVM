@@ -23,3 +23,7 @@
 ## 2026-07-08 - Loop Invariant Caching and Dispatch Reordering
 **Learning:** Caching `len(code_bytes)` and `len(constants)` in the `MetalVM.run` loop avoids repeated calls to the `len()` builtin, which has measurable overhead in tight loops. Reordering the opcode dispatch chain to put the most frequent instructions (GET_LOCAL, CONSTANT, ADD, SET_LOCAL, LOOP_BACK, JUMP_IF_FALSE, LESS, POP) at the top of the `if/elif` block further reduces comparison overhead for hot-path instructions.
 **Action:** Always cache collection lengths and reorder dispatch chains based on instruction frequency in performance-critical interpreters.
+
+## 2026-07-12 - Global Access Fast-Path for Single Scope
+**Learning:** The SVM interpreter's global variable access (GET_GLOBAL/SET_GLOBAL) had high overhead due to a while loop traversing scopes, even when only a single local scope was present (common in flat scripts or global loops). Peeking at the stack instead of popping/pushing for SET_GLOBAL also saves cycles.
+**Action:** Implement fast-paths for common collection sizes (like len(scopes) == 1) in hot-path opcodes to skip loop overhead and redundant search logic.

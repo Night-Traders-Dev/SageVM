@@ -214,46 +214,55 @@ class MetalVM:
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                # Performance: Optimization - Fast-path for single-scope case to avoid loop overhead
                 if idx < 0 or idx >= const_len:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
                 let name = constants[idx]
-                var found = false
-                var si = len(scopes) - 1
-                while si >= 0:
-                    if dict_has(scopes[si], name):
-                        push(stack, scopes[si][name])
-                        found = true
-                        si = -1
-                    else:
-                        si = si - 1
-                if not found:
-                    if dict_has(globals, name):
-                        push(stack, globals[name])
-                    else:
-                        push(stack, nil)
+                if len(scopes) == 1:
+                    let sc0 = scopes[0]
+                    if dict_has(sc0, name): push(stack, sc0[name])
+                    elif dict_has(globals, name): push(stack, globals[name])
+                    else: push(stack, nil)
+                else:
+                    var found = false
+                    var si = len(scopes) - 1
+                    while si >= 0:
+                        let sc = scopes[si]
+                        if dict_has(sc, name):
+                            push(stack, sc[name])
+                            found = true
+                            si = -1
+                        else: si = si - 1
+                    if not found:
+                        if dict_has(globals, name): push(stack, globals[name])
+                        else: push(stack, nil)
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                # Performance: Optimization - Peek at stack top instead of pop/push and fast-path for single-scope
                 if idx < 0 or idx >= const_len:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
                 let name = constants[idx]
-                let val = pop(stack)
-                var si = len(scopes) - 1
-                var updated = false
-                while si >= 0:
-                    if dict_has(scopes[si], name):
-                        scopes[si][name] = val
-                        updated = true
-                        si = -1
-                    else:
-                        si = si - 1
-                if not updated:
-                    globals[name] = val
-                push(stack, val)
+                let val = stack[len(stack)-1]
+                if len(scopes) == 1:
+                    let sc0 = scopes[0]
+                    if dict_has(sc0, name): sc0[name] = val
+                    else: globals[name] = val
+                else:
+                    var si = len(scopes) - 1
+                    var updated = false
+                    while si >= 0:
+                        let sc = scopes[si]
+                        if dict_has(sc, name):
+                            sc[name] = val
+                            updated = true
+                            si = -1
+                        else: si = si - 1
+                    if not updated: globals[name] = val
             elif op == OP_LESS_EQUAL:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] <= b
