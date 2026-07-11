@@ -23,9 +23,12 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 2. Runs the compiled bytecode using `./sgvm`.
 3. Filters out `DEBUG:` logs and compares the output against the corresponding `.expected` file.
 
-Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, large constant pools, string concatenation, float arithmetic, GPU time, string repetition, short-circuiting, division by zero, unary operators, return values, and global persistence are located here.
+Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, large constant pools, string concatenation, float arithmetic, GPU time, string repetition, short-circuiting, division by zero, unary operators, return values, global persistence, generators, module objects, and repeated imports are located here.
 
-### Coverage Expansion (2026-07-08)
+### Coverage Expansion (2026-07-10)
+- `generators.sage`: Verifies generator support (bug flagged: `yield` opcodes unimplemented in SVM).
+- `module_objects.sage`: Verifies first-class module attribute access.
+- `import_repeat.sage`: Verifies idempotent behavior of module imports.
 - `halt_op.sage`: Verifies VM termination (bug flagged: `sys.exit` currently doesn't halt guest).
 - `security_indexing.sage`: Verifies `safe_mode` index protections for `__` internal keys.
 - `security_restricted.sage`: Verifies native module access blocks in `safe_mode`.
@@ -47,6 +50,7 @@ As of July 2026, several tests are expected to fail due to documented but unimpl
 - `nested_scopes.sage`: Nested functions cannot access parent local variables (lack of closures); they only see global scope or own locals.
 - `string_repeat.sage`: Missing SVM implementation for string repetition with `*`.
 - `halt_op.sage`: Fails because `sys.exit` currently does not halt the VM interpreter.
+- `generators.sage`: Fails because `OP_YIELD` (90) is unimplemented in the SVM interpreter.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
