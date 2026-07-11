@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-10]
+
+### Changed
+- **Documentation Sync**: Synchronized architectural and technical specifications with the 2026-07-10 conformance state; identified and documented an expanded 5-opcode shift regression (indices 59-63) relative to authoritative `bytecode.h`.
+- **SVM Conformance Audit**: Identified implementation gaps for generator opcodes (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`) in the SVM interpreter.
+- **SRVM Implementation Review**: Documented missing interpreter logic for `VMO_NOP`, `VMO_IMPORT`, `VMO_EXEC_AST`, and `VMO_CMP_BINARY` in the RISC-V backend.
+
 ## [2026-07-08]
 
 ### Changed
