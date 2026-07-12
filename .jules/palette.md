@@ -6,6 +6,6 @@
 **Learning:** When synchronizing scroll position for active elements (like current instruction), using `scrollIntoView` with `block: 'nearest'` is superior to `'start'` or `'center'` as it prevents jarring page jumps when the element is already partially visible, maintaining better spatial orientation for the user.
 **Action:** Use `block: 'nearest'` for non-disruptive element tracking in interactive debuggers.
 
-## 2026-07-12 - [Playground Auto-Scroll & A11y]
-**Learning:** Automatically scrolling the console and active bytecode instructions significantly improves the "flow" of execution tracking. Adding ARIA labels to icon-only buttons in the Playground ensures that these features are accessible to screen reader users, who otherwise would only hear "button".
-**Action:** Combine interaction polish (auto-scroll) with accessibility (ARIA labels) when enhancing interactive components.
+## 2026-07-16 - [Comprehensive Accessibility Audit]
+**Learning:** Interactive components often lack proper state indicators and keyboard support beyond basic buttons. Adding `aria-pressed` to tab-like filters and converting interactive `div` elements to use `role="button"` with `tabIndex` and `onKeyDown` handlers ensures that the rich documentation features are navigable for all users.
+**Action:** Always audit custom interactive components (filters, cards, toggles) for ARIA states and keyboard parity.
