@@ -23,7 +23,12 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 2. Runs the compiled bytecode using `./sgvm`.
 3. Filters out `DEBUG:` logs and compares the output against the corresponding `.expected` file.
 
-Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, large constant pools, string concatenation, float arithmetic, GPU time, string repetition, short-circuiting, division by zero, unary operators, return values, and global persistence are located here.
+Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, large constant pools, string concatenation, float arithmetic, GPU time, string repetition, short-circuiting, division by zero, unary operators, return values, global persistence, generators, GPU polling, and numeric dictionary keys are located here.
+
+### Coverage Expansion (2026-07-25)
+- `generators.sage`: Verifies generator functions and `yield` (bug flagged: `yield` not emitted by compiler).
+- `gpu_poll.sage`: Verifies `OP_GPU_POLL_EVENTS` (59) instruction.
+- `dict_numeric_keys.sage`: Verifies dictionary indexing with numeric keys.
 
 ### Coverage Expansion (2026-07-08)
 - `halt_op.sage`: Verifies VM termination (bug flagged: `sys.exit` currently doesn't halt guest).
