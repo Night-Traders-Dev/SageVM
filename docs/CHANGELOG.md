@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-12]
+
+### Added
+- **Generator Opcode Definitions**: Added `OP_YIELD` (90), `OP_CREATE_GENERATOR` (91), and `OP_GENERATOR_NEXT` (92) to the SVM core and compiler.
+- **Compiler Support for Generators**: Implemented binary emission logic for `OP_CREATE_GENERATOR` in the SVM compiler's second pass.
+
+### Changed
+- **Documentation Sync**: Synchronized architectural and technical specifications with the 2026-07-12 conformance state; documented the expanded 5-opcode shift regression (indices 59-63) caused by the addition of generator opcodes in the authoritative specification.
+- **Opcode Conformance Audit**: Verified SVM opcode mappings against the latest `bytecode.h` and documented collisions for Phase 16 GPU instructions.
+
 ## [2026-07-08]
 
 ### Changed

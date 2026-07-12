@@ -22,13 +22,15 @@ This document outlines the features and standard library modules currently unsup
    - > ⚠️ **Encoding Mismatch**: Authoritative indices are 59 and 60, but SageVM currently uses indices 88 and 89.
 - [ ] **Compiler Conformance**: Overhaul `src/svm/sgvm_compiler.sage` remapping logic to align with authoritative `bytecode.h` indices.
    - [ ] Local variable remapping (Update 88, 89 to 59, 60)
-   - [ ] GPU opcode remapping (Align 59-86 with authoritative 61-88)
+   - [ ] Generator opcode remapping (Update 90, 91, 92 to 61, 62, 63)
+   - [ ] GPU opcode remapping (Align 59-86 with authoritative 64-91)
 - [ ] **Loop Control Opcodes**: Implement interpreter support for `OP_BREAK` (49) and `OP_CONTINUE` (50) in `src/svm/sgvm_vm.sage` (currently stubs).
 - [ ] **Local Variable Opcodes (Conformance)**: Implement `OP_GET_LOCAL` (59) and `OP_SET_LOCAL` (60) in `sgvm_vm.sage` to match authoritative indices.
 - [ ] **SRVM GPU Implementation**: Implement missing register-based GPU opcodes in `src/srvm/srvm_vm.sage` to replace the legacy 2D instruction set.
 - [x] **SRVM Sandboxing**: Implement `safe_mode` and `no_ffi` enforcement for the RISC-V backend to achieve parity with SVM security.
 - [ ] **SVM Builtin Protection**: Implement `__builtin__` protection for the SVM backend to match SRVM security parity.
 - [ ] **SVM Builtin Gaps**: Implement missing string/collection utilities (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`, `contains`) in `src/svm/sgvm_vm.sage`.
+- [ ] **SVM Generator Support**: Implement interpreter support for generator opcodes (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`) in `src/svm/sgvm_vm.sage`.
 - [ ] **String Repetition**: Implement `OP_MUL` support for string repetition with `*` in `src/svm/sgvm_vm.sage`.
 - [ ] **Disassembler Label Gaps**: Implement descriptive labels for local variable (88-89), matrix (87), and GPU (59-86) opcodes in `src/svm/sgvm_disassembler_logic.sage`.
 - [ ] **SRVM Opcode Gaps**: Implement missing register-based opcodes in `src/srvm/srvm_vm.sage`:

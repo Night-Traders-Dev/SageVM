@@ -121,9 +121,9 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-08**
+**Last Conformance Sync: 2026-07-12**
 
-> ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` and `BC_OP_SET_LOCAL` at indices 59 and 60, shifting the entire GPU instruction block (formerly 59-86) to 61-88. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 2-opcode shift and collisions for SageVM extensions (e.g., `OP_GET_LOCAL` at 88 vs. authoritative 59).
+> ⚠️ **Opcode Alignment Regression**: As of the latest sync, a major encoding mismatch has been detected. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL`, `BC_OP_SET_LOCAL`, and generator opcodes (`BC_OP_YIELD`, `BC_OP_CREATE_GENERATOR`, `BC_OP_GENERATOR_NEXT`) at indices 59 through 63, shifting the entire GPU instruction block (formerly 59-86) to 64-91. SageVM currently maintains the legacy mapping (59-86 for GPU), resulting in a 5-opcode shift and collisions for SageVM extensions (e.g., `OP_GET_LOCAL` at 88 vs. authoritative 59).
 
 > ⚠️ **Disassembler Logic Gap**: The SVM disassembler (`src/svm/sgvm_disassembler_logic.sage`) currently lacks descriptive labels for local variable (88-89), matrix (87), and GPU (59-86) opcodes, displaying them as `unknown_N` in disassembled output.
 
@@ -192,37 +192,40 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_SETUP_TRY | 56 | 56 | Push an exception handler |
 | OP_END_TRY | 57 | 57 | Pop the current exception handler |
 | OP_RAISE | 58 | 58 | Raise an exception |
-| OP_GPU_POLL_EVENTS | 59 | 61 | gpu.poll_events() [Collision: GET_LOCAL] |
-| OP_GPU_WINDOW_SHOULD_CLOSE | 60 | 62 | gpu.window_should_close() [Collision: SET_LOCAL] |
-| OP_GPU_GET_TIME | 61 | 63 | gpu.get_time() -> number |
-| OP_GPU_KEY_PRESSED | 62 | 64 | gpu.key_pressed(key) -> bool |
-| OP_GPU_KEY_DOWN | 63 | 65 | gpu.key_down(key) -> bool |
-| OP_GPU_MOUSE_POS | 64 | 66 | gpu.mouse_pos() -> dict{x,y} |
-| OP_GPU_MOUSE_DELTA | 65 | 67 | gpu.mouse_delta() -> dict{x,y} |
-| OP_GPU_UPDATE_INPUT | 66 | 68 | gpu.update_input() |
-| OP_GPU_BEGIN_COMMANDS | 67 | 69 | gpu.begin_commands(cmd) |
-| OP_GPU_END_COMMANDS | 68 | 70 | gpu.end_commands(cmd) |
-| OP_GPU_CMD_BEGIN_RP | 69 | 71 | gpu.cmd_begin_render_pass(cmd, rp, fb, w, h, clear) |
-| OP_GPU_CMD_END_RP | 70 | 72 | gpu.cmd_end_render_pass(cmd) |
-| OP_GPU_CMD_DRAW | 71 | 73 | gpu.cmd_draw(cmd, verts, inst, first_v, first_i) |
-| OP_GPU_CMD_BIND_GP | 72 | 74 | gpu.cmd_bind_graphics_pipeline(cmd, pipe) |
-| OP_GPU_CMD_BIND_DS | 73 | 75 | gpu.cmd_bind_descriptor_set(cmd, layout, set, bp) |
-| OP_GPU_CMD_SET_VP | 74 | 76 | gpu.cmd_set_viewport(cmd, x, y, w, h, mind, maxd) |
-| OP_GPU_CMD_SET_SC | 75 | 77 | gpu.cmd_set_scissor(cmd, x, y, w, h) |
-| OP_GPU_CMD_BIND_VB | 76 | 78 | gpu.cmd_bind_vertex_buffer(cmd, buf) |
-| OP_GPU_CMD_BIND_IB | 77 | 79 | gpu.cmd_bind_index_buffer(cmd, buf) |
-| OP_GPU_CMD_DRAW_IDX | 78 | 80 | gpu.cmd_draw_indexed(cmd, idx_count, ...) |
-| OP_GPU_SUBMIT_SYNC | 79 | 81 | gpu.submit_with_sync(cmd, wait, signal, fence) |
-| OP_GPU_ACQUIRE_IMG | 80 | 82 | gpu.acquire_next_image(sem) -> number |
-| OP_GPU_PRESENT | 81 | 83 | gpu.present(sem, img_idx) |
-| OP_GPU_WAIT_FENCE | 82 | 84 | gpu.wait_fence(fence, timeout) |
-| OP_GPU_RESET_FENCE | 83 | 85 | gpu.reset_fence(fence) |
-| OP_GPU_UPDATE_UNIFORM | 84 | 86 | gpu.update_uniform(handle, data) |
-| OP_GPU_CMD_PUSH_CONST | 85 | 87 | gpu.cmd_push_constants(cmd, layout, stages, data) [Collision: PRINTM] |
-| OP_GPU_CMD_DISPATCH | 86 | 88 | gpu.cmd_dispatch(cmd, gx, gy, gz) [Collision: GET_LOCAL] |
-| OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: PUSH_CONST] |
-| OP_GET_LOCAL | 88 | 59 | Get a local variable value [Collision: DISPATCH] |
-| OP_SET_LOCAL | 89 | 60 | Set a local variable value |
+| OP_GPU_POLL_EVENTS | 59 | 64 | gpu.poll_events() [Collision: GET_LOCAL] |
+| OP_GPU_WINDOW_SHOULD_CLOSE | 60 | 65 | gpu.window_should_close() [Collision: SET_LOCAL] |
+| OP_GPU_GET_TIME | 61 | 66 | gpu.get_time() -> number [Collision: YIELD] |
+| OP_GPU_KEY_PRESSED | 62 | 67 | gpu.key_pressed(key) -> bool [Collision: CREATE_GEN] |
+| OP_GPU_KEY_DOWN | 63 | 68 | gpu.key_down(key) -> bool [Collision: GEN_NEXT] |
+| OP_GPU_MOUSE_POS | 64 | 69 | gpu.mouse_pos() -> dict{x,y} |
+| OP_GPU_MOUSE_DELTA | 65 | 70 | gpu.mouse_delta() -> dict{x,y} |
+| OP_GPU_UPDATE_INPUT | 66 | 71 | gpu.update_input() |
+| OP_GPU_BEGIN_COMMANDS | 67 | 72 | gpu.begin_commands(cmd) |
+| OP_GPU_END_COMMANDS | 68 | 73 | gpu.end_commands(cmd) |
+| OP_GPU_CMD_BEGIN_RP | 69 | 74 | gpu.cmd_begin_render_pass(cmd, rp, fb, w, h, clear) |
+| OP_GPU_CMD_END_RP | 70 | 75 | gpu.cmd_end_render_pass(cmd) |
+| OP_GPU_CMD_DRAW | 71 | 76 | gpu.cmd_draw(cmd, verts, inst, first_v, first_i) |
+| OP_GPU_CMD_BIND_GP | 72 | 77 | gpu.cmd_bind_graphics_pipeline(cmd, pipe) |
+| OP_GPU_CMD_BIND_DS | 73 | 78 | gpu.cmd_bind_descriptor_set(cmd, layout, set, bp) |
+| OP_GPU_CMD_SET_VP | 74 | 79 | gpu.cmd_set_viewport(cmd, x, y, w, h, mind, maxd) |
+| OP_GPU_CMD_SET_SC | 75 | 80 | gpu.cmd_set_scissor(cmd, x, y, w, h) |
+| OP_GPU_CMD_BIND_VB | 76 | 81 | gpu.cmd_bind_vertex_buffer(cmd, buf) |
+| OP_GPU_CMD_BIND_IB | 77 | 82 | gpu.cmd_bind_index_buffer(cmd, buf) |
+| OP_GPU_CMD_DRAW_IDX | 78 | 83 | gpu.cmd_draw_indexed(cmd, idx_count, ...) |
+| OP_GPU_SUBMIT_SYNC | 79 | 84 | gpu.submit_with_sync(cmd, wait, signal, fence) |
+| OP_GPU_ACQUIRE_IMG | 80 | 85 | gpu.acquire_next_image(sem) -> number |
+| OP_GPU_PRESENT | 81 | 86 | gpu.present(sem, img_idx) |
+| OP_GPU_WAIT_FENCE | 82 | 87 | gpu.wait_fence(fence, timeout) |
+| OP_GPU_RESET_FENCE | 83 | 88 | gpu.reset_fence(fence) |
+| OP_GPU_UPDATE_UNIFORM | 84 | 89 | gpu.update_uniform(handle, data) |
+| OP_GPU_CMD_PUSH_CONST | 85 | 90 | gpu.cmd_push_constants(cmd, layout, stages, data) |
+| OP_GPU_CMD_DISPATCH | 86 | 91 | gpu.cmd_dispatch(cmd, gx, gy, gz) |
+| OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: WAIT_FENCE] |
+| OP_GET_LOCAL | 88 | 59 | Get a local variable value [Collision: RESET_FENCE] |
+| OP_SET_LOCAL | 89 | 60 | Set a local variable value [Collision: UPDATE_UNIFORM] |
+| OP_YIELD | 90 | 61 | Yield value from generator [Collision: PUSH_CONST] |
+| OP_CREATE_GENERATOR | 91 | 62 | Create generator object [Collision: DISPATCH] |
+| OP_GENERATOR_NEXT | 92 | 63 | Resume generator execution |
 | OP_HALT | 255 | - | Halt execution [SageVM Extension] |
 
 ## Native Bridge
