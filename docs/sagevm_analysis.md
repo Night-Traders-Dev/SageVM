@@ -287,4 +287,4 @@ Native calls use `sys.call()` with explicit arity dispatch (0–8 args). The `__
 | Test cases | 3 automated + 12 legacy + 6 extended |
 | Native bridge modules | 12 |
 | Benchmark suites | 1 (with SVM vs SRVM comparison) |
-| Build dependencies | SageLang v3.9.7+, Python 3, `rich` library |
+| Build dependencies | SageLang v4.0.4+, Python 3, `rich` library |
