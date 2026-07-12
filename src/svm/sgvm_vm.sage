@@ -148,6 +148,7 @@ class MetalVM:
         var local_base = self.current_local_base
         let code_len = len(code_bytes)
         let const_len = len(constants)
+        var scopes_len = len(scopes)
 
         host_thread.lock(g_gil)
         while not halted and ip < code_len:
@@ -167,6 +168,37 @@ class MetalVM:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 push(stack, stack[local_base + idx])
+            elif op == OP_GET_GLOBAL:
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                if idx < 0 or idx >= const_len:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
+                let name = constants[idx]
+                # Performance: Fast-path for single scope (globals only)
+                if scopes_len == 1:
+                    if dict_has(scopes[0], name):
+                        push(stack, scopes[0][name])
+                    elif dict_has(globals, name):
+                        push(stack, globals[name])
+                    else:
+                        push(stack, nil)
+                else:
+                    var found = false
+                    var si = scopes_len - 1
+                    while si >= 0:
+                        if dict_has(scopes[si], name):
+                            push(stack, scopes[si][name])
+                            found = true
+                            si = -1
+                        else:
+                            si = si - 1
+                    if not found:
+                        if dict_has(globals, name):
+                            push(stack, globals[name])
+                        else:
+                            push(stack, nil)
             elif op == OP_CONSTANT:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -179,6 +211,34 @@ class MetalVM:
             elif op == OP_ADD:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] + b
+            elif op == OP_SET_GLOBAL:
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                if idx < 0 or idx >= const_len:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
+                let name = constants[idx]
+                let val = pop(stack)
+                # Performance: Fast-path for single scope (globals only)
+                if scopes_len == 1:
+                    if dict_has(scopes[0], name):
+                        scopes[0][name] = val
+                    else:
+                        globals[name] = val
+                else:
+                    var si = scopes_len - 1
+                    var updated = false
+                    while si >= 0:
+                        if dict_has(scopes[si], name):
+                            scopes[si][name] = val
+                            updated = true
+                            si = -1
+                        else:
+                            si = si - 1
+                    if not updated:
+                        globals[name] = val
+                push(stack, val)
             elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -191,69 +251,26 @@ class MetalVM:
                 let target = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 if not stack[len(stack)-1]: ip = target
+            elif op == OP_LESS:
+                let b = pop(stack)
+                stack[len(stack)-1] = stack[len(stack)-1] < b
             elif op == OP_MUL:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] * b
             elif op == OP_DIV:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] / b
-            elif op == OP_LESS:
-                let b = pop(stack)
-                stack[len(stack)-1] = stack[len(stack)-1] < b
-            elif op == OP_POP:
-                pop(stack)
             elif op == OP_SUB:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] - b
+            elif op == OP_POP:
+                pop(stack)
             elif op == OP_EQUAL:
                 let b = pop(stack)
                 stack[len(stack)-1] = (stack[len(stack)-1] == b)
             elif op == OP_NOT_EQUAL:
                 let b = pop(stack)
                 stack[len(stack)-1] = (stack[len(stack)-1] != b)
-            elif op == OP_GET_GLOBAL:
-                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
-                ip = ip + 2
-                if idx < 0 or idx >= const_len:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
-                let name = constants[idx]
-                var found = false
-                var si = len(scopes) - 1
-                while si >= 0:
-                    if dict_has(scopes[si], name):
-                        push(stack, scopes[si][name])
-                        found = true
-                        si = -1
-                    else:
-                        si = si - 1
-                if not found:
-                    if dict_has(globals, name):
-                        push(stack, globals[name])
-                    else:
-                        push(stack, nil)
-            elif op == OP_SET_GLOBAL:
-                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
-                ip = ip + 2
-                if idx < 0 or idx >= const_len:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
-                let name = constants[idx]
-                let val = pop(stack)
-                var si = len(scopes) - 1
-                var updated = false
-                while si >= 0:
-                    if dict_has(scopes[si], name):
-                        scopes[si][name] = val
-                        updated = true
-                        si = -1
-                    else:
-                        si = si - 1
-                if not updated:
-                    globals[name] = val
-                push(stack, val)
             elif op == OP_LESS_EQUAL:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] <= b
@@ -263,8 +280,6 @@ class MetalVM:
             elif op == OP_GREATER_EQUAL:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] >= b
-            elif op == OP_POP:
-                pop(stack)
             elif op == OP_NIL:
                 push(stack, nil)
             elif op == OP_TRUE:
@@ -307,8 +322,10 @@ class MetalVM:
                 stack[len(stack)-1] = len(stack[len(stack)-1])
             elif op == OP_PUSH_ENV:
                 push(scopes, {})
+                scopes_len = scopes_len + 1
             elif op == OP_POP_ENV:
                 pop(scopes)
+                scopes_len = scopes_len - 1
             elif op == OP_GET_INDEX:
                 let idx = pop(stack)
                 let obj = pop(stack)
@@ -346,6 +363,7 @@ class MetalVM:
                 code_len = len(code_bytes)
                 halted = self.halted
                 local_base = self.current_local_base
+                scopes_len = len(scopes)
 
         # Final synchronization
         self.ip = ip
