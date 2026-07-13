@@ -1,0 +1,16 @@
+Array equality:
+true
+false
+true
+false
+Dict equality:
+true
+true
+false
+true
+Mixed equality:
+true
+false
+Type mismatch:
+false
+false
