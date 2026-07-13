@@ -121,7 +121,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-10**
+**Last Conformance Sync: 2026-07-13**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists and has expanded. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63), shifting the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions for SageVM-specific extensions (e.g., `OP_YIELD` at 90 vs. authoritative 61).
 
@@ -194,9 +194,9 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_RAISE | 58 | 58 | Raise an exception |
 | OP_GPU_POLL_EVENTS | 59 | 64 | gpu.poll_events() [Collision: GET_LOCAL] |
 | OP_GPU_WINDOW_SHOULD_CLOSE | 60 | 65 | gpu.window_should_close() [Collision: SET_LOCAL] |
-| OP_GPU_GET_TIME | 61 | 66 | gpu.get_time() -> number |
-| OP_GPU_KEY_PRESSED | 62 | 67 | gpu.key_pressed(key) -> bool |
-| OP_GPU_KEY_DOWN | 63 | 68 | gpu.key_down(key) -> bool |
+| OP_GPU_GET_TIME | 61 | 66 | gpu.get_time() -> number [Collision: YIELD] |
+| OP_GPU_KEY_PRESSED | 62 | 67 | gpu.key_pressed(key) -> bool [Collision: CREATE_GEN] |
+| OP_GPU_KEY_DOWN | 63 | 68 | gpu.key_down(key) -> bool [Collision: GEN_NEXT] |
 | OP_GPU_MOUSE_POS | 64 | 69 | gpu.mouse_pos() -> dict{x,y} |
 | OP_GPU_MOUSE_DELTA | 65 | 70 | gpu.mouse_delta() -> dict{x,y} |
 | OP_GPU_UPDATE_INPUT | 66 | 71 | gpu.update_input() |
