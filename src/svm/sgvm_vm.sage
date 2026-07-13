@@ -123,7 +123,7 @@ class MetalVM:
             return false
 
         if type(obj) == "dict":
-            if dict_has(obj, "__host_mod__") or (dict_has(obj, "__type__") and obj["__type__"] == "module"):
+            if dict_has(obj, "__host_mod__") or (dict_has(obj, "__type__") and obj["__type__"] == "module") or dict_has(obj, "__builtin__"):
                 return true
         elif type(obj) == "module":
             return true

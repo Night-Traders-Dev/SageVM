@@ -1,0 +1,6 @@
+Attempting to modify dict with __builtin__ key in safe mode...
+Error: Index assignment to protected object is restricted in safe mode
+RESULT: PASS - Modification restricted
+Attempting to modify via property access...
+Error: Modification of protected object 'attack2' is restricted in safe mode
+RESULT: PASS - Property modification restricted
