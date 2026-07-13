@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-13]
+
+### Added
+- **Interpreter Hot-Loop Optimization (SVM)**: Inlined over 35 frequent opcodes (arithmetic, logic, stack ops, locals/globals) directly into `MetalVM.run` and cached `scopes_len` as a local variable, significantly reducing dispatch overhead.
+
+### Fixed
+- **SRVM Security Hardening**: Hardened `is_protected` logic in the RISC-V backend to include `__builtin__` key validation, ensuring core host-provided utility structures remain immutable to guest code.
+
+### Changed
+- **Documentation Sync**: Synchronized architectural and technical specifications with the 2026-07-13 conformance state.
+
 ## [2026-07-10]
 
 ### Added
