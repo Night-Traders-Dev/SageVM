@@ -58,6 +58,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
 - **Boundary Checks**: No out-of-bounds access to memory, object arenas, or VM-internal collections. Both SVM and SRVM interpreters implement explicit bounds checks for constant pool and chunk indexing to prevent host-level runtime errors or silent state corruption. Execution state is accelerated by caching `current_local_base` for local variable access.
   - **SVM**: Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
   - **SRVM**: The fixed stack area is initialized with 1,000 slots. Recursive call depth and exception handler nesting are limited to 1,024 frames. Max array size is 1,000,000 entries.
+- **Generator Semantics (SVM)**: The SVM execution pipeline includes support for generator functions via `OP_YIELD`, `OP_CREATE_GENERATOR`, and `OP_GENERATOR_NEXT`. These opcodes enable pausing and resuming function execution, though their implementation in the primary `MetalVM` interpreter remains a documented gap.
 - **Path Sanitization**: The compiler (`sgvmc`) validates all input and output file paths using a strict whitelist-based `is_safe_path` helper (blocking command injection, flag injection, and shell metacharacters).
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions.
 
@@ -81,16 +82,19 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-07-08**
+**Last Conformance Sync: 2026-07-10**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
-- `OP_MATH_PRINTM` (87): Native matrix visualization (Collides with authoritative `BC_OP_GPU_CMD_PUSH_CONST`).
-- `OP_GET_LOCAL` (88): Get a local variable value (Collides with authoritative `BC_OP_GPU_CMD_DISPATCH`).
+- `OP_MATH_PRINTM` (87): Native matrix visualization (Collides with authoritative `BC_OP_GPU_WAIT_FENCE`).
+- `OP_GET_LOCAL` (88): Get a local variable value (Collides with authoritative `BC_OP_GPU_RESET_FENCE`).
 - `OP_SET_LOCAL` (89): Set a local variable value (Authoritative index is 60).
+- `OP_YIELD` (90): Yield a value from generator (Authoritative index is 61).
+- `OP_CREATE_GENERATOR` (91): Create a generator function (Authoritative index is 62).
+- `OP_GENERATOR_NEXT` (92): Resume generator execution (Authoritative index is 63).
 - `OP_HALT` (255): Unconditional VM termination.
 
 ### 9.2 Known Incompatibilities
-- **Opcode Alignment Regression**: As of the latest sync (2026-07-08), the authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59) and `BC_OP_SET_LOCAL` (60), which has shifted the entire GPU instruction block (indices 61-88). SageVM currently maintains a legacy mapping where GPU opcodes start at 59, leading to a 2-opcode shift across the entire Phase 16 instruction set and collisions for trailing SageVM-specific opcodes.
+- **Opcode Alignment Regression**: As of the latest sync (2026-07-10), the authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63). This has shifted the entire Phase 16 GPU instruction block to indices 64-91. SageVM maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** across the entire GPU block and multiple collisions for SageVM-specific extensions.
 - **GPU Instruction Set (SRVM)**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes in the core spec.
 - **Raise Encoding**: Historically, the `sgvmc` compiler (SVM) expected an incorrect encoding (`0x44`) for `OP_RAISE` which conflicted with `OP_GPU_END_COMMANDS`. This was resolved in v0.9.7; `OP_RAISE` is now correctly mapped to 58. Note that `sgvmc` still contains a hazardous legacy remapping for `0x44` -> 58.

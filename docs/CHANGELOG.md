@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-10]
+
+### Added
+- **SVM Generator Support**: Added core opcode definitions (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`) and compiler emission logic for generator functions in the SVM backend.
+
+### Fixed
+- **Critical Sandbox Escape (SVM)**: Resolved a security vulnerability in `OP_CALL_METHOD` where internal `__` prefixed properties could be leaked or accessed in `safe_mode`.
+
+### Changed
+- **Documentation Sync**: Synchronized architectural and technical specifications with the 2026-07-10 conformance state; documented the expanded 5-opcode shift regression following the introduction of generator opcodes in the authoritative spec.
+
 ## [2026-07-08]
 
 ### Changed
