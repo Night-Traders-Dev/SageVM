@@ -37,7 +37,7 @@ SageLang code follows a strictly defined path to execution:
 2. **Compiler Frontend**: Parses source into an Abstract Syntax Tree (AST) or Intermediate Representation (SGIR).
 3. **Bytecode Generation**: Emits portable SGVM instructions. For register-based targets, performs translation to SGRV.
 4. **Verification**: Mandatory security and safety checks.
-5. **Runtime Execution**: Execution by the MetalVM (SVM) or MetalRV64 (SRVM) engine. The execution loop is optimized through inlining and caching of critical properties (stack pointer, max stack depth) to reduce per-instruction overhead.
+5. **Runtime Execution**: Execution by the MetalVM (SVM) or MetalRV64 (SRVM) engine. The execution loop is optimized through inlining, caching of critical properties (stack pointer, max stack depth), and fast-paths for common operations (global access, scope depth) to reduce per-instruction overhead.
 
 ## 4. Execution Semantics
 
@@ -64,7 +64,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
 
 ## 6. Execution Modes
 SGVM supports multiple execution strategies:
-- **Interpreted**: Direct execution of the AST or bytecode (default for kernel-mode scripts). Interpreters are optimized with inlined fetch-decode-execute loops and local variable caching (`current_local_base`) to minimize guest overhead.
+- **Interpreted**: Direct execution of the AST or bytecode (default for kernel-mode scripts). Interpreters are optimized with inlined fetch-decode-execute loops, fast-paths for single-scope global access, and local variable caching (`current_local_base`, `scopes_len`) to minimize guest overhead.
 - **Threaded Interpreter**: High-performance bytecode dispatching using labels-as-values.
 - **JIT/AOT (Future)**: Just-in-Time or Ahead-of-Time compilation to native machine code for performance-critical applications.
 
@@ -82,7 +82,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-07-10**
+**Last Conformance Sync: 2026-07-13**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
@@ -95,6 +95,6 @@ The following opcodes are SageVM-specific extensions or legacy mappings:
 - `OP_HALT` (255): Unconditional VM termination.
 
 ### 9.2 Known Incompatibilities
-- **Opcode Alignment Regression**: As of the latest sync (2026-07-10), the authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63). This has shifted the entire Phase 16 GPU instruction block to indices 64-91. SageVM maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** across the entire GPU block and multiple collisions for SageVM-specific extensions.
+- **Opcode Alignment Regression**: As of the latest sync (2026-07-13), the authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63). This has shifted the entire Phase 16 GPU instruction block to indices 64-91. SageVM maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** across the entire GPU block and multiple collisions for SageVM-specific extensions.
 - **GPU Instruction Set (SRVM)**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes in the core spec.
 - **Raise Encoding**: Historically, the `sgvmc` compiler (SVM) expected an incorrect encoding (`0x44`) for `OP_RAISE` which conflicted with `OP_GPU_END_COMMANDS`. This was resolved in v0.9.7; `OP_RAISE` is now correctly mapped to 58. Note that `sgvmc` still contains a hazardous legacy remapping for `0x44` -> 58.

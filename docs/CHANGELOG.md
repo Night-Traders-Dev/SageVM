@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-13]
+
+### Added
+- **SVM Hot-Loop Optimizations**: Implemented a dedicated fast-path for single-scope global access and cached `scopes_len` as a local variable within the `MetalVM.run` loop, significantly reducing dispatch overhead.
+- **SRVM Security Hardening**: Implemented explicit protection for `__builtin__` objects in the RISC-V backend to prevent guest-side corruption or shadowing of core utilities in `safe_mode`.
+
+### Changed
+- **Documentation Sync**: Synchronized architectural and technical specifications with the 2026-07-13 conformance state; updated documentation to reflect recent performance optimizations and security hardening.
+
 ## [2026-07-10]
 
 ### Added
