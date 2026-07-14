@@ -168,6 +168,17 @@ class MetalVM:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 push(stack, stack[local_base + idx])
+            elif op == OP_CONSTANT:
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                if idx >= 0 and idx < const_len:
+                    push(stack, constants[idx])
+                else:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
+            elif op == OP_POP:
+                pop(stack)
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -199,15 +210,10 @@ class MetalVM:
                             push(stack, globals[name])
                         else:
                             push(stack, nil)
-            elif op == OP_CONSTANT:
+            elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if idx >= 0 and idx < const_len:
-                    push(stack, constants[idx])
-                else:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
+                stack[local_base + idx] = stack[len(stack)-1]
             elif op == OP_ADD:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] + b
@@ -219,7 +225,7 @@ class MetalVM:
                     halted = true
                     break
                 let name = constants[idx]
-                let val = pop(stack)
+                let val = stack[len(stack)-1]
                 # Performance: Fast-path for single scope (globals only)
                 if scopes_len == 1:
                     if dict_has(scopes[0], name):
@@ -238,19 +244,14 @@ class MetalVM:
                             si = si - 1
                     if not updated:
                         globals[name] = val
-                push(stack, val)
-            elif op == OP_SET_LOCAL:
-                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
-                ip = ip + 2
-                let val = pop(stack)
-                stack[local_base + idx] = val
-                push(stack, val)
-            elif op == OP_LOOP_BACK:
-                ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
+            elif op == OP_JUMP:
+                ip = (code_bytes[ip] << 8) | code_bytes[ip+1]
             elif op == OP_JUMP_IF_FALSE:
                 let target = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 if not stack[len(stack)-1]: ip = target
+            elif op == OP_LOOP_BACK:
+                ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
             elif op == OP_LESS:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] < b
@@ -263,8 +264,6 @@ class MetalVM:
             elif op == OP_SUB:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] - b
-            elif op == OP_POP:
-                pop(stack)
             elif op == OP_EQUAL:
                 let b = pop(stack)
                 stack[len(stack)-1] = (stack[len(stack)-1] == b)
@@ -336,18 +335,16 @@ class MetalVM:
             elif op == OP_SET_INDEX:
                 let val = pop(stack)
                 let idx = pop(stack)
-                let obj = pop(stack)
+                let obj = stack[len(stack)-1]
                 if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
-                    push(stack, nil)
+                    stack[len(stack)-1] = nil
                 elif self.is_protected(obj):
                     print "Error: Index assignment to protected object is restricted in safe mode"
-                    push(stack, nil)
+                    stack[len(stack)-1] = nil
                 else:
                     obj[idx] = val
-                    push(stack, val)
-            elif op == OP_JUMP:
-                ip = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                    stack[len(stack)-1] = val
             else:
                 # Synchronize local state back to self before calling non-inlined execute_op
                 self.ip = ip
