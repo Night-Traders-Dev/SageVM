@@ -25,6 +25,11 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 
 Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, large constant pools, string concatenation, float arithmetic, GPU time, string repetition, short-circuiting, division by zero, unary operators, return values, global persistence, anonymous/higher-order functions, variable shadowing, and collection equality are located here.
 
+### Coverage Expansion (2026-07-13)
+- `dict_props.sage`: Tests `OP_GET_PROPERTY` and `OP_SET_PROPERTY` on dictionary objects.
+- `index_oob.sage`: Tests out-of-bounds array access and missing dictionary keys (returns `nil`).
+- `import_missing.sage`: Tests behavior when importing non-existent modules (creates dummy module).
+
 ### Coverage Expansion (2026-07-10)
 - `anon_func.sage`: Tests higher-order functions and variable-bound functions.
 - `shadowing.sage`: Tests variable shadowing (local vs global).

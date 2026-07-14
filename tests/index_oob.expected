@@ -1,0 +1,6 @@
+Array[0]: 10
+Array[5]: nil
+Array[-1]: nil
+Dict['x']: 100
+Dict['y']: nil
+nil
