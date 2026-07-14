@@ -9,3 +9,7 @@
 ## 2026-07-12 - [Playground Auto-Scroll & A11y]
 **Learning:** Automatically scrolling the console and active bytecode instructions significantly improves the "flow" of execution tracking. Adding ARIA labels to icon-only buttons in the Playground ensures that these features are accessible to screen reader users, who otherwise would only hear "button".
 **Action:** Combine interaction polish (auto-scroll) with accessibility (ARIA labels) when enhancing interactive components.
+
+## 2026-07-13 - [Playground Interaction & Accessibility Sync]
+**Learning:** Combining scroll-into-view for active bytecode and auto-scrolling for console output ensures the user never loses context during execution. Converting clickable divs to semantic buttons with aria-expanded/aria-label provides a robust experience for screen readers and keyboard users.
+**Action:** Always prefer semantic buttons over clickable divs for toggles, and sync scroll states in complex interactive debuggers.
