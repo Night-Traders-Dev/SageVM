@@ -37,7 +37,7 @@ SageLang code follows a strictly defined path to execution:
 2. **Compiler Frontend**: Parses source into an Abstract Syntax Tree (AST) or Intermediate Representation (SGIR).
 3. **Bytecode Generation**: Emits portable SGVM instructions. For register-based targets, performs translation to SGRV.
 4. **Verification**: Mandatory security and safety checks.
-5. **Runtime Execution**: Execution by the MetalVM (SVM) or MetalRV64 (SRVM) engine. The execution loop is optimized through inlining and caching of critical properties (stack pointer, max stack depth) to reduce per-instruction overhead.
+5. **Runtime Execution**: Execution by the MetalVM (SVM) or MetalRV64 (SRVM) engine. The execution loop is optimized through inlining and caching of critical properties (operand stack, constant pool, scopes depth, local base) to reduce per-instruction overhead and property lookup latency.
 
 ## 4. Execution Semantics
 
@@ -82,7 +82,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-07-13**
+**Last Conformance Sync: 2026-07-15**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-15]
+
+### Added
+- **Single-Scope Global Fast-Path (SVM)**: Implemented a high-performance fast-path for `OP_GET_GLOBAL` and `OP_SET_GLOBAL` in `MetalVM.run` when execution is limited to the global scope.
+- **Scopes Depth Caching (SVM)**: Cached `len(scopes)` as a local variable in the hot loop to eliminate repeated property lookup overhead.
+- **Expanded Hot-Path Dispatch (SVM)**: Frequency-optimized the instruction dispatch loop to include inlined branches for `OP_TRUTHY`, `OP_PRINT`, `OP_NEGATE`, and `OP_ARRAY_LEN`.
+
+### Fixed
+- **SVM Builtin Protection**: Hardened `is_protected` logic in the stack-based backend to include `__builtin__` key validation, achieving security parity with the RISC-V backend.
+
+### Changed
+- **Documentation Sync**: Synchronized architectural and technical specifications with the 2026-07-15 conformance state.
+
 ## [2026-07-13]
 
 ### Added
