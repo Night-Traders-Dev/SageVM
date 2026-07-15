@@ -403,7 +403,9 @@ class SRVM:
                 let idx = int(self.state.x[10]) # a0
                 let name = self.safe_get_constant(idx)
                 if not self.state.running: return
-                if dict_has(self.state.heap, name):
+                if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                    self.state.x[instr.rd] = nil
+                elif dict_has(self.state.heap, name):
                     self.state.x[instr.rd] = self.state.heap[name]
                 elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print":
                     self.state.x[instr.rd] = {"__builtin__": name}
@@ -414,7 +416,10 @@ class SRVM:
                 let val = self.state.x[11] # a1
                 let name = self.safe_get_constant(idx)
                 if not self.state.running: return
-                self.state.heap[name] = val
+                if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                    print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
+                else:
+                    self.state.heap[name] = val
             elif sub_op == srvm_core.OBJ_GET_PROP:
                 let obj = self.state.x[instr.rs2]
                 let name_idx = int(self.state.x[10])

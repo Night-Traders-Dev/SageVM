@@ -123,7 +123,7 @@ class MetalVM:
             return false
 
         if type(obj) == "dict":
-            if dict_has(obj, "__host_mod__") or (dict_has(obj, "__type__") and obj["__type__"] == "module"):
+            if dict_has(obj, "__host_mod__") or (dict_has(obj, "__type__") and obj["__type__"] == "module") or dict_has(obj, "__builtin__"):
                 return true
         elif type(obj) == "module":
             return true
@@ -176,6 +176,9 @@ class MetalVM:
                     halted = true
                     break
                 let name = constants[idx]
+                if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                    push(stack, nil)
+                    continue
                 # Performance: Fast-path for single scope (globals only)
                 if scopes_len == 1:
                     if dict_has(scopes[0], name):
@@ -219,6 +222,11 @@ class MetalVM:
                     halted = true
                     break
                 let name = constants[idx]
+                if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                    print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
+                    pop(stack)
+                    push(stack, nil)
+                    continue
                 let val = pop(stack)
                 # Performance: Fast-path for single scope (globals only)
                 if scopes_len == 1:
@@ -321,11 +329,20 @@ class MetalVM:
             elif op == OP_ARRAY_LEN:
                 stack[len(stack)-1] = len(stack[len(stack)-1])
             elif op == OP_PUSH_ENV:
+                if scopes_len >= self.max_call_depth:
+                    print "Error: Environment stack depth limit exceeded"
+                    halted = true
+                    break
                 push(scopes, {})
                 scopes_len = scopes_len + 1
             elif op == OP_POP_ENV:
-                pop(scopes)
-                scopes_len = scopes_len - 1
+                if scopes_len > 1:
+                    pop(scopes)
+                    scopes_len = scopes_len - 1
+                else:
+                    print "Error: Environment stack underflow"
+                    halted = true
+                    break
             elif op == OP_GET_INDEX:
                 let idx = pop(stack)
                 let obj = pop(stack)
@@ -522,6 +539,11 @@ class MetalVM:
             self.ip = self.ip + 2
             let name = self.safe_get_constant(idx)
             if self.halted: return false
+
+            if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                push(self.stack, nil)
+                return true
+
             if self.trace: print "DEBUG: GET_GLOBAL " + name
             var found = false
             var si = len(self.scopes) - 1
@@ -546,13 +568,23 @@ class MetalVM:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
-            self.scopes[len(self.scopes)-1][name] = pop(self.stack)
+            let val = pop(self.stack)
+            if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                 print "Error: Definition of internal global '" + name + "' is restricted in safe mode"
+            else:
+                 self.scopes[len(self.scopes)-1][name] = val
         elif op == OP_SET_GLOBAL:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.safe_get_constant(idx)
             if self.halted: return false
             let val = pop(self.stack)
+
+            if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
+                push(self.stack, nil)
+                return true
+
             var si = len(self.scopes) - 1
             var updated = false
             while si >= 0:
