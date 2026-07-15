@@ -35,6 +35,11 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `index_oob.sage`: Tests out-of-bounds indexing for arrays and missing keys for dictionaries.
 - `call_error.sage`: Tests calling non-callable objects (bug flagged: doesn't currently raise exception).
 
+### Coverage Expansion (2026-07-16)
+- `import_user_module.sage`: Tests `OP_IMPORT` for non-native modules (returns dummy object).
+- `array_len_edge.sage`: Tests `len()` (OP_ARRAY_LEN) on various types and edge cases.
+- `dup_targeted.sage`: Tests `OP_DUP` behavior in complex assignments and expressions.
+
 ### Coverage Expansion (2026-07-08)
 - `halt_op.sage`: Verifies VM termination (bug flagged: `sys.exit` currently doesn't halt guest).
 - `security_indexing.sage`: Verifies `safe_mode` index protections for `__` internal keys.
