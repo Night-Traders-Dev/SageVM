@@ -23,3 +23,7 @@
 ## 2026-07-08 - Loop Invariant Caching and Dispatch Reordering
 **Learning:** Caching `len(code_bytes)` and `len(constants)` in the `MetalVM.run` loop avoids repeated calls to the `len()` builtin, which has measurable overhead in tight loops. Reordering the opcode dispatch chain to put the most frequent instructions (GET_LOCAL, CONSTANT, ADD, SET_LOCAL, LOOP_BACK, JUMP_IF_FALSE, LESS, POP) at the top of the `if/elif` block further reduces comparison overhead for hot-path instructions.
 **Action:** Always cache collection lengths and reorder dispatch chains based on instruction frequency in performance-critical interpreters.
+
+## 2026-07-13 - Stack Peeking and Dispatch Inlining
+**Learning:** In the SVM interpreter, replacing pop/push cycles with stack peeking (`stack[len(stack)-1]`) for assignments and property/index lookups reduces the overhead of Python-level list modifications and length checks, yielding a measurable speedup. Inlining property access into the main dispatch loop further reduces function call overhead.
+**Action:** Prioritize stack peeking over pop/push for all opcodes that update or access the top of the stack.
