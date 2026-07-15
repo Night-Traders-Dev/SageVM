@@ -30,6 +30,11 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `shadowing.sage`: Tests variable shadowing (local vs global).
 - `collection_eq.sage`: Tests deep equality for arrays and dictionaries (bug flagged: dictionary equality fails).
 
+### Coverage Expansion (2026-07-15)
+- `dict_property.sage`: Tests property-style access and assignment on dictionaries.
+- `index_oob.sage`: Tests out-of-bounds indexing for arrays and missing keys for dictionaries.
+- `call_error.sage`: Tests calling non-callable objects (bug flagged: doesn't currently raise exception).
+
 ### Coverage Expansion (2026-07-08)
 - `halt_op.sage`: Verifies VM termination (bug flagged: `sys.exit` currently doesn't halt guest).
 - `security_indexing.sage`: Verifies `safe_mode` index protections for `__` internal keys.
