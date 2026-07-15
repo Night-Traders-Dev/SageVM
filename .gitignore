@@ -35,3 +35,4 @@ test_int
 !testsuite/benchmarks/results/
 !testsuite/benchmarks/results/*.png
 !testsuite/benchmarks/results/*.json
+sagevm
