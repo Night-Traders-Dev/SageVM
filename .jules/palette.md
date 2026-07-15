@@ -9,3 +9,7 @@
 ## 2026-07-16 - [Comprehensive Accessibility Audit]
 **Learning:** Interactive components often lack proper state indicators and keyboard support beyond basic buttons. Adding `aria-pressed` to tab-like filters and converting interactive `div` elements to use `role="button"` with `tabIndex` and `onKeyDown` handlers ensures that the rich documentation features are navigable for all users.
 **Action:** Always audit custom interactive components (filters, cards, toggles) for ARIA states and keyboard parity.
+
+## 2026-07-15 - [Accessible Search & Interactive Reference]
+**Learning:** For interactive documentation like the Opcode Reference, accessibility must extend beyond static labels. Implementing `aria-pressed` for filters and `aria-expanded` with keyboard listeners for cards ensures that complex instruction sets remain navigable and informative for users relying on assistive technology or keyboard-only input.
+**Action:** Ensure search inputs have clear `aria-label` and interactive grid items support standard keyboard triggers (Enter/Space) with visual focus rings.
