@@ -194,9 +194,9 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_RAISE | 58 | 58 | Raise an exception |
 | OP_GPU_POLL_EVENTS | 59 | 64 | gpu.poll_events() [Collision: GET_LOCAL] |
 | OP_GPU_WINDOW_SHOULD_CLOSE | 60 | 65 | gpu.window_should_close() [Collision: SET_LOCAL] |
-| OP_GPU_GET_TIME | 61 | 66 | gpu.get_time() -> number |
-| OP_GPU_KEY_PRESSED | 62 | 67 | gpu.key_pressed(key) -> bool |
-| OP_GPU_KEY_DOWN | 63 | 68 | gpu.key_down(key) -> bool |
+| OP_GPU_GET_TIME | 61 | 66 | gpu.get_time() -> number [Collision: YIELD] |
+| OP_GPU_KEY_PRESSED | 62 | 67 | gpu.key_pressed(key) -> bool [Collision: CREATE_GEN] |
+| OP_GPU_KEY_DOWN | 63 | 68 | gpu.key_down(key) -> bool [Collision: GEN_NEXT] |
 | OP_GPU_MOUSE_POS | 64 | 69 | gpu.mouse_pos() -> dict{x,y} |
 | OP_GPU_MOUSE_DELTA | 65 | 70 | gpu.mouse_delta() -> dict{x,y} |
 | OP_GPU_UPDATE_INPUT | 66 | 71 | gpu.update_input() |

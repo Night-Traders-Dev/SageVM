@@ -19,12 +19,16 @@ This document outlines the features and standard library modules currently unsup
 ## 🟡 Medium Difficulty (Native Bridging)
 - [ ] **Regex & JSON Support**: Restore `re` and `json` module bridging in `src/svm/sgvm_vm.sage`.
 - [x] **Local Variable Opcodes**: Implement interpreter support for `OP_GET_LOCAL` and `OP_SET_LOCAL` in `src/svm/sgvm_vm.sage`.
-   - > ⚠️ **Encoding Mismatch**: Authoritative indices are 59 and 60, but SageVM currently uses indices 88 and 89.
+   - > ⚠️ **Encoding Mismatch**: Authoritative indices are 59 and 60, but SageVM currently uses indices 88 and 89. (Verified 2026-07-13)
 - [ ] **Compiler Conformance**: Overhaul `src/svm/sgvm_compiler.sage` remapping logic to align with authoritative `bytecode.h` indices.
    - [ ] Local variable remapping (Update 88, 89 to 59, 60)
    - [ ] Generator remapping (Update 90-92 to 61-63)
    - [ ] GPU opcode remapping (Align 59-86 with authoritative 64-91)
 - [ ] **SVM Generator Implementation**: Implement interpreter support for `OP_YIELD` (90), `OP_CREATE_GENERATOR` (91), and `OP_GENERATOR_NEXT` (92) in `src/svm/sgvm_vm.sage`.
+- [ ] **Authoritative Generator Opcodes**: Implement missing implementation for new authoritative indices:
+  - `BC_OP_YIELD` (61)
+  - `BC_OP_CREATE_GENERATOR` (62)
+  - `BC_OP_GENERATOR_NEXT` (63)
 - [ ] **Loop Control Opcodes**: Implement interpreter support for `OP_BREAK` (49) and `OP_CONTINUE` (50) in `src/svm/sgvm_vm.sage` (currently stubs).
 - [ ] **Local Variable Opcodes (Conformance)**: Implement `OP_GET_LOCAL` (59) and `OP_SET_LOCAL` (60) in `sgvm_vm.sage` to match authoritative indices.
 - [ ] **SRVM GPU Implementation**: Implement missing register-based GPU opcodes in `src/srvm/srvm_vm.sage` to replace the legacy 2D instruction set.
