@@ -1,0 +1,4 @@
+Dictionary created with __builtin__ property.
+Error: Modification of protected object 'value' is restricted in safe mode
+Mutation allowed: 42
+Normal mutation: 100

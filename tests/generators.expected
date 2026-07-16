@@ -1,0 +1,10 @@
+Creating generator...
+Generator created.
+Calling next(gen) 1:
+Inside generator start
+Value 1:
+10
+Calling next(gen) 2:
+Inside generator middle
+Value 2:
+20
