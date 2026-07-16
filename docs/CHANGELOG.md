@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-16]
+
+### Added
+- **SVM Builtin Protection**: Hardened the `is_protected` helper in the SVM interpreter (`src/svm/sgvm_vm.sage`) to validate `__builtin__` keys in `safe_mode`, completing security sandboxing parity with the RISC-V backend.
+
+### Changed
+- **Documentation Sync**: Synchronized architectural, technical specifications, and the project roadmap with the 2026-07-16 conformance state; marked SVM Builtin Protection as fully complete.
+
 ## [2026-07-13]
 
 ### Added
