@@ -23,3 +23,7 @@
 ## 2026-07-08 - Loop Invariant Caching and Dispatch Reordering
 **Learning:** Caching `len(code_bytes)` and `len(constants)` in the `MetalVM.run` loop avoids repeated calls to the `len()` builtin, which has measurable overhead in tight loops. Reordering the opcode dispatch chain to put the most frequent instructions (GET_LOCAL, CONSTANT, ADD, SET_LOCAL, LOOP_BACK, JUMP_IF_FALSE, LESS, POP) at the top of the `if/elif` block further reduces comparison overhead for hot-path instructions.
 **Action:** Always cache collection lengths and reorder dispatch chains based on instruction frequency in performance-critical interpreters.
+
+## 2026-07-16 - Scope Fast-Paths and Stack Peeking
+**Learning:** List-indexing (such as accessing `scopes[0]`) inside interpreter loops compiles to function calls (`sage_index_int` in C) that introduce measurable overhead. Caching `global_scope = scopes[0]` as a local reference avoids list indexing. Furthermore, introducing specific `scopes_len == 2` fast paths for global variable resolution inside function environments eliminates generic nested scope search loops. Finally, peeking at the stack top (`stack[len(stack)-1]`) during assignments avoids unnecessary `pop` and `push` overhead completely.
+**Action:** Always cache persistent elements of collection hierarchies and leverage stack peeking in stack-based VMs to avoid array allocation/manipulation.

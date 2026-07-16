@@ -142,6 +142,7 @@ class MetalVM:
         let max_stack = self.max_stack_depth
         let constants = self.constants
         let scopes = self.scopes
+        let global_scope = scopes[0]
         let globals = self.globals
         let trace = self.trace
         let safe_mode = self.safe_mode
@@ -179,10 +180,20 @@ class MetalVM:
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     push(stack, nil)
                     continue
-                # Performance: Fast-path for single scope (globals only)
+                # Performance: Fast-path for single scope (globals only) and two scope (functions)
                 if scopes_len == 1:
-                    if dict_has(scopes[0], name):
-                        push(stack, scopes[0][name])
+                    if dict_has(global_scope, name):
+                        push(stack, global_scope[name])
+                    elif dict_has(globals, name):
+                        push(stack, globals[name])
+                    else:
+                        push(stack, nil)
+                elif scopes_len == 2:
+                    let local_scope = scopes[1]
+                    if dict_has(local_scope, name):
+                        push(stack, local_scope[name])
+                    elif dict_has(global_scope, name):
+                        push(stack, global_scope[name])
                     elif dict_has(globals, name):
                         push(stack, globals[name])
                     else:
@@ -224,14 +235,20 @@ class MetalVM:
                 let name = constants[idx]
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
-                    pop(stack)
-                    push(stack, nil)
+                    stack[len(stack)-1] = nil
                     continue
-                let val = pop(stack)
-                # Performance: Fast-path for single scope (globals only)
+                let val = stack[len(stack)-1]
+                # Performance: Fast-path for single scope (globals only) and two scope (functions)
                 if scopes_len == 1:
-                    if dict_has(scopes[0], name):
-                        scopes[0][name] = val
+                    if dict_has(global_scope, name):
+                        global_scope[name] = val
+                    else:
+                        globals[name] = val
+                elif scopes_len == 2:
+                    if dict_has(scopes[1], name):
+                        scopes[1][name] = val
+                    elif dict_has(global_scope, name):
+                        global_scope[name] = val
                     else:
                         globals[name] = val
                 else:
@@ -246,13 +263,11 @@ class MetalVM:
                             si = si - 1
                     if not updated:
                         globals[name] = val
-                push(stack, val)
             elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                let val = pop(stack)
+                let val = stack[len(stack)-1]
                 stack[local_base + idx] = val
-                push(stack, val)
             elif op == OP_LOOP_BACK:
                 ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
             elif op == OP_JUMP_IF_FALSE:
