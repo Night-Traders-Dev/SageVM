@@ -6,6 +6,7 @@ Error: Access to module 'gpu' is restricted in safe mode
 Error: Access to module 'ml_native' is restricted in safe mode
 Error: Access to module 'mem' is restricted in safe mode
 Error: Access to module 'ffi' is restricted in safe mode
+Error: Access to module 'struct' is restricted in safe mode
 sys restricted: true
 io restricted: true
 net restricted: true
@@ -14,3 +15,4 @@ gpu restricted: true
 ml_native restricted: true
 mem restricted: true
 ffi restricted: true
+struct restricted: true
