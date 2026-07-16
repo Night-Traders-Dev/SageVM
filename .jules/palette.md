@@ -9,3 +9,7 @@
 ## 2026-07-16 - [Comprehensive Accessibility Audit]
 **Learning:** Interactive components often lack proper state indicators and keyboard support beyond basic buttons. Adding `aria-pressed` to tab-like filters and converting interactive `div` elements to use `role="button"` with `tabIndex` and `onKeyDown` handlers ensures that the rich documentation features are navigable for all users.
 **Action:** Always audit custom interactive components (filters, cards, toggles) for ARIA states and keyboard parity.
+
+## 2026-07-16 - [Accessible Custom Interactive Containers]
+**Learning:** Custom cards/grid items designed as toggleable lists can be inaccessible to screen-readers and keyboard-only users if they are styled with plain `div` elements. Converting custom grid cards to include `role="button"`, `tabIndex={0}`, `aria-expanded`, and specific keyboard event listeners (Enter / Space) establishes full accessible navigation parity.
+**Action:** Replace clickable `div` components with proper button roles, custom keyboard handlers, and clear `focus-visible` ring indicators.
