@@ -37,7 +37,7 @@ SageLang code follows a strictly defined path to execution:
 2. **Compiler Frontend**: Parses source into an Abstract Syntax Tree (AST) or Intermediate Representation (SGIR).
 3. **Bytecode Generation**: Emits portable SGVM instructions. For register-based targets, performs translation to SGRV.
 4. **Verification**: Mandatory security and safety checks.
-5. **Runtime Execution**: Execution by the MetalVM (SVM) or MetalRV64 (SRVM) engine. The execution loop is optimized through inlining and caching of critical properties (operand stack, constant pool, scopes depth, local base) to reduce per-instruction overhead and property lookup latency.
+5. **Runtime Execution**: Execution by the MetalVM (SVM) or MetalRV64 (SRVM) engine. The execution loop is optimized through inlining, caching of critical properties (operand stack, constant pool, scopes depth, local base), two-scope lookup fast-paths, inlined property access/mutation, and in-place stack peeking/modification to minimize guest overhead and latency.
 
 ## 4. Execution Semantics
 
@@ -60,7 +60,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
   - **SRVM**: The fixed stack area is initialized with 1,000 slots. Recursive call depth and exception handler nesting are limited to 1,024 frames. Max array size is 1,000,000 entries.
 - **Generator Semantics (SVM)**: The SVM execution pipeline includes support for generator functions via `OP_YIELD`, `OP_CREATE_GENERATOR`, and `OP_GENERATOR_NEXT`. These opcodes enable pausing and resuming function execution, though their implementation in the primary `MetalVM` interpreter remains a documented gap.
 - **Path Sanitization**: The compiler (`sgvmc`) validates all input and output file paths using a strict whitelist-based `is_safe_path` helper (blocking command injection, flag injection, and shell metacharacters).
-- **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions.
+- **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions. Under `safe_mode`, both SVM and SRVM interpreters enforce strict protection for `__builtin__`-tagged dictionary objects. In SVM, guest access to host system capabilities is further hardened by blacklisting the `struct` module in `OP_IMPORT` in addition to `io`, `net`, `sys`, `thread`, `gpu`, `ml_native`, `mem`, and `ffi`.
 
 ## 6. Execution Modes
 SGVM supports multiple execution strategies:
@@ -82,7 +82,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-07-15**
+**Last Conformance Sync: 2026-07-16**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:

@@ -37,6 +37,9 @@ The core SVM implementation in `src/svm/sgvm_vm.sage`. It utilizes an operand st
   - **State Caching**: The VM caches critical state (operand stack, constant pool) in local variables within the execution loop, yielding a ~4.3x speedup in loop-heavy benchmarks.
   - **Local Base Caching**: The VM caches `current_local_base` to accelerate `OP_GET_LOCAL` and `OP_SET_LOCAL` by avoiding repeated call stack traversals.
   - **Single-Scope Global Fast-Path**: The VM implements a fast-path for `OP_GET_GLOBAL` and `OP_SET_GLOBAL` when only one scope (the global scope) is present, bypassing the scope stack traversal.
+  - **Two-Scope Global Fast-Path**: The VM implements a lookup fast-path for `OP_GET_GLOBAL` and `OP_SET_GLOBAL` when `scopes_len == 2` is true, optimizing nested scope variable resolutions.
+  - **Inlined Property Access & Mutation**: The VM now directly inlines `OP_GET_PROPERTY` and `OP_SET_PROPERTY` within the `MetalVM.run` dispatch loop, reducing instruction delegation and call overhead.
+  - **In-Place Stack Modification / Peeking**: Opcode handlers (`OP_SET_GLOBAL`, `OP_GET_INDEX`, `OP_SET_INDEX`, `OP_GET_PROPERTY`, and `OP_SET_PROPERTY`) peek at the top of the stack and modify it in-place instead of performing costly pop/push allocation cycles.
   - **Scopes Depth Caching**: The VM caches `len(scopes)` as a local variable (`scopes_len`) and manually updates it during environment pushes and pops, eliminating the overhead of repeated `len()` calls in the hot loop.
   - **Expanded Hot-Path Dispatch**: Frequency-optimized `if/elif` chain now includes inlined branches for `OP_TRUTHY`, `OP_PRINT`, `OP_NEGATE`, and `OP_ARRAY_LEN`, further reducing delegation to the non-inlined `execute_op` handler.
 
@@ -124,7 +127,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-15**
+**Last Conformance Sync: 2026-07-16**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists and has expanded. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63), shifting the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions for SageVM-specific extensions (e.g., `OP_YIELD` at 90 vs. authoritative 61).
 
@@ -324,7 +327,8 @@ For high-isolation environments, SGVM provides several security features impleme
 - **Module Restriction & Guards**: Access to sensitive host modules is restricted in `safe_mode`.
   - **Deferred Initialization**: SVM (`MetalVM`) defers the population of sensitive host modules until after `safe_mode` has been configured, preventing race conditions or eager loading bypasses.
   - **Mutation Protection**: Guest code is prevented from mutating host modules or module wrappers via `is_protected(obj)` checks in property and index assignments.
-  - **Builtin Protection**: SRVM enforces strict protection for objects tagged with `__builtin__`, ensuring core utility functions cannot be shadowed or corrupted in the guest environment.
+  - **Builtin Protection**: Both SVM and SRVM enforce strict protection for objects tagged with `__builtin__` in `safe_mode`, ensuring core host-provided utility structures remain immutable.
+  - **Sandbox Hardening (struct module)**: Safe mode restrictions are extended to the `struct` module, blocking its guest-side import to mitigate sandbox escape vectors.
 - **Sandbox Hardening (Internal Properties)**: In `safe_mode`, both SVM and SRVM interpreters block property, index, and method access (via `OP_CALL_METHOD`) for all identifiers starting with `__` (except `__arg`), preventing guest code from inspecting internal VM state or leaking host bridge objects.
 - **Internal Execution Limits**: To prevent Denial of Service (DoS) via resource exhaustion, the VM enforces the following internal limits:
   - **Maximum Stack Depth**: 65,536 (Maximum depth of the operand stack).
