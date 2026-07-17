@@ -13,3 +13,7 @@
 ## 2026-07-15 - [Accessible Search & Interactive Reference]
 **Learning:** For interactive documentation like the Opcode Reference, accessibility must extend beyond static labels. Implementing `aria-pressed` for filters and `aria-expanded` with keyboard listeners for cards ensures that complex instruction sets remain navigable and informative for users relying on assistive technology or keyboard-only input.
 **Action:** Ensure search inputs have clear `aria-label` and interactive grid items support standard keyboard triggers (Enter/Space) with visual focus rings.
+
+## 2026-07-17 - [Accessible Range Inputs & Custom Controls]
+**Learning:** Interactive range sliders and file upload inputs must have explicit ARIA labels. Relying solely on flanking text span elements or visual titles is insufficient for screen readers to convey control purpose.
+**Action:** Always verify that every custom input type (including hidden file inputs wrapped in labels and range sliders) has a dedicated `aria-label` describing its exact function.
