@@ -82,8 +82,7 @@ class MetalVM:
             self.globals["mem"] = {"__host_mod__": "mem", "alloc": "__builtin_mem_alloc", "free": "__builtin_mem_free", "read": "__builtin_mem_read", "write": "__builtin_mem_write", "size": "__builtin_mem_size"}
             if self.ffi_enabled:
                 self.globals["ffi"] = {"__host_mod__": "ffi", "open": "__builtin_ffi_open", "close": "__builtin_ffi_close", "call": "__builtin_ffi_call"}
-
-        self.globals["struct"] = {"__host_mod__": "struct", "def": "__builtin_struct_def", "new": "__builtin_struct_new", "get": "__builtin_struct_get", "set": "__builtin_struct_set", "size": "__builtin_struct_size"}
+            self.globals["struct"] = {"__host_mod__": "struct", "def": "__builtin_struct_def", "new": "__builtin_struct_new", "get": "__builtin_struct_get", "set": "__builtin_struct_set", "size": "__builtin_struct_size"}
 
         self.globals["gc"] = {"__host_mod__": "gc"}
         self.globals["gc"]["collect"] = "__builtin_gc_collect"
@@ -1072,7 +1071,7 @@ class MetalVM:
             let name = self.constants[idx]
             # Delegation Bridge: check host first for native modules
             # Security: Explicitly block 'io' in safe mode blacklist
-            if self.safe_mode and (name == "io" or name == "net" or name == "sys" or name == "thread" or name == "gpu" or name == "ml_native" or name == "mem" or name == "ffi"):
+            if self.safe_mode and (name == "io" or name == "net" or name == "sys" or name == "thread" or name == "gpu" or name == "ml_native" or name == "mem" or name == "ffi" or name == "struct"):
                 print "Error: Access to module '" + name + "' is restricted in safe mode"
                 push(self.stack, nil)
             elif name == "ffi" and not self.ffi_enabled:
