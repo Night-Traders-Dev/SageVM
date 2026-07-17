@@ -124,7 +124,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-15**
+**Last Conformance Sync: 2026-07-17**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists and has expanded. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63), shifting the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions for SageVM-specific extensions (e.g., `OP_YIELD` at 90 vs. authoritative 61).
 
