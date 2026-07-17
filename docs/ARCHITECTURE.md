@@ -36,6 +36,9 @@ The core SVM implementation in `src/svm/sgvm_vm.sage`. It utilizes an operand st
   - **Inlined Loop**: The instruction decoding, BE16 decoding, and operand fetching logic is inlined into the main `run` loop to minimize function call and property lookup overhead.
   - **State Caching**: The VM caches critical state (operand stack, constant pool) in local variables within the execution loop, yielding a ~4.3x speedup in loop-heavy benchmarks.
   - **Local Base Caching**: The VM caches `current_local_base` to accelerate `OP_GET_LOCAL` and `OP_SET_LOCAL` by avoiding repeated call stack traversals.
+  - **Single-Scope Global Fast-Path**: The VM implements a fast-path for `OP_GET_GLOBAL` and `OP_SET_GLOBAL` when only one scope (the global scope) is present, bypassing the scope stack traversal.
+  - **Scopes Depth Caching**: The VM caches `len(scopes)` as a local variable (`scopes_len`) and manually updates it during environment pushes and pops, eliminating the overhead of repeated `len()` calls in the hot loop.
+  - **Expanded Hot-Path Dispatch**: Frequency-optimized `if/elif` chain now includes inlined branches for `OP_TRUTHY`, `OP_PRINT`, `OP_NEGATE`, and `OP_ARRAY_LEN`, further reducing delegation to the non-inlined `execute_op` handler.
 
 ### 4.2 MetalRV64 (Register-Based)
 The SRVM implementation in `src/srvm/srvm_vm.sage`. It maps guest execution to a virtual RISC-V 64-bit hardware model.
@@ -121,7 +124,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-13**
+**Last Conformance Sync: 2026-07-15**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists and has expanded. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63), shifting the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions for SageVM-specific extensions (e.g., `OP_YIELD` at 90 vs. authoritative 61).
 
