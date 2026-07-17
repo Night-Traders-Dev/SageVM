@@ -30,6 +30,10 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `shadowing.sage`: Tests variable shadowing (local vs global).
 - `collection_eq.sage`: Tests deep equality for arrays and dictionaries (bug flagged: dictionary equality fails).
 
+### Coverage Expansion (2026-07-16)
+- `generators.sage`: Tests generator creation, `yield` statement execution, and the `next()` builtin. Since the SVM interpreter doesn't support native generator opcodes, this is a documented gap.
+- `security_builtin_protection.sage`: Tests host bridge security isolation by attempting to mutate protected `__builtin__`-tagged structures under `safe_mode`.
+
 ### Coverage Expansion (2026-07-15)
 - `dict_property.sage`: Tests property-style access and assignment on dictionaries.
 - `index_oob.sage`: Tests out-of-bounds indexing for arrays and missing keys for dictionaries.
@@ -63,6 +67,7 @@ As of July 2026, several tests are expected to fail due to documented but unimpl
 - `nested_scopes.sage`: Nested functions cannot access parent local variables (lack of closures); they only see global scope or own locals.
 - `string_repeat.sage`: Missing SVM implementation for string repetition with `*`.
 - `halt_op.sage`: Fails because `sys.exit` currently does not halt the VM interpreter.
+- `generators.sage`: Fails because SVM lacks a native generator engine (`OP_YIELD`/`OP_GENERATOR_NEXT` state preservation).
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.

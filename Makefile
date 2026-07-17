@@ -40,7 +40,7 @@ test:
 		echo "#endif" >> .deps/SageLang/core/include/curl/curl.h; \
 	fi
 	@if [ ! -f .deps/SageLang/core/sage ]; then \
-		$(MAKE) -C .deps/SageLang/core LDFLAGS="-lm -lpthread -ldl" -j$$(nproc); \
+		$(MAKE) -C .deps/SageLang/core SAGE_NO_NET=1 SAGE_NO_GPU=1 CFLAGS_EXTRA="-DSAGE_NO_NET -DSAGE_NO_GPU" LDFLAGS="-lm -lpthread -ldl" -j$$(nproc); \
 	fi
 	@$(MAKE) all
 	@python3 tests/run_tests.py
