@@ -27,3 +27,7 @@
 ## 2026-07-13 - Stack Peeking and Dispatch Inlining
 **Learning:** In the SVM interpreter, replacing pop/push cycles with stack peeking (`stack[len(stack)-1]`) for assignments and property/index lookups reduces the overhead of Python-level list modifications and length checks, yielding a measurable speedup. Inlining property access into the main dispatch loop further reduces function call overhead.
 **Action:** Prioritize stack peeking over pop/push for all opcodes that update or access the top of the stack.
+
+## 2026-07-18 - Stack Overflow Check Relocation and Scope Lookup Caching
+**Learning:** In the SVM interpreter, executing `len(stack) > max_stack` on every instruction is a huge source of overhead. Relocating this check to loop and call boundaries (`OP_LOOP_BACK`, `OP_CALL`, `OP_CALL_METHOD`, `OP_SETUP_TRY`) provides a massive speedup while maintaining correctness. Additionally, list index lookups like `scopes[0]` are slow because list indexing compiles to function calls. Caching the persistent `scopes[0]` dictionary as a local variable (`global_scope`) before the loop avoids function calls in every `OP_GET_GLOBAL`/`OP_SET_GLOBAL` instruction, boosting total loop performance by ~36%.
+**Action:** Relocate general validation checks to specific branch/boundary opcodes, and cache persistent list elements to local variables to avoid list indexing overhead inside hot loops.

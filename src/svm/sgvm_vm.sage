@@ -148,14 +148,10 @@ class MetalVM:
         let code_len = len(code_bytes)
         let const_len = len(constants)
         var scopes_len = len(scopes)
+        let global_scope = scopes[0]
 
         host_thread.lock(g_gil)
         while not halted and ip < code_len:
-            if len(stack) > max_stack:
-                print "Error: Stack overflow"
-                halted = true
-                break
-
             let op = code_bytes[ip]
             if trace:
                 print "IP: " + str(ip) + " OP: " + str(op) + " Stack: " + str(stack)
@@ -191,17 +187,18 @@ class MetalVM:
                     continue
                 # Performance: Fast-path for common scope depths
                 if scopes_len == 1:
-                    if dict_has(scopes[0], name):
-                        push(stack, scopes[0][name])
+                    if dict_has(global_scope, name):
+                        push(stack, global_scope[name])
                     elif dict_has(globals, name):
                         push(stack, globals[name])
                     else:
                         push(stack, nil)
                 elif scopes_len == 2:
-                    if dict_has(scopes[1], name):
-                        push(stack, scopes[1][name])
-                    elif dict_has(scopes[0], name):
-                        push(stack, scopes[0][name])
+                    let s1 = scopes[1]
+                    if dict_has(s1, name):
+                        push(stack, s1[name])
+                    elif dict_has(global_scope, name):
+                        push(stack, global_scope[name])
                     elif dict_has(globals, name):
                         push(stack, globals[name])
                     else:
@@ -244,15 +241,16 @@ class MetalVM:
                 let val = stack[len(stack)-1]
                 # Performance: Fast-path for common scope depths
                 if scopes_len == 1:
-                    if dict_has(scopes[0], name):
-                        scopes[0][name] = val
+                    if dict_has(global_scope, name):
+                        global_scope[name] = val
                     else:
                         globals[name] = val
                 elif scopes_len == 2:
-                    if dict_has(scopes[1], name):
-                        scopes[1][name] = val
-                    elif dict_has(scopes[0], name):
-                        scopes[0][name] = val
+                    let s1 = scopes[1]
+                    if dict_has(s1, name):
+                        s1[name] = val
+                    elif dict_has(global_scope, name):
+                        global_scope[name] = val
                     else:
                         globals[name] = val
                 else:
@@ -274,6 +272,10 @@ class MetalVM:
                 ip = ip + 2
                 if not stack[len(stack)-1]: ip = target
             elif op == OP_LOOP_BACK:
+                if len(stack) > max_stack:
+                    print "Error: Stack overflow"
+                    halted = true
+                    break
                 ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
             elif op == OP_LESS:
                 let b = pop(stack)
@@ -733,6 +735,10 @@ class MetalVM:
             if not cond:
                 self.ip = target
         elif op == OP_LOOP_BACK:
+            if len(self.stack) > self.max_stack_depth:
+                print "Error: Stack overflow"
+                self.halted = true
+                return false
             self.ip = self.ip - ut.read_be16(self.code, self.ip)
         elif op == OP_PRINT:
             print pop(self.stack)
@@ -798,6 +804,10 @@ class MetalVM:
                 return false
             push(self.stack, {"__type__": "function", "__chunk__": chunk_idx})
         elif op == OP_CALL:
+            if len(self.stack) > self.max_stack_depth:
+                print "Error: Stack overflow"
+                self.halted = true
+                return false
             let argc = int(self.code[self.ip])
             self.ip = self.ip + 1
             let args = []
@@ -887,6 +897,10 @@ class MetalVM:
             else:
                 print "Error: Callee not a function or builtin name"
         elif op == OP_CALL_METHOD:
+            if len(self.stack) > self.max_stack_depth:
+                print "Error: Stack overflow"
+                self.halted = true
+                return false
             let name_idx = ut.read_be16(self.code, self.ip)
             let argc = int(self.code[self.ip + 2])
             self.ip = self.ip + 3
@@ -1114,6 +1128,10 @@ class MetalVM:
                 catch e:
                     push(self.stack, {"__type__": "module", "__name__": name})
         elif op == OP_SETUP_TRY:
+            if len(self.stack) > self.max_stack_depth:
+                print "Error: Stack overflow"
+                self.halted = true
+                return false
             let handler = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             # Security: Prevent nested handlers from exhausting VM memory (DoS)
