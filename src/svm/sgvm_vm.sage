@@ -166,7 +166,11 @@ class MetalVM:
             if op == OP_GET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                push(stack, stack[local_base + idx])
+                let target_idx = local_base + idx
+                if target_idx >= 0 and target_idx < len(stack):
+                    push(stack, stack[target_idx])
+                else:
+                    push(stack, nil)
             elif op == OP_CONSTANT:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -224,8 +228,12 @@ class MetalVM:
             elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                let val = stack[len(stack)-1]
-                stack[local_base + idx] = val
+                let target_idx = local_base + idx
+                if len(stack) > 0 and target_idx >= 0:
+                    let val = stack[len(stack)-1]
+                    while target_idx >= len(stack):
+                        push(stack, nil)
+                    stack[target_idx] = val
             elif op == OP_ADD:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] + b
@@ -311,7 +319,11 @@ class MetalVM:
             elif op == OP_DUP:
                 let distance = code_bytes[ip]
                 ip = ip + 1
-                push(stack, stack[len(stack)-1-distance])
+                let target_idx = len(stack) - 1 - distance
+                if target_idx >= 0 and target_idx < len(stack):
+                    push(stack, stack[target_idx])
+                else:
+                    push(stack, nil)
             elif op == OP_MOD:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] % b
