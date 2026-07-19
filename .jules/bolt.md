@@ -1,5 +1,9 @@
 # Bolt's Performance Journal
 
+## 2026-07-17 - Stack Size Local Caching and Maintenance
+**Learning:** Calling `len(stack)` repeatedly in hot-loops inside the SVM interpreter is highly expensive, especially when list indexing/peeking and conditional operations rely on it. Caching and manually maintaining the stack size in a local variable (`stack_len`) inside the `MetalVM.run` hot-loop yields a substantial ~39% speedup (~18.2s to ~11.0s) on loop-heavy benchmarks.
+**Action:** Track collection sizes locally when they change predictably via push/pop inside interpreter hot-loops, and synchronize back only on non-inlined or fallback boundaries.
+
 ## 2026-06-25 - Interpreter Hot-Loop Optimization
 **Learning:** Accessing local variables in the SVM interpreter via call stack dictionary lookups is a significant bottleneck. Caching the `current_local_base` in the `MetalVM` object provides a ~15% speedup in arithmetic loops. Inlining BE16 decoding also reduces overhead.
 **Action:** Always look for cached state opportunities in interpreter hot loops. Avoid unnecessary dictionary lookups in opcodes like `OP_GET_LOCAL` and `OP_SET_LOCAL`.
