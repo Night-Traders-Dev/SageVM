@@ -17,3 +17,7 @@
 ## 2026-07-17 - [Accessible Range Inputs & Custom Controls]
 **Learning:** Interactive range sliders and file upload inputs must have explicit ARIA labels. Relying solely on flanking text span elements or visual titles is insufficient for screen readers to convey control purpose.
 **Action:** Always verify that every custom input type (including hidden file inputs wrapped in labels and range sliders) has a dedicated `aria-label` describing its exact function.
+
+## 2026-07-18 - [Opcode Reference Accessibility and Keyboard Navigation]
+**Learning:** Interactive lists or grids (like the Opcode Reference) must be fully accessible to keyboard-only and screen-reader users. Converting clickable elements from generic tags (like `div`) to interactive button roles requires adding `role="button"`, `tabIndex={0}`, standard screen-reader labels (`aria-label`, `aria-expanded`), focus rings (`focus-visible:ring`), and an explicit keyboard keydown listener (`onKeyDown` for Space/Enter keys) to ensure seamless, non-disruptive navigation.
+**Action:** Always convert custom interactive list/grid items to accessible buttons with `role="button"`, tab index, explicit keydown event handlers, state indicators, and focus indicator outlines.
