@@ -161,7 +161,10 @@ class MetalVM:
             if op == OP_GET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                push(stack, stack[local_base + idx])
+                if local_base + idx < len(stack):
+                    push(stack, stack[local_base + idx])
+                else:
+                    push(stack, nil)
             elif op == OP_CONSTANT:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -220,6 +223,8 @@ class MetalVM:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 let val = stack[len(stack)-1]
+                while local_base + idx >= len(stack):
+                    push(stack, nil)
                 stack[local_base + idx] = val
             elif op == OP_ADD:
                 let b = pop(stack)
@@ -314,7 +319,10 @@ class MetalVM:
             elif op == OP_DUP:
                 let distance = code_bytes[ip]
                 ip = ip + 1
-                push(stack, stack[len(stack)-1-distance])
+                if distance < len(stack):
+                    push(stack, stack[len(stack)-1-distance])
+                else:
+                    push(stack, nil)
             elif op == OP_MOD:
                 let b = pop(stack)
                 stack[len(stack)-1] = stack[len(stack)-1] % b
@@ -391,39 +399,49 @@ class MetalVM:
             elif op == OP_GET_PROPERTY:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                let name = constants[idx]
-                let obj = stack[len(stack)-1]
-                if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                    stack[len(stack)-1] = nil
-                elif type(obj) == "dict":
-                    if dict_has(obj, name):
-                        stack[len(stack)-1] = obj[name]
-                    elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
-                        stack[len(stack)-1] = obj["__class__"]["__methods__"][name]
-                    elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
-                        stack[len(stack)-1] = obj["__methods__"][name]
-                    else:
+                if idx < const_len:
+                    let name = constants[idx]
+                    let obj = stack[len(stack)-1]
+                    if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                         stack[len(stack)-1] = nil
+                    elif type(obj) == "dict":
+                        if dict_has(obj, name):
+                            stack[len(stack)-1] = obj[name]
+                        elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
+                            stack[len(stack)-1] = obj["__class__"]["__methods__"][name]
+                        elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
+                            stack[len(stack)-1] = obj["__methods__"][name]
+                        else:
+                            stack[len(stack)-1] = nil
+                    else:
+                        stack[len(stack)-1] = obj[name]
                 else:
-                    stack[len(stack)-1] = obj[name]
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
             elif op == OP_SET_PROPERTY:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                let name = constants[idx]
-                let val = stack[len(stack)-1]
-                let obj = stack[len(stack)-2]
-                if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                    print "Error: Access to internal property '" + name + "' is restricted in safe mode"
-                    pop(stack)
-                    stack[len(stack)-1] = nil
-                elif self.is_protected(obj):
-                    print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
-                    pop(stack)
-                    stack[len(stack)-1] = nil
+                if idx < const_len:
+                    let name = constants[idx]
+                    let val = stack[len(stack)-1]
+                    let obj = stack[len(stack)-2]
+                    if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                        print "Error: Access to internal property '" + name + "' is restricted in safe mode"
+                        pop(stack)
+                        stack[len(stack)-1] = nil
+                    elif self.is_protected(obj):
+                        print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
+                        pop(stack)
+                        stack[len(stack)-1] = nil
+                    else:
+                        obj[name] = val
+                        pop(stack)
+                        stack[len(stack)-1] = val
                 else:
-                    obj[name] = val
-                    pop(stack)
-                    stack[len(stack)-1] = val
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
             else:
                 # Synchronize local state back to self before calling non-inlined execute_op
                 self.ip = ip
@@ -592,7 +610,10 @@ class MetalVM:
         elif op == OP_DUP:
             let distance = int(self.code[self.ip])
             self.ip = self.ip + 1
-            push(self.stack, self.stack[len(self.stack)-1-distance])
+            if distance < len(self.stack):
+                push(self.stack, self.stack[len(self.stack)-1-distance])
+            else:
+                push(self.stack, nil)
         elif op == OP_GET_GLOBAL:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
