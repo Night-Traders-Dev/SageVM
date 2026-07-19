@@ -151,11 +151,6 @@ class MetalVM:
 
         host_thread.lock(g_gil)
         while not halted and ip < code_len:
-            if len(stack) > max_stack:
-                print "Error: Stack overflow"
-                halted = true
-                break
-
             let op = code_bytes[ip]
             if trace:
                 print "IP: " + str(ip) + " OP: " + str(op) + " Stack: " + str(stack)
@@ -268,12 +263,20 @@ class MetalVM:
                     if not updated:
                         globals[name] = val
             elif op == OP_JUMP:
+                if len(stack) > max_stack:
+                    print "Error: Stack overflow"
+                    halted = true
+                    break
                 ip = (code_bytes[ip] << 8) | code_bytes[ip+1]
             elif op == OP_JUMP_IF_FALSE:
                 let target = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 if not stack[len(stack)-1]: ip = target
             elif op == OP_LOOP_BACK:
+                if len(stack) > max_stack:
+                    print "Error: Stack overflow"
+                    halted = true
+                    break
                 ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
             elif op == OP_LESS:
                 let b = pop(stack)
@@ -722,6 +725,10 @@ class MetalVM:
         elif op == OP_TRUTHY:
             push(self.stack, not (not pop(self.stack)))
         elif op == OP_JUMP:
+            if len(self.stack) > self.max_stack_depth:
+                print "Error: Stack overflow"
+                self.halted = true
+                return false
             self.ip = ut.read_be16(self.code, self.ip)
         elif op == OP_JUMP_IF_FALSE:
             let target = ut.read_be16(self.code, self.ip)
@@ -733,6 +740,10 @@ class MetalVM:
             if not cond:
                 self.ip = target
         elif op == OP_LOOP_BACK:
+            if len(self.stack) > self.max_stack_depth:
+                print "Error: Stack overflow"
+                self.halted = true
+                return false
             self.ip = self.ip - ut.read_be16(self.code, self.ip)
         elif op == OP_PRINT:
             print pop(self.stack)
@@ -798,6 +809,10 @@ class MetalVM:
                 return false
             push(self.stack, {"__type__": "function", "__chunk__": chunk_idx})
         elif op == OP_CALL:
+            if len(self.stack) > self.max_stack_depth:
+                print "Error: Stack overflow"
+                self.halted = true
+                return false
             let argc = int(self.code[self.ip])
             self.ip = self.ip + 1
             let args = []
@@ -887,6 +902,10 @@ class MetalVM:
             else:
                 print "Error: Callee not a function or builtin name"
         elif op == OP_CALL_METHOD:
+            if len(self.stack) > self.max_stack_depth:
+                print "Error: Stack overflow"
+                self.halted = true
+                return false
             let name_idx = ut.read_be16(self.code, self.ip)
             let argc = int(self.code[self.ip + 2])
             self.ip = self.ip + 3
@@ -1114,6 +1133,10 @@ class MetalVM:
                 catch e:
                     push(self.stack, {"__type__": "module", "__name__": name})
         elif op == OP_SETUP_TRY:
+            if len(self.stack) > self.max_stack_depth:
+                print "Error: Stack overflow"
+                self.halted = true
+                return false
             let handler = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             # Security: Prevent nested handlers from exhausting VM memory (DoS)

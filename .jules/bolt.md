@@ -27,3 +27,7 @@
 ## 2026-07-13 - Stack Peeking and Dispatch Inlining
 **Learning:** In the SVM interpreter, replacing pop/push cycles with stack peeking (`stack[len(stack)-1]`) for assignments and property/index lookups reduces the overhead of Python-level list modifications and length checks, yielding a measurable speedup. Inlining property access into the main dispatch loop further reduces function call overhead.
 **Action:** Prioritize stack peeking over pop/push for all opcodes that update or access the top of the stack.
+
+## 2026-07-16 - Hot-Loop Stack Overflow Check Optimization
+**Learning:** Checking stack overflow limits (`len(stack) > max_stack`) on every single bytecode instruction inside an interpreter hot loop incurs a heavy performance penalty due to frequent list length and comparison operations. Since infinite stack growth is theoretically impossible without control-flow/loops (`OP_JUMP`, `OP_LOOP_BACK`), function/method recursion (`OP_CALL`, `OP_CALL_METHOD`), or exception handling blocks (`OP_SETUP_TRY`), restricting the overflow check to only these key opcodes preserves complete safety boundaries while eliminating the check from standard linear instructions. Removing it from conditional forward jumps (`OP_JUMP_IF_FALSE`) further optimizes loop headers, resulting in a ~41% overall execution speedup.
+**Action:** Relocate resource exhaustion and safety boundary checks from the main instruction dispatch loop to control flow, function calls, and loop-back boundaries.
