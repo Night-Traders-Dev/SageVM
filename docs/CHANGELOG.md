@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-16]
+
+### Added
+- **Two-Scope Global Fast-Path (SVM)**: Extended `OP_GET_GLOBAL` and `OP_SET_GLOBAL` fast-paths to also optimize variable resolution when the scope depth is exactly 2.
+- **Inlined Property Operations (SVM)**: Fully inlined property lookup (`OP_GET_PROPERTY`) and property assignment (`OP_SET_PROPERTY`) directly into `MetalVM.run`, reducing instruction delegation and call overhead.
+- **In-Place Stack Peeking & Modification (SVM)**: Optimized `OP_SET_GLOBAL`, `OP_GET_INDEX`, `OP_SET_INDEX`, `OP_GET_PROPERTY`, and `OP_SET_PROPERTY` to peek at operand values and modify the stack in-place, eliminating pop/push allocation overhead.
+- **Enhanced Sandboxing (SVM)**: Restricted guest import of the host `struct` module in `safe_mode` via `OP_IMPORT` blacklist enforcement, matching security constraints.
+- **Comprehensive Test Coverage**: Added dedicated test coverage including `generators.sage` (generators & `yield`), `security_builtin_protection.sage` (`__builtin__` key mutation checks), `import_user_module.sage` (non-native import dummy handling), `array_len_edge.sage` (`len()` edge cases), and `dup_targeted.sage` (targeted `OP_DUP` verification).
+
+### Changed
+- **Makefile Resilience**: Configured `SAGE_NO_NET=1 SAGE_NO_GPU=1` and `CFLAGS_EXTRA` flags when compiling the host `sage` binary to ensure compatibility with restricted environments.
+- **Documentation Sync**: Synchronized architectural specs, execution pipelines, and roadmap statuses with the 2026-07-16 conformance state.
+
 ## [2026-07-15]
 
 ### Added
