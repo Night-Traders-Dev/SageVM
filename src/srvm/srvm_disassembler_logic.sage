@@ -44,6 +44,9 @@ class SRVMDisassembler:
         # Version (2 bytes)
         self.pos = self.pos + 2
         
+        # Functions count (2 bytes)
+        self.pos = self.pos + 2
+
         # Const count (BE16)
         self.const_count = (int(self.data[self.pos]) << 8) | int(self.data[self.pos + 1])
         self.pos = self.pos + 2

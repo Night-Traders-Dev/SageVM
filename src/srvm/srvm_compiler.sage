@@ -374,6 +374,14 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, idx))
                 self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_GLOBAL, 0))
             
+            elif op == sgvm_core.OP_IMPORT:
+                let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                let rd = self.alloc_reg()
+                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, idx))
+                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, rd, srvm_core.VMO_IMPORT, 0))
+                push(self.reg_stack, rd)
+
             elif op == sgvm_core.OP_GET_LOCAL:
                 let idx = int(svm_bytecode[i])
                 i = i + 1
@@ -629,6 +637,8 @@ class SGRVCompiler:
         var constants = []
         
         var output = [83, 71, 82, 86, 0, 1]
+        push(output, (func_count >> 8) & 0xFF)
+        push(output, func_count & 0xFF)
         push(output, (const_count >> 8) & 0xFF)
         push(output, const_count & 0xFF)
         
