@@ -105,6 +105,22 @@ class MetalVM:
         self.globals["range"] = "__builtin_range"
         self.globals["type"] = "__builtin_type"
         self.globals["slice"] = "__builtin_slice"
+        self.globals["push"] = "__builtin_push"
+        self.globals["pop"] = "__builtin_pop"
+        self.globals["chr"] = "__builtin_chr"
+        self.globals["ord"] = "__builtin_ord"
+        self.globals["dict_has"] = "__builtin_dict_has"
+        self.globals["dict_keys"] = "__builtin_dict_keys"
+        self.globals["dict_values"] = "__builtin_dict_values"
+        self.globals["startswith"] = "__builtin_startswith"
+        self.globals["endswith"] = "__builtin_endswith"
+        self.globals["contains"] = "__builtin_contains"
+        self.globals["join"] = "__builtin_join"
+        self.globals["split"] = "__builtin_split"
+        self.globals["replace"] = "__builtin_replace"
+        self.globals["upper"] = "__builtin_upper"
+        self.globals["lower"] = "__builtin_lower"
+        self.globals["strip"] = "__builtin_strip"
         
         # Advanced GC builtins
         self.globals["gc_collect"] = "__builtin_gc_collect"
@@ -621,6 +637,68 @@ class MetalVM:
         elif callee == "__builtin_gc_disable": return gc_disable()
         elif callee == "__builtin_reflect_get_methods": return reflect_get_methods(args[0])
         elif callee == "__builtin_reflect_get_class": return reflect_get_class(args[0])
+        elif callee == "__builtin_push":
+            if self.is_protected(args[0]):
+                print "Error: Modification of protected object is restricted in safe mode"
+                return nil
+            push(args[0], args[1])
+            return nil
+        elif callee == "__builtin_pop":
+            if self.is_protected(args[0]):
+                print "Error: Modification of protected object is restricted in safe mode"
+                return nil
+            return pop(args[0])
+        elif callee == "__builtin_chr":
+            return chr(args[0])
+        elif callee == "__builtin_ord":
+            return ord(args[0])
+        elif callee == "__builtin_dict_has":
+            let key = args[1]
+            if self.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+                return false
+            return dict_has(args[0], key)
+        elif callee == "__builtin_dict_keys":
+            let keys = dict_keys(args[0])
+            if self.safe_mode:
+                let safe_keys = []
+                var i = 0
+                while i < len(keys):
+                    let key = keys[i]
+                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                        push(safe_keys, key)
+                    i = i + 1
+                return safe_keys
+            return keys
+        elif callee == "__builtin_dict_values":
+            if self.safe_mode:
+                let safe_vals = []
+                let keys = dict_keys(args[0])
+                var i = 0
+                while i < len(keys):
+                    let key = keys[i]
+                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                        push(safe_vals, args[0][key])
+                    i = i + 1
+                return safe_vals
+            return dict_values(args[0])
+        elif callee == "__builtin_startswith":
+            return startswith(args[0], args[1])
+        elif callee == "__builtin_endswith":
+            return endswith(args[0], args[1])
+        elif callee == "__builtin_contains":
+            return contains(args[0], args[1])
+        elif callee == "__builtin_join":
+            return join(args[0], args[1])
+        elif callee == "__builtin_split":
+            return split(args[0], args[1])
+        elif callee == "__builtin_replace":
+            return replace(args[0], args[1], args[2])
+        elif callee == "__builtin_upper":
+            return upper(args[0])
+        elif callee == "__builtin_lower":
+            return lower(args[0])
+        elif callee == "__builtin_strip":
+            return strip(args[0])
         else:
             print "Error: Unknown builtin: " + callee
             return nil

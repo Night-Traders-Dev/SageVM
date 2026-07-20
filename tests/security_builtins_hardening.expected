@@ -1,0 +1,5 @@
+Error: Modification of protected object is restricted in safe mode
+Error: Modification of protected object is restricted in safe mode
+dict_has internal: false
+dict_keys contains internal key: false
+dict_values contains internal value: false

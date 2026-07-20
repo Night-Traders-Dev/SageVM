@@ -1,4 +1,2 @@
-Error: Callee not a function or builtin name
-Array contains 2: nil
-Error: Callee not a function or builtin name
-String contains 'e': nil
+Array contains 2: false
+String contains 'e': true

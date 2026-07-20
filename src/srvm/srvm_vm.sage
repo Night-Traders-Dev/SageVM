@@ -308,20 +308,57 @@ class SRVM:
                     elif b_name == "tonumber":
                         self.state.x[10] = tonumber(self.state.x[10])
                     elif b_name == "push":
-                        push(self.state.x[10], self.state.x[11])
-                        self.state.x[10] = nil
+                        if self.is_protected(self.state.x[10]):
+                            print "Error: Modification of protected object is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            push(self.state.x[10], self.state.x[11])
+                            self.state.x[10] = nil
                     elif b_name == "pop":
-                        self.state.x[10] = pop(self.state.x[10])
+                        if self.is_protected(self.state.x[10]):
+                            print "Error: Modification of protected object is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = pop(self.state.x[10])
                     elif b_name == "chr":
                         self.state.x[10] = chr(self.state.x[10])
                     elif b_name == "ord":
                         self.state.x[10] = ord(self.state.x[10])
                     elif b_name == "dict_has":
-                        self.state.x[10] = dict_has(self.state.x[10], self.state.x[11])
+                        let obj = self.state.x[10]
+                        let key = self.state.x[11]
+                        if self.state.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+                            self.state.x[10] = false
+                        else:
+                            self.state.x[10] = dict_has(obj, key)
                     elif b_name == "dict_keys":
-                        self.state.x[10] = dict_keys(self.state.x[10])
+                        let obj = self.state.x[10]
+                        let keys = dict_keys(obj)
+                        if self.state.safe_mode:
+                            let safe_keys = []
+                            var i = 0
+                            while i < len(keys):
+                                let key = keys[i]
+                                if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                                    push(safe_keys, key)
+                                i = i + 1
+                            self.state.x[10] = safe_keys
+                        else:
+                            self.state.x[10] = keys
                     elif b_name == "dict_values":
-                        self.state.x[10] = dict_values(self.state.x[10])
+                        let obj = self.state.x[10]
+                        if self.state.safe_mode:
+                            let safe_vals = []
+                            let keys = dict_keys(obj)
+                            var i = 0
+                            while i < len(keys):
+                                let key = keys[i]
+                                if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                                    push(safe_vals, obj[key])
+                                i = i + 1
+                            self.state.x[10] = safe_vals
+                        else:
+                            self.state.x[10] = dict_values(obj)
                     elif b_name == "gc_stats":
                         self.state.x[10] = gc_stats()
                     elif b_name == "gc_collect":
