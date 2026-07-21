@@ -105,22 +105,6 @@ class MetalVM:
         self.globals["range"] = "__builtin_range"
         self.globals["type"] = "__builtin_type"
         self.globals["slice"] = "__builtin_slice"
-        self.globals["push"] = "__builtin_push"
-        self.globals["pop"] = "__builtin_pop"
-        self.globals["chr"] = "__builtin_chr"
-        self.globals["ord"] = "__builtin_ord"
-        self.globals["dict_has"] = "__builtin_dict_has"
-        self.globals["dict_keys"] = "__builtin_dict_keys"
-        self.globals["dict_values"] = "__builtin_dict_values"
-        self.globals["startswith"] = "__builtin_startswith"
-        self.globals["endswith"] = "__builtin_endswith"
-        self.globals["contains"] = "__builtin_contains"
-        self.globals["join"] = "__builtin_join"
-        self.globals["split"] = "__builtin_split"
-        self.globals["replace"] = "__builtin_replace"
-        self.globals["upper"] = "__builtin_upper"
-        self.globals["lower"] = "__builtin_lower"
-        self.globals["strip"] = "__builtin_strip"
         
         # Advanced GC builtins
         self.globals["gc_collect"] = "__builtin_gc_collect"
@@ -154,7 +138,6 @@ class MetalVM:
         var code_bytes = code
         var halted = false
         let stack = self.stack
-        var stack_len = len(stack)
         let max_stack = self.max_stack_depth
         let constants = self.constants
         let scopes = self.scopes
@@ -178,24 +161,21 @@ class MetalVM:
             if op == OP_GET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if local_base + idx < stack_len:
+                if local_base + idx < len(stack):
                     push(stack, stack[local_base + idx])
                 else:
                     push(stack, nil)
-                stack_len = stack_len + 1
             elif op == OP_CONSTANT:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 if idx < const_len:
                     push(stack, constants[idx])
-                    stack_len = stack_len + 1
                 else:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
             elif op == OP_POP:
                 pop(stack)
-                stack_len = stack_len - 1
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -206,7 +186,6 @@ class MetalVM:
                 let name = constants[idx]
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     push(stack, nil)
-                    stack_len = stack_len + 1
                     continue
                 # Performance: Fast-path for common scope depths
                 if scopes_len == 1:
@@ -240,19 +219,21 @@ class MetalVM:
                             push(stack, globals[name])
                         else:
                             push(stack, nil)
-                stack_len = stack_len + 1
             elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                let val = stack[stack_len-1]
-                while local_base + idx >= stack_len:
+                let val = stack[len(stack)-1]
+                while local_base + idx >= len(stack):
+                    if len(stack) >= max_stack:
+                        print "Error: Stack overflow"
+                        halted = true
+                        break
                     push(stack, nil)
-                    stack_len = stack_len + 1
+                if halted: break
                 stack[local_base + idx] = val
             elif op == OP_ADD:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] + b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] + b
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -263,9 +244,9 @@ class MetalVM:
                 let name = constants[idx]
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
-                    stack[stack_len-1] = nil
+                    stack[len(stack)-1] = nil
                     continue
-                let val = stack[stack_len-1]
+                let val = stack[len(stack)-1]
                 # Performance: Fast-path for common scope depths
                 if scopes_len == 1:
                     if dict_has(scopes[0], name):
@@ -292,7 +273,7 @@ class MetalVM:
                     if not updated:
                         globals[name] = val
             elif op == OP_JUMP:
-                if stack_len > max_stack:
+                if len(stack) > max_stack:
                     print "Error: Stack overflow"
                     halted = true
                     break
@@ -300,103 +281,83 @@ class MetalVM:
             elif op == OP_JUMP_IF_FALSE:
                 let target = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if not stack[stack_len-1]: ip = target
+                if not stack[len(stack)-1]: ip = target
             elif op == OP_LOOP_BACK:
-                if stack_len > max_stack:
+                if len(stack) > max_stack:
                     print "Error: Stack overflow"
                     halted = true
                     break
                 ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
             elif op == OP_LESS:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] < b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] < b
             elif op == OP_MUL:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] * b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] * b
             elif op == OP_DIV:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] / b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] / b
             elif op == OP_SUB:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] - b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] - b
             elif op == OP_EQUAL:
                 let b = pop(stack)
-                stack[stack_len-2] = (stack[stack_len-2] == b)
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = (stack[len(stack)-1] == b)
             elif op == OP_NOT_EQUAL:
                 let b = pop(stack)
-                stack[stack_len-2] = (stack[stack_len-2] != b)
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = (stack[len(stack)-1] != b)
             elif op == OP_LESS_EQUAL:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] <= b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] <= b
             elif op == OP_GREATER:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] > b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] > b
             elif op == OP_GREATER_EQUAL:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] >= b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] >= b
             elif op == OP_NIL:
                 push(stack, nil)
-                stack_len = stack_len + 1
             elif op == OP_TRUE:
                 push(stack, true)
-                stack_len = stack_len + 1
             elif op == OP_FALSE:
                 push(stack, false)
-                stack_len = stack_len + 1
             elif op == OP_DUP:
                 let distance = code_bytes[ip]
                 ip = ip + 1
-                if distance < stack_len:
-                    push(stack, stack[stack_len-1-distance])
+                if distance < len(stack):
+                    push(stack, stack[len(stack)-1-distance])
                 else:
                     push(stack, nil)
-                stack_len = stack_len + 1
             elif op == OP_MOD:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] % b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] % b
             elif op == OP_BIT_AND:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] & b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] & b
             elif op == OP_BIT_OR:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] | b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] | b
             elif op == OP_BIT_XOR:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] ^ b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] ^ b
             elif op == OP_BIT_NOT:
-                stack[stack_len-1] = ~stack[stack_len-1]
+                stack[len(stack)-1] = ~stack[len(stack)-1]
             elif op == OP_SHIFT_LEFT:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] << b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] << b
             elif op == OP_SHIFT_RIGHT:
                 let b = pop(stack)
-                stack[stack_len-2] = stack[stack_len-2] >> b
-                stack_len = stack_len - 1
+                stack[len(stack)-1] = stack[len(stack)-1] >> b
             elif op == OP_NOT:
-                stack[stack_len-1] = not stack[stack_len-1]
+                stack[len(stack)-1] = not stack[len(stack)-1]
             elif op == OP_TRUTHY:
-                stack[stack_len-1] = not (not stack[stack_len-1])
+                stack[len(stack)-1] = not (not stack[len(stack)-1])
             elif op == OP_PRINT:
                 print pop(stack)
-                stack_len = stack_len - 1
             elif op == OP_NEGATE:
-                stack[stack_len-1] = -stack[stack_len-1]
+                stack[len(stack)-1] = -stack[len(stack)-1]
             elif op == OP_ARRAY_LEN:
-                stack[stack_len-1] = len(stack[stack_len-1])
+                stack[len(stack)-1] = len(stack[len(stack)-1])
             elif op == OP_PUSH_ENV:
                 if scopes_len >= self.max_call_depth:
                     print "Error: Environment stack depth limit exceeded"
@@ -413,54 +374,52 @@ class MetalVM:
                     halted = true
                     break
             elif op == OP_GET_INDEX:
-                let idx = stack[stack_len-1]
-                let obj = stack[stack_len-2]
+                let idx = stack[len(stack)-1]
+                let obj = stack[len(stack)-2]
                 if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     pop(stack)
-                    stack[stack_len-2] = nil
+                    stack[len(stack)-1] = nil
                 else:
                     pop(stack)
-                    stack[stack_len-2] = obj[idx]
-                stack_len = stack_len - 1
+                    stack[len(stack)-1] = obj[idx]
             elif op == OP_SET_INDEX:
-                let val = stack[stack_len-1]
-                let idx = stack[stack_len-2]
-                let obj = stack[stack_len-3]
+                let val = stack[len(stack)-1]
+                let idx = stack[len(stack)-2]
+                let obj = stack[len(stack)-3]
                 if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
                     pop(stack)
                     pop(stack)
-                    stack[stack_len-3] = nil
+                    stack[len(stack)-1] = nil
                 elif self.is_protected(obj):
                     print "Error: Index assignment to protected object is restricted in safe mode"
                     pop(stack)
                     pop(stack)
-                    stack[stack_len-3] = nil
+                    stack[len(stack)-1] = nil
                 else:
                     obj[idx] = val
                     pop(stack)
                     pop(stack)
-                    stack[stack_len-3] = val
-                stack_len = stack_len - 2
+                    stack[len(stack)-1] = val
             elif op == OP_GET_PROPERTY:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 if idx < const_len:
                     let name = constants[idx]
-                    let obj = stack[stack_len-1]
+                    let obj = stack[len(stack)-1]
                     if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                        stack[stack_len-1] = nil
+                        stack[len(stack)-1] = nil
                     elif type(obj) == "dict":
                         if dict_has(obj, name):
-                            stack[stack_len-1] = obj[name]
+                            stack[len(stack)-1] = obj[name]
                         elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
-                            stack[stack_len-1] = obj["__class__"]["__methods__"][name]
+                            stack[len(stack)-1] = obj["__class__"]["__methods__"][name]
                         elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
-                            stack[stack_len-1] = obj["__methods__"][name]
+                            stack[len(stack)-1] = obj["__methods__"][name]
                         else:
-                            stack[stack_len-1] = nil
+                            stack[len(stack)-1] = nil
                     else:
-                        stack[stack_len-1] = obj[name]
+                        stack[len(stack)-1] = obj[name]
                 else:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
@@ -470,21 +429,20 @@ class MetalVM:
                 ip = ip + 2
                 if idx < const_len:
                     let name = constants[idx]
-                    let val = stack[stack_len-1]
-                    let obj = stack[stack_len-2]
+                    let val = stack[len(stack)-1]
+                    let obj = stack[len(stack)-2]
                     if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                         print "Error: Access to internal property '" + name + "' is restricted in safe mode"
                         pop(stack)
-                        stack[stack_len-2] = nil
+                        stack[len(stack)-1] = nil
                     elif self.is_protected(obj):
                         print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
                         pop(stack)
-                        stack[stack_len-2] = nil
+                        stack[len(stack)-1] = nil
                     else:
                         obj[name] = val
                         pop(stack)
-                        stack[stack_len-2] = val
-                    stack_len = stack_len - 1
+                        stack[len(stack)-1] = val
                 else:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
@@ -505,7 +463,6 @@ class MetalVM:
                 halted = self.halted
                 local_base = self.current_local_base
                 scopes_len = len(scopes)
-                stack_len = len(stack)
 
         # Final synchronization
         self.ip = ip
@@ -637,68 +594,6 @@ class MetalVM:
         elif callee == "__builtin_gc_disable": return gc_disable()
         elif callee == "__builtin_reflect_get_methods": return reflect_get_methods(args[0])
         elif callee == "__builtin_reflect_get_class": return reflect_get_class(args[0])
-        elif callee == "__builtin_push":
-            if self.is_protected(args[0]):
-                print "Error: Modification of protected object is restricted in safe mode"
-                return nil
-            push(args[0], args[1])
-            return nil
-        elif callee == "__builtin_pop":
-            if self.is_protected(args[0]):
-                print "Error: Modification of protected object is restricted in safe mode"
-                return nil
-            return pop(args[0])
-        elif callee == "__builtin_chr":
-            return chr(args[0])
-        elif callee == "__builtin_ord":
-            return ord(args[0])
-        elif callee == "__builtin_dict_has":
-            let key = args[1]
-            if self.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
-                return false
-            return dict_has(args[0], key)
-        elif callee == "__builtin_dict_keys":
-            let keys = dict_keys(args[0])
-            if self.safe_mode:
-                let safe_keys = []
-                var i = 0
-                while i < len(keys):
-                    let key = keys[i]
-                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
-                        push(safe_keys, key)
-                    i = i + 1
-                return safe_keys
-            return keys
-        elif callee == "__builtin_dict_values":
-            if self.safe_mode:
-                let safe_vals = []
-                let keys = dict_keys(args[0])
-                var i = 0
-                while i < len(keys):
-                    let key = keys[i]
-                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
-                        push(safe_vals, args[0][key])
-                    i = i + 1
-                return safe_vals
-            return dict_values(args[0])
-        elif callee == "__builtin_startswith":
-            return startswith(args[0], args[1])
-        elif callee == "__builtin_endswith":
-            return endswith(args[0], args[1])
-        elif callee == "__builtin_contains":
-            return contains(args[0], args[1])
-        elif callee == "__builtin_join":
-            return join(args[0], args[1])
-        elif callee == "__builtin_split":
-            return split(args[0], args[1])
-        elif callee == "__builtin_replace":
-            return replace(args[0], args[1], args[2])
-        elif callee == "__builtin_upper":
-            return upper(args[0])
-        elif callee == "__builtin_lower":
-            return lower(args[0])
-        elif callee == "__builtin_strip":
-            return strip(args[0])
         else:
             print "Error: Unknown builtin: " + callee
             return nil
@@ -1350,6 +1245,10 @@ class MetalVM:
             let val = pop(self.stack)
             let base = self.current_local_base
             while base + idx >= len(self.stack):
+                if len(self.stack) >= self.max_stack_depth:
+                    print "Error: Stack overflow"
+                    self.halted = true
+                    return false
                 push(self.stack, nil)
             self.stack[base + idx] = val
             push(self.stack, val)
