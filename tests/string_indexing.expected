@@ -1,0 +1,12 @@
+String length:
+5
+String indexing [0]:
+h
+String indexing [1]:
+e
+String indexing [4]:
+o
+String indexing out of bounds (positive):
+nil
+String indexing out of bounds (negative):
+nil

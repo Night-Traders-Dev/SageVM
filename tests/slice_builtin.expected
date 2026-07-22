@@ -1,0 +1,9 @@
+Testing slice builtin on array:
+3
+20
+30
+40
+Testing slice builtin on string:
+bcd
+Edge Case: Slice with out-of-bounds start/end:
+5

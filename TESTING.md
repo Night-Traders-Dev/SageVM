@@ -25,6 +25,11 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 
 Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, large constant pools, string concatenation, float arithmetic, GPU time, string repetition, short-circuiting, division by zero, unary operators, return values, global persistence, anonymous/higher-order functions, variable shadowing, and collection equality are located here.
 
+### Coverage Expansion (2026-07-20)
+- `slice_builtin.sage`: Tests the `slice` builtin function on arrays and strings.
+- `string_indexing.sage`: Tests bracket character indexing on strings (e.g., `s[0]`, `s[1]`).
+- `io_module.sage`: Tests native `io` module bridging (bug flagged: dynamic method dispatch is failing/missing on imported host `io` module under SVM).
+
 ### Coverage Expansion (2026-07-10)
 - `anon_func.sage`: Tests higher-order functions and variable-bound functions.
 - `shadowing.sage`: Tests variable shadowing (local vs global).
@@ -68,6 +73,7 @@ As of July 2026, several tests are expected to fail due to documented but unimpl
 - `string_repeat.sage`: Missing SVM implementation for string repetition with `*`.
 - `halt_op.sage`: Fails because `sys.exit` currently does not halt the VM interpreter.
 - `generators.sage`: Fails because SVM lacks a native generator engine (`OP_YIELD`/`OP_GENERATOR_NEXT` state preservation).
+- `io_module.sage`: Fails because dynamic method dispatch is failing or missing on the imported host `io` module under SVM.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.

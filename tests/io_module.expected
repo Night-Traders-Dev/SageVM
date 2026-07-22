@@ -1,0 +1,5 @@
+Testing native io module bridging...
+Error: Method exists not found
+Error: Method writefile not found
+Error: Method exists not found
+Error: Unknown builtin: File exists after write:
