@@ -187,29 +187,44 @@ class MetalVM:
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     push(stack, nil)
                     continue
-                # Performance: Fast-path for common scope depths
+                # Performance: Fast-path for common scope depths bypassing expensive dict_has where possible
                 if scopes_len == 1:
-                    if dict_has(scopes[0], name):
-                        push(stack, scopes[0][name])
+                    let val = scopes[0][name]
+                    if val != nil:
+                        push(stack, val)
+                    elif dict_has(scopes[0], name):
+                        push(stack, nil)
                     elif dict_has(globals, name):
                         push(stack, globals[name])
                     else:
                         push(stack, nil)
                 elif scopes_len == 2:
-                    if dict_has(scopes[1], name):
-                        push(stack, scopes[1][name])
-                    elif dict_has(scopes[0], name):
-                        push(stack, scopes[0][name])
-                    elif dict_has(globals, name):
-                        push(stack, globals[name])
-                    else:
+                    let val1 = scopes[1][name]
+                    if val1 != nil:
+                        push(stack, val1)
+                    elif dict_has(scopes[1], name):
                         push(stack, nil)
+                    else:
+                        let val0 = scopes[0][name]
+                        if val0 != nil:
+                            push(stack, val0)
+                        elif dict_has(scopes[0], name):
+                            push(stack, nil)
+                        elif dict_has(globals, name):
+                            push(stack, globals[name])
+                        else:
+                            push(stack, nil)
                 else:
                     var found = false
                     var si = scopes_len - 1
                     while si >= 0:
-                        if dict_has(scopes[si], name):
-                            push(stack, scopes[si][name])
+                        let s_val = scopes[si][name]
+                        if s_val != nil:
+                            push(stack, s_val)
+                            found = true
+                            si = -1
+                        elif dict_has(scopes[si], name):
+                            push(stack, nil)
                             found = true
                             si = -1
                         else:
