@@ -127,9 +127,9 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-16**
+**Last Conformance Sync: 2026-07-22**
 
-> ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists and has expanded. The authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63), shifting the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions for SageVM-specific extensions (e.g., `OP_YIELD` at 90 vs. authoritative 61).
+> ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists. The authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63). This shifts the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions (e.g., local `OP_GPU_POLL_EVENTS` mapped to 59 collides with authoritative `BC_OP_GET_LOCAL` at 59, and local `OP_YIELD` mapped to 90 collides with authoritative `OP_GPU_CMD_PUSH_CONST` at 90).
 
 > ⚠️ **Disassembler Logic Gap**: The SVM disassembler (`src/svm/sgvm_disassembler_logic.sage`) currently lacks descriptive labels for local variable (88-89), generator (90-92), matrix (87), and GPU (59-86) opcodes, displaying them as `unknown_N` in disassembled output.
 
@@ -198,6 +198,11 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_SETUP_TRY | 56 | 56 | Push an exception handler |
 | OP_END_TRY | 57 | 57 | Pop the current exception handler |
 | OP_RAISE | 58 | 58 | Raise an exception |
+| OP_GET_LOCAL | 88 | 59 | Get a local variable value [Collision: OP_GPU_POLL_EVENTS / Legacy: 88] |
+| OP_SET_LOCAL | 89 | 60 | Set a local variable value [Collision: OP_GPU_WINDOW_SHOULD_CLOSE / Legacy: 89] |
+| OP_YIELD | 90 | 61 | Yield a value from generator [Collision: OP_GPU_GET_TIME / Legacy: 90] |
+| OP_CREATE_GENERATOR | 91 | 62 | Create a generator function [Collision: OP_GPU_KEY_PRESSED / Legacy: 91] |
+| OP_GENERATOR_NEXT | 92 | 63 | Resume generator execution [Collision: OP_GPU_KEY_DOWN / Legacy: 92] |
 | OP_GPU_POLL_EVENTS | 59 | 64 | gpu.poll_events() [Collision: GET_LOCAL] |
 | OP_GPU_WINDOW_SHOULD_CLOSE | 60 | 65 | gpu.window_should_close() [Collision: SET_LOCAL] |
 | OP_GPU_GET_TIME | 61 | 66 | gpu.get_time() -> number [Collision: YIELD] |
@@ -226,12 +231,7 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_GPU_UPDATE_UNIFORM | 84 | 89 | gpu.update_uniform(handle, data) [Collision: SET_LOCAL] |
 | OP_GPU_CMD_PUSH_CONST | 85 | 90 | gpu.cmd_push_constants(...) [Collision: YIELD] |
 | OP_GPU_CMD_DISPATCH | 86 | 91 | gpu.cmd_dispatch(cmd, gx, gy, gz) [Collision: CREATE_GEN] |
-| OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: WAIT_FENCE] |
-| OP_GET_LOCAL | 88 | 59 | Get a local variable value [Collision: RESET_FENCE] |
-| OP_SET_LOCAL | 89 | 60 | Set a local variable value [Collision: UPDATE_UNI] |
-| OP_YIELD | 90 | 61 | Yield a value from generator [Collision: PUSH_CONST] |
-| OP_CREATE_GENERATOR | 91 | 62 | Create a generator function [Collision: DISPATCH] |
-| OP_GENERATOR_NEXT | 92 | 63 | Resume generator execution |
+| OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: OP_GPU_WAIT_FENCE] |
 | OP_HALT | 255 | - | Halt execution [SageVM Extension] |
 
 ## Native Bridge
