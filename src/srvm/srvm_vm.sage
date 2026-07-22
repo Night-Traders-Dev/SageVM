@@ -3,6 +3,13 @@
 
 import srvm_core
 from srvm_core import RVInstruction
+import io
+import math
+import net
+import thread as host_thread
+import sys
+import gpu
+import ml_native
 
 class SageVMState:
     proc init(self):
@@ -263,6 +270,59 @@ class SRVM:
         if f3 == srvm_core.F3_VM_OPS:
             if sub_op == srvm_core.VMO_HALT:
                 self.state.running = false
+            elif sub_op == srvm_core.VMO_IMPORT:
+                let idx = int(self.state.x[10]) # a0
+                let name = self.safe_get_constant(idx)
+                if not self.state.running: return
+
+                # Security: Explicitly block sensitive modules in safe mode
+                if self.state.safe_mode and (name == "io" or name == "net" or name == "sys" or name == "thread" or name == "gpu" or name == "ml_native" or name == "mem" or name == "ffi" or name == "struct"):
+                    print "Error: Access to module '" + name + "' is restricted in safe mode"
+                    self.state.x[instr.rd] = nil
+                elif name == "ffi" and not self.state.ffi_enabled:
+                    print "Error: FFI is disabled"
+                    self.state.x[instr.rd] = nil
+                else:
+                    try:
+                        if name == "math":
+                            let m = {"pi": 3.141592653589793, "e": 2.718281828459045}
+                            m["__type__"] = "module"
+                            m["abs"] = math.abs
+                            m["sqrt"] = math.sqrt
+                            m["sin"] = math.sin
+                            m["cos"] = math.cos
+                            m["printm"] = "__builtin_math_printm"
+                            self.state.x[instr.rd] = m
+                        elif name == "io": self.state.x[instr.rd] = io
+                        elif name == "sys":
+                            let s = {"args": sys.args()}
+                            s["__type__"] = "module"
+                            s["exec"] = "__builtin_sys_exec"
+                            s["exit"] = sys.exit
+                            self.state.x[instr.rd] = s
+                        elif name == "net": self.state.x[instr.rd] = net
+                        elif name == "gpu":
+                            let g = {}
+                            g["__type__"] = "module"
+                            g["poll_events"] = gpu.poll_events
+                            g["get_time"] = gpu.get_time
+                            g["mouse_pos"] = gpu.mouse_pos
+                            self.state.x[instr.rd] = g
+                        elif name == "ml_native": self.state.x[instr.rd] = ml_native
+                        elif name == "thread": self.state.x[instr.rd] = host_thread
+                        elif name == "mem":
+                            let m = {"__host_mod__": "mem", "alloc": "__builtin_mem_alloc", "free": "__builtin_mem_free", "read": "__builtin_mem_read", "write": "__builtin_mem_write", "size": "__builtin_mem_size"}
+                            self.state.x[instr.rd] = m
+                        elif name == "ffi":
+                            let f = {"__host_mod__": "ffi", "open": "__builtin_ffi_open", "close": "__builtin_ffi_close", "call": "__builtin_ffi_call"}
+                            self.state.x[instr.rd] = f
+                        elif name == "struct":
+                            let s = {"__host_mod__": "struct", "def": "__builtin_struct_def", "new": "__builtin_struct_new", "get": "__builtin_struct_get", "set": "__builtin_struct_set", "size": "__builtin_struct_size"}
+                            self.state.x[instr.rd] = s
+                        else:
+                            self.state.x[instr.rd] = {"__type__": "module", "__name__": name}
+                    catch e:
+                        self.state.x[instr.rd] = {"__type__": "module", "__name__": name}
             elif sub_op == srvm_core.VMO_PRINT:
                 print str(self.state.x[10]) # Use a0
             elif sub_op == srvm_core.VMO_PRINTM:

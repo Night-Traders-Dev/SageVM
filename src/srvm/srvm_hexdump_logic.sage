@@ -43,6 +43,10 @@ proc srvm_disassemble(path):
     pos = pos + 2
     print "Version: " + str(ver_maj) + "." + str(ver_min)
 
+    let func_count = (int(data[pos]) << 8) | int(data[pos+1])
+    pos = pos + 2
+    print "Functions: " + str(func_count)
+
     let const_count = (int(data[pos]) << 8) | int(data[pos+1])
     pos = pos + 2
     print "Constants: " + str(const_count)

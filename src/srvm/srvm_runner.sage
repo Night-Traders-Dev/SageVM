@@ -28,6 +28,11 @@ class SRVMRunner:
         self.vm.state.ffi_enabled = ffi_enabled
 
         var off = 6 # Magic (4) + Version (2)
+
+        # Load Functions Count
+        let func_count = (int(data[off]) << 8) | int(data[off+1])
+        off = off + 2
+
         print "DEBUG: loading constants..."
         
         # Load Constants
@@ -75,8 +80,8 @@ class SRVMRunner:
             off = off + clen
             chunk_idx = chunk_idx + 1
             
-        # Execute all chunks (sequential top-level execution)
-        chunk_idx = 0
+        # Execute all chunks (sequential top-level execution starting from func_count)
+        chunk_idx = func_count
         while chunk_idx < num_chunks:
             self.vm.run(self.vm.state.chunks[chunk_idx])
             chunk_idx = chunk_idx + 1
