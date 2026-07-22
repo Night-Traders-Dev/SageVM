@@ -331,7 +331,7 @@ For high-isolation environments, SGVM provides several security features impleme
   - **Sandbox Hardening (struct module)**: Safe mode restrictions are extended to the `struct` module, blocking its guest-side import to mitigate sandbox escape vectors.
 - **Sandbox Hardening (Internal Properties)**: In `safe_mode`, both SVM and SRVM interpreters block property, index, and method access (via `OP_CALL_METHOD`) for all identifiers starting with `__` (except `__arg`), preventing guest code from inspecting internal VM state or leaking host bridge objects.
 - **Internal Execution Limits**: To prevent Denial of Service (DoS) via resource exhaustion, the VM enforces the following internal limits:
-  - **Maximum Stack Depth**: 65,536 (Maximum depth of the operand stack).
+  - **Maximum Stack Depth**: 65,536 (Maximum depth of the operand stack). Now strictly checked and enforced during local variable storage/allocation (`store_local` inside `OP_SET_LOCAL`) to prevent unbounded auto-growth of the stack.
   - **Maximum Call Depth**: 1,024 (Maximum recursion depth for function calls).
   - **Maximum Handler Depth**: 1,024 (Maximum nesting depth for exception handlers).
 

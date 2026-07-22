@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-21]
+
+### Fixed
+- **SVM Stack Overflow Protection**: Hardened both the inlined (`MetalVM.run`) and non-inlined (`MetalVM.execute_op`) implementations of `OP_SET_LOCAL` with explicit bounds checks against `max_stack_depth` within the local variable stack auto-grow loop, preventing unbounded stack allocation and Denial of Service (DoS) crashes on out-of-bounds local assignments.
+
+### Added
+- **Security Hardening Tests**: Added comprehensive test coverage for builtins, restricted properties, and exception handler resource limits in `tests/security_builtins_hardening.sage`.
+
 ## [2026-07-16]
 
 ### Added
