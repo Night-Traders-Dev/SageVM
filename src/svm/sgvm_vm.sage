@@ -40,7 +40,7 @@ proc str_repeat(s, count):
         i = i + 1
     return res
 
-let g_gil = host_thread.mutex()
+var g_gil = nil
 
 class MetalVM:
     proc equal_val(self, a, b):
@@ -294,10 +294,24 @@ class MetalVM:
                     if a == nil: a = ""
                     if b == nil: b = ""
                     stack[stack_len-1] = str(a) + str(b)
+                elif type(a) == "array" and type(b) == "array":
+                    let res = []
+                    var ai = 0
+                    while ai < len(a):
+                        push(res, a[ai])
+                        ai = ai + 1
+                    ai = 0
+                    while ai < len(b):
+                        push(res, b[ai])
+                        ai = ai + 1
+                    stack[stack_len-1] = res
                 else:
                     if a == nil: a = 0
                     if b == nil: b = 0
-                    stack[stack_len-1] = a + b
+                    if type(a) != "number" or type(b) != "number":
+                        stack[stack_len-1] = 0
+                    else:
+                        stack[stack_len-1] = a + b
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -356,36 +370,36 @@ class MetalVM:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if a == nil or b == nil: stack[stack_len-1] = false
-                else: stack[stack_len-1] = a < b
+                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a < b
+                else: stack[stack_len-1] = false
             elif op == OP_MUL:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if a == nil: a = 0
-                if b == nil: b = 0
                 if type(a) == "string" and type(b) == "number":
                     stack[stack_len-1] = str_repeat(a, int(b))
                 elif type(a) == "number" and type(b) == "string":
                     stack[stack_len-1] = str_repeat(b, int(a))
-                else:
+                elif type(a) == "number" and type(b) == "number":
                     stack[stack_len-1] = a * b
+                else:
+                    stack[stack_len-1] = 0
             elif op == OP_DIV:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if a == nil: a = 0
-                if b == nil or b == 0:
-                    stack[stack_len-1] = nil
-                else:
+                if type(a) == "number" and type(b) == "number" and b != 0:
                     stack[stack_len-1] = a / b
+                else:
+                    stack[stack_len-1] = nil
             elif op == OP_SUB:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if a == nil: a = 0
-                if b == nil: b = 0
-                stack[stack_len-1] = a - b
+                if type(a) == "number" and type(b) == "number":
+                    stack[stack_len-1] = a - b
+                else:
+                    stack[stack_len-1] = 0
             elif op == OP_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
@@ -398,20 +412,21 @@ class MetalVM:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if a == nil or b == nil: stack[stack_len-1] = false
-                else: stack[stack_len-1] = a <= b
+                print "DEBUG OP_LESS_EQUAL a=" + str(a) + " (" + str(type(a)) + ") b=" + str(b) + " (" + str(type(b)) + ")"
+                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a <= b
+                else: stack[stack_len-1] = false
             elif op == OP_GREATER:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if a == nil or b == nil: stack[stack_len-1] = false
-                else: stack[stack_len-1] = a > b
+                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a > b
+                else: stack[stack_len-1] = false
             elif op == OP_GREATER_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if a == nil or b == nil: stack[stack_len-1] = false
-                else: stack[stack_len-1] = a >= b
+                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a >= b
+                else: stack[stack_len-1] = false
             elif op == OP_NIL:
                 push(stack, nil)
                 stack_len = stack_len + 1
@@ -433,11 +448,10 @@ class MetalVM:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if a == nil: a = 0
-                if b == nil or b == 0:
-                    stack[stack_len-1] = nil
-                else:
+                if type(a) == "number" and type(b) == "number" and b != 0:
                     stack[stack_len-1] = a % b
+                else:
+                    stack[stack_len-1] = nil
             elif op == OP_BIT_AND:
                 let b = pop(stack)
                 stack_len = stack_len - 1
@@ -789,16 +803,19 @@ class MetalVM:
             if self.safe_mode:
                 print "Error: io.writebytes is restricted in safe mode"
                 return nil
-            return io_writebytes(args[0], args[1])
+            if len(args) < 2 or args[0] == nil or args[1] == nil: return false
+            return io.writebytes(args[0], args[1])
         elif callee == "__builtin_io_readbytes":
             if self.safe_mode:
                 print "Error: io.readbytes is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil or type(args[0]) != "string": return nil
             return io.readbytes(args[0])
         elif callee == "__builtin_io_readfile":
             if self.safe_mode:
                 print "Error: io.readfile is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil or type(args[0]) != "string": return nil
             return io.readfile(args[0])
         elif callee == "__builtin_thread_mutex":
             return nil
@@ -942,9 +959,30 @@ class MetalVM:
                 self.globals[name] = val
             push(self.stack, val)
         elif op == OP_ADD:
-            let b = pop(self.stack)
-            let a = pop(self.stack)
-            push(self.stack, a + b)
+            var b = pop(self.stack)
+            var a = pop(self.stack)
+            if type(a) == "string" or type(b) == "string":
+                if a == nil: a = ""
+                if b == nil: b = ""
+                push(self.stack, str(a) + str(b))
+            elif type(a) == "array" and type(b) == "array":
+                let res = []
+                var ai = 0
+                while ai < len(a):
+                    push(res, a[ai])
+                    ai = ai + 1
+                ai = 0
+                while ai < len(b):
+                    push(res, b[ai])
+                    ai = ai + 1
+                push(self.stack, res)
+            else:
+                if a == nil: a = 0
+                if b == nil: b = 0
+                if type(a) != "number" or type(b) != "number":
+                    push(self.stack, 0)
+                else:
+                    push(self.stack, a + b)
         elif op == OP_SUB:
             let b = pop(self.stack)
             let a = pop(self.stack)
@@ -983,23 +1021,23 @@ class MetalVM:
         elif op == OP_GREATER:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            if a == nil or b == nil: push(self.stack, false)
-            else: push(self.stack, a > b)
+            if type(a) == "number" and type(b) == "number": push(self.stack, a > b)
+            else: push(self.stack, false)
         elif op == OP_GREATER_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            if a == nil or b == nil: push(self.stack, false)
-            else: push(self.stack, a >= b)
+            if type(a) == "number" and type(b) == "number": push(self.stack, a >= b)
+            else: push(self.stack, false)
         elif op == OP_LESS:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            if a == nil or b == nil: push(self.stack, false)
-            else: push(self.stack, a < b)
+            if type(a) == "number" and type(b) == "number": push(self.stack, a < b)
+            else: push(self.stack, false)
         elif op == OP_LESS_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            if a == nil or b == nil: push(self.stack, false)
-            else: push(self.stack, a <= b)
+            if type(a) == "number" and type(b) == "number": push(self.stack, a <= b)
+            else: push(self.stack, false)
         elif op == OP_BIT_AND:
             var b = pop(self.stack)
             var a = pop(self.stack)
@@ -1581,23 +1619,13 @@ class MetalVM:
         elif op == OP_CONTINUE:
             print "Error: Unexpected loop continue opcode"
             self.halted = true
-        elif op == 76: # BC_OP_GPU_POLL_EVENTS
-            return true
-        elif op == 77: # BC_OP_GPU_WINDOW_SHOULD_CLOSE
-            push(self.stack, false)
-        elif op == 78: # BC_OP_GPU_GET_TIME
-            push(self.stack, 0.0)
-        elif op == 79: # BC_OP_GPU_KEY_PRESSED
-            pop(self.stack)
-            push(self.stack, false)
-        elif op == 80: # BC_OP_GPU_KEY_DOWN
-            pop(self.stack)
-            push(self.stack, false)
-        elif op == 81: # BC_OP_GPU_MOUSE_POS
-            push(self.stack, {"x": 0, "y": 0})
-        elif op == 82: # BC_OP_GPU_MOUSE_DELTA
-            push(self.stack, {"x": 0, "y": 0})
-        elif op == 83: # BC_OP_GPU_UPDATE_INPUT
+        elif op >= OP_GPU_POLL_EVENTS and op < OP_GET_LOCAL:
+            if op == OP_GPU_WINDOW_SHOULD_CLOSE or op == OP_GPU_KEY_PRESSED or op == OP_GPU_KEY_DOWN:
+                push(self.stack, false)
+            elif op == OP_GPU_GET_TIME:
+                push(self.stack, 0.0)
+            elif op == OP_GPU_MOUSE_POS or op == OP_GPU_MOUSE_DELTA:
+                push(self.stack, {"x": 0, "y": 0})
             return true
         elif op == OP_GPU_BEGIN_COMMANDS: push(self.stack, gpu.begin_commands(pop(self.stack)))
         elif op == OP_GPU_END_COMMANDS: push(self.stack, gpu.end_commands(pop(self.stack)))

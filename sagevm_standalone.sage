@@ -172,17 +172,22 @@ class SGVMUtils:
             return ""
         var start = 0
         while start < len(s):
-            if ord(s[start]) <= 32:
+            let ch = s[start]
+            let o = ord(ch)
+            if o <= 32:
                 start = start + 1
             else:
                 break
         var eidx = len(s)
         while eidx > start:
-            if ord(s[eidx-1]) <= 32:
+            let ch = s[eidx-1]
+            let o = ord(ch)
+            if o <= 32:
                 eidx = eidx - 1
             else:
                 break
-        return self.my_substr(s, start, eidx - start)
+        let res = self.my_substr(s, start, eidx - start)
+        return res
 
     proc strip_comment(self, line):
         # Remove # comments from a line of .svm text
@@ -251,6 +256,7 @@ proc io_writebytes(path, bytes):
 
 class SGVMCompiler:
     proc init(self):
+        print "DEBUG SGVMCompiler.init entry"
         self.output_bytes = []
         self.global_consts = []
         self.const_map = {} 
@@ -261,7 +267,13 @@ class SGVMCompiler:
         self.utils = SGVMUtils()
 
     proc write_byte(self, b):
-        push(self.output_bytes, self.utils.my_int(b))
+        if b == nil:
+            push(self.output_bytes, 0)
+        elif type(b) == "string":
+            if len(b) > 0: push(self.output_bytes, ord(b))
+            else: push(self.output_bytes, 0)
+        else:
+            push(self.output_bytes, self.utils.my_int(b))
 
     proc write_string(self, s):
         var i = 0
@@ -370,6 +382,7 @@ class SGVMCompiler:
         return idx
 
     proc first_pass(self, lines):
+        print "DEBUG entering first_pass, lines len=" + str(len(lines))
         let ut = self.utils
         var i = 0
         var chunk_count = 0
@@ -527,7 +540,9 @@ class SGVMCompiler:
                 while j < clen * 2:
                     var op = ut.parse_hex_byte(hex, j)
                     # Mapping host opcodes (0-based) to VM opcodes
-                    if op == 0x34: op = 52 # BC_OP_IMPORT
+                    if op == 0x31: op = 35 # BC_OP_JUMP
+                    elif op == 0x32: op = 36 # BC_OP_JUMP_IF_FALSE
+                    elif op == 0x34: op = 52 # BC_OP_IMPORT
                     elif op == 0x26: op = 38 # BC_OP_CALL_METHOD
                     elif op == 0x25: op = 37 # BC_OP_CALL
                     elif op == 0x33: op = 51 # BC_OP_LOOP_BACK
@@ -544,8 +559,8 @@ class SGVMCompiler:
                     elif op == 0x0c: op = 12 # BC_OP_SET_INDEX
                     elif op == 0x0d: op = 13 # BC_OP_LOAD_FUNCTION
                     elif op == 0x0e: op = 14 # BC_OP_SLICE
-                    elif op == 0x3b: op = 88 # BC_OP_GET_LOCAL
-                    elif op == 0x3c: op = 89 # BC_OP_SET_LOCAL
+                    elif op == 0x45: op = 88 # BC_OP_GET_LOCAL
+                    elif op == 0x46: op = 89 # BC_OP_SET_LOCAL
                     elif op == 0x3d: op = 90 # BC_OP_YIELD
                     elif op == 0x3e: op = 91 # BC_OP_CREATE_GENERATOR
                     elif op == 0x3f: op = 92 # BC_OP_GENERATOR_NEXT
@@ -582,7 +597,7 @@ class SGVMCompiler:
                         if local_idx >= 0 and local_idx < len(ltg_raw): val = ltg_raw[local_idx]
                         self.write_be16(val)
                         j = j + 4
-                    elif op == 13 or op == 35 or op == 36 or op == 39 or op == 40 or op == 41 or op == 43 or op == 51 or op == 56:
+                    elif op == 13 or op == 35 or op == 36 or op == 39 or op == 40 or op == 41 or op == 43 or op == 51 or op == 56 or op == 88 or op == 89:
                         let v1 = ut.parse_hex_byte(hex, j)
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         self.write_be16(v1 * 256 + v2)
@@ -663,6 +678,7 @@ class SGVMCompiler:
             var cmd = sage_bin + " --emit-vm " + in_file + " -o " + svm_file
             
             let status = sys_exec(cmd)
+            print "DEBUG after sys_exec status=" + str(status)
             if status != 0:
                 print "Error: Failed to generate SVM from " + in_file
                 return false
@@ -671,14 +687,18 @@ class SGVMCompiler:
         if content == nil:
             print "Error: Could not read SVM file: " + svm_file
             return false
+        print "DEBUG after io_readfile content len=" + str(len(content))
         
         let lines = ut.split_lines(content)
+        print "DEBUG after split_lines count=" + str(len(lines))
         
         let counts = self.first_pass(lines)
         let function_count = counts[0]
         let chunk_count = counts[1]
+        print "DEBUG after first_pass function_count=" + str(function_count) + " chunk_count=" + str(chunk_count)
         
         self.second_pass(lines, function_count, chunk_count, use_shebang)
+        print "DEBUG after second_pass output_bytes len=" + str(len(self.output_bytes))
         
         io_writebytes(out_file, self.output_bytes)
         return true
@@ -721,7 +741,7 @@ proc str_repeat(s, count):
         i = i + 1
     return res
 
-let g_gil = host_thread.mutex()
+var g_gil = nil
 
 class MetalVM:
     proc equal_val(self, a, b):
@@ -975,10 +995,24 @@ class MetalVM:
                     if a == nil: a = ""
                     if b == nil: b = ""
                     stack[stack_len-1] = str(a) + str(b)
+                elif type(a) == "array" and type(b) == "array":
+                    let res = []
+                    var ai = 0
+                    while ai < len(a):
+                        push(res, a[ai])
+                        ai = ai + 1
+                    ai = 0
+                    while ai < len(b):
+                        push(res, b[ai])
+                        ai = ai + 1
+                    stack[stack_len-1] = res
                 else:
                     if a == nil: a = 0
                     if b == nil: b = 0
-                    stack[stack_len-1] = a + b
+                    if type(a) != "number" or type(b) != "number":
+                        stack[stack_len-1] = 0
+                    else:
+                        stack[stack_len-1] = a + b
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -1037,36 +1071,36 @@ class MetalVM:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if a == nil or b == nil: stack[stack_len-1] = false
-                else: stack[stack_len-1] = a < b
+                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a < b
+                else: stack[stack_len-1] = false
             elif op == OP_MUL:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if a == nil: a = 0
-                if b == nil: b = 0
                 if type(a) == "string" and type(b) == "number":
                     stack[stack_len-1] = str_repeat(a, int(b))
                 elif type(a) == "number" and type(b) == "string":
                     stack[stack_len-1] = str_repeat(b, int(a))
-                else:
+                elif type(a) == "number" and type(b) == "number":
                     stack[stack_len-1] = a * b
+                else:
+                    stack[stack_len-1] = 0
             elif op == OP_DIV:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if a == nil: a = 0
-                if b == nil or b == 0:
-                    stack[stack_len-1] = nil
-                else:
+                if type(a) == "number" and type(b) == "number" and b != 0:
                     stack[stack_len-1] = a / b
+                else:
+                    stack[stack_len-1] = nil
             elif op == OP_SUB:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if a == nil: a = 0
-                if b == nil: b = 0
-                stack[stack_len-1] = a - b
+                if type(a) == "number" and type(b) == "number":
+                    stack[stack_len-1] = a - b
+                else:
+                    stack[stack_len-1] = 0
             elif op == OP_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
@@ -1079,20 +1113,21 @@ class MetalVM:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if a == nil or b == nil: stack[stack_len-1] = false
-                else: stack[stack_len-1] = a <= b
+                print "DEBUG OP_LESS_EQUAL a=" + str(a) + " (" + str(type(a)) + ") b=" + str(b) + " (" + str(type(b)) + ")"
+                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a <= b
+                else: stack[stack_len-1] = false
             elif op == OP_GREATER:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if a == nil or b == nil: stack[stack_len-1] = false
-                else: stack[stack_len-1] = a > b
+                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a > b
+                else: stack[stack_len-1] = false
             elif op == OP_GREATER_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if a == nil or b == nil: stack[stack_len-1] = false
-                else: stack[stack_len-1] = a >= b
+                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a >= b
+                else: stack[stack_len-1] = false
             elif op == OP_NIL:
                 push(stack, nil)
                 stack_len = stack_len + 1
@@ -1114,11 +1149,10 @@ class MetalVM:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if a == nil: a = 0
-                if b == nil or b == 0:
-                    stack[stack_len-1] = nil
-                else:
+                if type(a) == "number" and type(b) == "number" and b != 0:
                     stack[stack_len-1] = a % b
+                else:
+                    stack[stack_len-1] = nil
             elif op == OP_BIT_AND:
                 let b = pop(stack)
                 stack_len = stack_len - 1
@@ -1470,16 +1504,19 @@ class MetalVM:
             if self.safe_mode:
                 print "Error: io.writebytes is restricted in safe mode"
                 return nil
-            return io_writebytes(args[0], args[1])
+            if len(args) < 2 or args[0] == nil or args[1] == nil: return false
+            return io.writebytes(args[0], args[1])
         elif callee == "__builtin_io_readbytes":
             if self.safe_mode:
                 print "Error: io.readbytes is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil or type(args[0]) != "string": return nil
             return io.readbytes(args[0])
         elif callee == "__builtin_io_readfile":
             if self.safe_mode:
                 print "Error: io.readfile is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil or type(args[0]) != "string": return nil
             return io.readfile(args[0])
         elif callee == "__builtin_thread_mutex":
             return nil
@@ -1623,9 +1660,30 @@ class MetalVM:
                 self.globals[name] = val
             push(self.stack, val)
         elif op == OP_ADD:
-            let b = pop(self.stack)
-            let a = pop(self.stack)
-            push(self.stack, a + b)
+            var b = pop(self.stack)
+            var a = pop(self.stack)
+            if type(a) == "string" or type(b) == "string":
+                if a == nil: a = ""
+                if b == nil: b = ""
+                push(self.stack, str(a) + str(b))
+            elif type(a) == "array" and type(b) == "array":
+                let res = []
+                var ai = 0
+                while ai < len(a):
+                    push(res, a[ai])
+                    ai = ai + 1
+                ai = 0
+                while ai < len(b):
+                    push(res, b[ai])
+                    ai = ai + 1
+                push(self.stack, res)
+            else:
+                if a == nil: a = 0
+                if b == nil: b = 0
+                if type(a) != "number" or type(b) != "number":
+                    push(self.stack, 0)
+                else:
+                    push(self.stack, a + b)
         elif op == OP_SUB:
             let b = pop(self.stack)
             let a = pop(self.stack)
@@ -1664,23 +1722,23 @@ class MetalVM:
         elif op == OP_GREATER:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            if a == nil or b == nil: push(self.stack, false)
-            else: push(self.stack, a > b)
+            if type(a) == "number" and type(b) == "number": push(self.stack, a > b)
+            else: push(self.stack, false)
         elif op == OP_GREATER_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            if a == nil or b == nil: push(self.stack, false)
-            else: push(self.stack, a >= b)
+            if type(a) == "number" and type(b) == "number": push(self.stack, a >= b)
+            else: push(self.stack, false)
         elif op == OP_LESS:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            if a == nil or b == nil: push(self.stack, false)
-            else: push(self.stack, a < b)
+            if type(a) == "number" and type(b) == "number": push(self.stack, a < b)
+            else: push(self.stack, false)
         elif op == OP_LESS_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            if a == nil or b == nil: push(self.stack, false)
-            else: push(self.stack, a <= b)
+            if type(a) == "number" and type(b) == "number": push(self.stack, a <= b)
+            else: push(self.stack, false)
         elif op == OP_BIT_AND:
             var b = pop(self.stack)
             var a = pop(self.stack)
@@ -2262,23 +2320,13 @@ class MetalVM:
         elif op == OP_CONTINUE:
             print "Error: Unexpected loop continue opcode"
             self.halted = true
-        elif op == 76: # BC_OP_GPU_POLL_EVENTS
-            return true
-        elif op == 77: # BC_OP_GPU_WINDOW_SHOULD_CLOSE
-            push(self.stack, false)
-        elif op == 78: # BC_OP_GPU_GET_TIME
-            push(self.stack, 0.0)
-        elif op == 79: # BC_OP_GPU_KEY_PRESSED
-            pop(self.stack)
-            push(self.stack, false)
-        elif op == 80: # BC_OP_GPU_KEY_DOWN
-            pop(self.stack)
-            push(self.stack, false)
-        elif op == 81: # BC_OP_GPU_MOUSE_POS
-            push(self.stack, {"x": 0, "y": 0})
-        elif op == 82: # BC_OP_GPU_MOUSE_DELTA
-            push(self.stack, {"x": 0, "y": 0})
-        elif op == 83: # BC_OP_GPU_UPDATE_INPUT
+        elif op >= OP_GPU_POLL_EVENTS and op < OP_GET_LOCAL:
+            if op == OP_GPU_WINDOW_SHOULD_CLOSE or op == OP_GPU_KEY_PRESSED or op == OP_GPU_KEY_DOWN:
+                push(self.stack, false)
+            elif op == OP_GPU_GET_TIME:
+                push(self.stack, 0.0)
+            elif op == OP_GPU_MOUSE_POS or op == OP_GPU_MOUSE_DELTA:
+                push(self.stack, {"x": 0, "y": 0})
             return true
         elif op == OP_GPU_BEGIN_COMMANDS: push(self.stack, gpu.begin_commands(pop(self.stack)))
         elif op == OP_GPU_END_COMMANDS: push(self.stack, gpu.end_commands(pop(self.stack)))
@@ -3061,27 +3109,25 @@ class TypeProfiler:
         self.constants = constants
 
     proc analyze(self, bytecode):
-        # Build a type hint array sized to the bytecode length
-        # Default everything to TYPE_UNKNOWN so the compiler never
-        # indexes out of bounds.
         var result = []
         var i = 0
-        while i < len(bytecode):
-            push(result, TYPE_UNKNOWN)
-            i = i + 1
-        # If we have constants, try to infer types for OP_CONSTANT
-        i = 0
-        while i < len(bytecode):
-            let op = int(bytecode[i])
-            if op == sgvm_core.OP_CONSTANT and i + 2 < len(bytecode):
-                let idx = (int(bytecode[i+1]) << 8) | int(bytecode[i+2])
-                if self.constants != nil and idx < len(self.constants):
+        let blen = len(bytecode)
+        while i < blen:
+            let b0 = int(bytecode[i])
+            var hint = TYPE_UNKNOWN
+            if b0 == OP_CONSTANT and i + 2 < blen:
+                let b1 = int(bytecode[i+1])
+                let b2 = int(bytecode[i+2])
+                let idx = b1 * 256 + b2
+                if self.constants != nil and idx >= 0 and idx < len(self.constants):
                     let c = self.constants[idx]
                     if type(c) == "dict" and dict_has(c, "type"):
-                        if c["type"] == 1:
-                            result[i] = TYPE_INT
-                        elif c["type"] == 3:
-                            result[i] = TYPE_STR
+                        let ct = int(c["type"])
+                        if ct == 1:
+                            hint = TYPE_INT
+                        elif ct == 3:
+                            hint = TYPE_STR
+            push(result, hint)
             i = i + 1
         return result
 # Sage SVM to SRVM (RISC-V) Translator
@@ -3091,9 +3137,9 @@ class TypeProfiler:
 class StackToRiscVTranslator:
     proc init(self, constants):
         self.encoder = RVEncoder()
-        self.profiler = srvm_profiler.TypeProfiler(constants)
+        self.profiler = TypeProfiler(constants)
         self.reg_stack = []
-        self.next_reg = 10 # Start from a0 (x10)
+        self.next_reg = 11 # Start from a1 (x11), reserving x10 for VMSYS args
         self.spill_slots = [] # Track spilled registers
         self.spill_offset = 0 # Next available spill slot
         self.output_bytes = []
@@ -3106,23 +3152,38 @@ class StackToRiscVTranslator:
         push(self.output_bytes, (val >> 16) & 0xFF)
         push(self.output_bytes, (val >> 24) & 0xFF)
 
+    proc emit_load_imm(self, rd, val):
+        var v = int(val)
+        if v >= -2048 and v <= 2047:
+            self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 0, v))
+        else:
+            var hi = int((v + 2048) / 4096)
+            var lo = v - (hi * 4096)
+            self.emit_32(self.encoder.encode_u(OP_LUI, rd, hi * 4096))
+            self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, rd, lo))
+
     proc patch_32(self, pc, val):
         self.output_bytes[pc] = val & 0xFF
         self.output_bytes[pc+1] = (val >> 8) & 0xFF
         self.output_bytes[pc+2] = (val >> 16) & 0xFF
         self.output_bytes[pc+3] = (val >> 24) & 0xFF
 
+    
+    proc pop_reg(self):
+        if self.reg_stack == nil or len(self.reg_stack) == 0:
+            return 11
+        return pop(self.reg_stack)
+
     proc alloc_reg(self):
         let r = self.next_reg
         self.next_reg = self.next_reg + 1
-        if self.next_reg > 17:
-            # Spill: save x10 to stack, then reuse x10
-            let spill_reg = 10
+        if self.next_reg > 27:
+            let spill_reg = 11
             let slot = self.spill_offset
             self.spill_offset = self.spill_offset + 1
-            self.emit_32(self.encoder.encode_s(srvm_core.OP_STORE, srvm_core.F3_SD, 2, spill_reg, slot * 8))
+            self.emit_32(self.encoder.encode_s(OP_STORE, F3_SD, 2, spill_reg, slot * 8))
             push(self.spill_slots, slot)
-            self.next_reg = 11
+            self.next_reg = 12
             return spill_reg
         return r
 
@@ -3132,7 +3193,7 @@ class StackToRiscVTranslator:
         
         self.output_bytes = []
         self.reg_stack = []
-        self.next_reg = 10
+        self.next_reg = 11
         self.spill_slots = []
         self.spill_offset = 0
         self.label_map = {}
@@ -3144,15 +3205,16 @@ class StackToRiscVTranslator:
         while j < len(svm_bytecode):
             let op = int(svm_bytecode[j])
             j = j + 1
-            if op == sgvm_core.OP_SETUP_TRY:
-                let cip = (int(svm_bytecode[j]) << 8) | int(svm_bytecode[j+1])
-                catch_labels[str(cip)] = true
-                j = j + 2
-            elif op == sgvm_core.OP_CALL_METHOD:
+            if op == OP_DEFINE_FUNCTION:
+                j = j + 4
+            elif op == OP_CALL_METHOD:
                 j = j + 3
-            elif op == sgvm_core.OP_CONSTANT or op == sgvm_core.OP_GET_GLOBAL or op == sgvm_core.OP_SET_GLOBAL or op == sgvm_core.OP_DEFINE_GLOBAL or op == sgvm_core.OP_JUMP or op == sgvm_core.OP_JUMP_IF_FALSE or op == sgvm_core.OP_DEFINE_FUNCTION or op == sgvm_core.OP_GET_PROPERTY or op == sgvm_core.OP_SET_PROPERTY or op == sgvm_core.OP_METHOD or op == sgvm_core.OP_ARRAY or op == sgvm_core.OP_TUPLE or op == sgvm_core.OP_DICT or op == sgvm_core.OP_LOOP_BACK or op == sgvm_core.OP_IMPORT:
+            elif op == OP_CONSTANT or op == OP_GET_GLOBAL or op == OP_SET_GLOBAL or op == OP_DEFINE_GLOBAL or op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_GET_PROPERTY or op == OP_SET_PROPERTY or op == OP_METHOD or op == OP_ARRAY or op == OP_TUPLE or op == OP_DICT or op == OP_LOOP_BACK or op == OP_IMPORT or op == OP_SETUP_TRY or op == OP_LOAD_FUNCTION or op == OP_CLASS or op == OP_GET_LOCAL or op == OP_SET_LOCAL:
+                if op == OP_SETUP_TRY:
+                    let target = (int(svm_bytecode[j]) << 8) | int(svm_bytecode[j+1])
+                    catch_labels[str(target)] = true
                 j = j + 2
-            elif op == sgvm_core.OP_CALL or op == sgvm_core.OP_DUP or op == sgvm_core.OP_GET_LOCAL or op == sgvm_core.OP_SET_LOCAL:
+            elif op == OP_CALL or op == OP_DUP:
                 j = j + 1
         
         var i = 0
@@ -3166,514 +3228,521 @@ class StackToRiscVTranslator:
             
             self.label_map[str(ip)] = len(self.output_bytes)
             let op = int(svm_bytecode[i])
+            print "DEBUG translate op=" + str(op) + " i=" + str(i)
             i = i + 1
             
-            if op == sgvm_core.OP_CONSTANT:
+            if op == OP_CONSTANT:
+                print "DEBUG OP_CONSTANT step 1 i=" + str(i)
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                print "DEBUG OP_CONSTANT step 2 idx=" + str(idx)
                 i = i + 2
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_u(srvm_core.OP_LDC, rd, idx << 12))
+                print "DEBUG OP_CONSTANT step 3 rd=" + str(rd)
+                let u_val = self.encoder.encode_u(OP_LDC, rd, idx << 12)
+                print "DEBUG OP_CONSTANT step 4 u_val=" + str(u_val)
+                self.emit_32(u_val)
+                print "DEBUG OP_CONSTANT step 5"
                 push(self.reg_stack, rd)
                 
-            elif op == sgvm_core.OP_ADD:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_ADD:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
                 
                 # Check speculative type
                 # Simple lookup: use current instruction index to get speculative type
                 let t = speculative_types[i-1] 
-                if t == srvm_profiler.TYPE_INT:
+                if t == TYPE_INT:
                     # Emit integer specialized ADD
-                    self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_ADD, 0, rd, rs1, rs2))
+                    self.emit_32(self.encoder.encode_r(OP_REG, F3_ADD, 0, rd, rs1, rs2))
                 else:
                     # Emit generic/fallback ADD
-                    self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_ADD, 0, rd, rs1, rs2))
+                    self.emit_32(self.encoder.encode_r(OP_REG, F3_ADD, 0, rd, rs1, rs2))
                 
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_SUB:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_SUB:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_ADD, 0x20, rd, rs1, rs2))
+                self.emit_32(self.encoder.encode_r(OP_REG, F3_ADD, 0x20, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_MUL:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_MUL:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_ADD, 0x01, rd, rs1, rs2))
+                self.emit_32(self.encoder.encode_r(OP_REG, F3_ADD, 0x01, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_DIV:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_DIV:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_XOR, 0x01, rd, rs1, rs2))
+                self.emit_32(self.encoder.encode_r(OP_REG, F3_XOR, 0x01, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_MOD:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_MOD:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_OR, 0x01, rd, rs1, rs2))
+                self.emit_32(self.encoder.encode_r(OP_REG, F3_OR, 0x01, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_BIT_AND:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_BIT_AND:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_AND, 0, rd, rs1, rs2))
+                self.emit_32(self.encoder.encode_r(OP_REG, F3_AND, 0, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_BIT_OR:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_BIT_OR:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_OR, 0, rd, rs1, rs2))
+                self.emit_32(self.encoder.encode_r(OP_REG, F3_OR, 0, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_BIT_XOR:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_BIT_XOR:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_XOR, 0, rd, rs1, rs2))
+                self.emit_32(self.encoder.encode_r(OP_REG, F3_XOR, 0, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_BIT_NOT:
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_BIT_NOT:
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_XORI, rd, rs1, -1))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_XORI, rd, rs1, -1))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_SHIFT_LEFT:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_SHIFT_LEFT:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_SLL, 0, rd, rs1, rs2))
+                self.emit_32(self.encoder.encode_r(OP_REG, F3_SLL, 0, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_SHIFT_RIGHT:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_SHIFT_RIGHT:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_REG, srvm_core.F3_SRL, 0, rd, rs1, rs2))
+                self.emit_32(self.encoder.encode_r(OP_REG, F3_SRL, 0, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_EQUAL:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
+            elif op == OP_EQUAL:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
                 # ADDI x10, rs1, 0  -> a0 = rs1
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
                 # ADDI x11, rs2, 0  -> a1 = rs2
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
                 # VMO_CMP_BINARY with funct7=CMP_EQ
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_EQ, 0, srvm_core.VMO_CMP_BINARY, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_EQ, 0, VMO_CMP_BINARY, 0))
                 push(self.reg_stack, 10)
 
-            elif op == sgvm_core.OP_NOT_EQUAL:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_NEQ, 0, srvm_core.VMO_CMP_BINARY, 0))
+            elif op == OP_NOT_EQUAL:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_NEQ, 0, VMO_CMP_BINARY, 0))
                 push(self.reg_stack, 10)
 
-            elif op == sgvm_core.OP_LESS:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_LT, 0, srvm_core.VMO_CMP_BINARY, 0))
+            elif op == OP_LESS:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_LT, 0, VMO_CMP_BINARY, 0))
                 push(self.reg_stack, 10)
 
-            elif op == sgvm_core.OP_GREATER:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_GT, 0, srvm_core.VMO_CMP_BINARY, 0))
+            elif op == OP_GREATER:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_GT, 0, VMO_CMP_BINARY, 0))
                 push(self.reg_stack, 10)
 
-            elif op == sgvm_core.OP_GREATER_EQUAL:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_GE, 0, srvm_core.VMO_CMP_BINARY, 0))
+            elif op == OP_GREATER_EQUAL:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_GE, 0, VMO_CMP_BINARY, 0))
                 push(self.reg_stack, 10)
 
-            elif op == sgvm_core.OP_LESS_EQUAL:
-                let rs2 = pop(self.reg_stack)
-                let rs1 = pop(self.reg_stack)
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs1, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, rs2, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, srvm_core.CMP_LE, 0, srvm_core.VMO_CMP_BINARY, 0))
+            elif op == OP_LESS_EQUAL:
+                let rs2 = self.pop_reg()
+                let rs1 = self.pop_reg()
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_LE, 0, VMO_CMP_BINARY, 0))
                 push(self.reg_stack, 10)
 
-            elif op == sgvm_core.OP_GET_INDEX:
-                let idx = pop(self.reg_stack)
-                let obj = pop(self.reg_stack)
+            elif op == OP_GET_INDEX:
+                let idx = self.pop_reg()
+                let obj = self.pop_reg()
                 let rd = self.alloc_reg()
                 var obj_reg = obj
                 if obj == 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, obj, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, obj, 0))
                     obj_reg = 5
                 if idx != 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, idx, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, rd, srvm_core.OBJ_GET_INDEX, obj_reg))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, idx, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_GET_INDEX, obj_reg))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_SET_INDEX:
-                let val = pop(self.reg_stack)
-                let idx = pop(self.reg_stack)
-                let obj = pop(self.reg_stack)
+            elif op == OP_SET_INDEX:
+                let val = self.pop_reg()
+                let idx = self.pop_reg()
+                let obj = self.pop_reg()
                 var obj_reg = obj
                 if obj == 10 or obj == 11:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, obj, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, obj, 0))
                     obj_reg = 5
                 if val != 11:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, val, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, val, 0))
                 if idx != 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, idx, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_INDEX, obj_reg))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, idx, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_INDEX, obj_reg))
 
-            elif op == sgvm_core.OP_ARRAY:
-                let init_val = pop(self.reg_stack)
-                let size = pop(self.reg_stack)
+            elif op == OP_ARRAY:
+                let init_val = self.pop_reg()
+                let size = self.pop_reg()
                 let rd = self.alloc_reg()
                 if init_val != 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, init_val, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, rd, srvm_core.OBJ_ARRAY_NEW, size))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, init_val, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_ARRAY_NEW, size))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_JUMP:
+            elif op == OP_JUMP:
                 let target_ip = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
                 let patch_pc = len(self.output_bytes)
-                self.emit_32(self.encoder.encode_j(srvm_core.OP_JAL, 0, 0)) 
+                self.emit_32(self.encoder.encode_j(OP_JAL, 0, 0)) 
                 push(self.jump_patches, [patch_pc, target_ip])
                 
-            elif op == sgvm_core.OP_GET_PROPERTY:
+            elif op == OP_GET_PROPERTY:
                 let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                let obj = pop(self.reg_stack)
+                let obj = self.pop_reg()
                 let rd = self.alloc_reg()
                 var obj_reg = obj
                 if obj == 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, obj, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, obj, 0))
                     obj_reg = 5
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, name_idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, rd, srvm_core.OBJ_GET_PROP, obj_reg))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, name_idx))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_GET_PROP, obj_reg))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_SET_PROPERTY:
+            elif op == OP_SET_PROPERTY:
                 let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                let val = pop(self.reg_stack)
-                let obj = pop(self.reg_stack)
+                let val = self.pop_reg()
+                let obj = self.pop_reg()
                 var obj_reg = obj
                 if obj == 10 or obj == 11:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, obj, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, obj, 0))
                     obj_reg = 5
                 if val != 11:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, val, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, name_idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_PROP, obj_reg))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, val, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, name_idx))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_PROP, obj_reg))
 
-            elif op == sgvm_core.OP_POP:
+            elif op == OP_POP:
                 if len(self.reg_stack) > 0:
-                    pop(self.reg_stack)
+                    self.pop_reg()
 
-            elif op == sgvm_core.OP_DUP:
+            elif op == OP_DUP:
                 let distance = int(svm_bytecode[i])
                 i = i + 1
                 if len(self.reg_stack) > distance:
                     let rs = self.reg_stack[len(self.reg_stack)-1-distance]
                     let rd = self.alloc_reg()
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, rs, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, rs, 0))
                     push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_CLASS:
+            elif op == OP_CLASS:
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, rd, srvm_core.OBJ_NEW_CLASS, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_NEW_CLASS, 0))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_INHERIT:
-                let parent = pop(self.reg_stack)
-                let child = pop(self.reg_stack)
+            elif op == OP_INHERIT:
+                let parent = self.pop_reg()
+                let child = self.pop_reg()
                 var child_reg = child
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, child, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, child, 0))
                 child_reg = rd
                 if parent != 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, parent, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_INHERIT, child_reg))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, parent, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_INHERIT, child_reg))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_METHOD:
+            elif op == OP_METHOD:
                 let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                let func = pop(self.reg_stack)
-                let klass = pop(self.reg_stack)
+                let func = self.pop_reg()
+                let klass = self.pop_reg()
                 var klass_reg = klass
                 if klass == 10 or klass == 11:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, klass, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, klass, 0))
                     klass_reg = 5
                 if func != 11:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, func, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, name_idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_METHOD_BIND, klass_reg))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, func, 0))
+                self.emit_load_imm(10, name_idx)
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_METHOD_BIND, klass_reg))
 
-            elif op == sgvm_core.OP_DEFINE_GLOBAL:
+            elif op == OP_DEFINE_GLOBAL:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                let val = pop(self.reg_stack)
+                let val = self.pop_reg()
                 if val != 11:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, val, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_GLOBAL, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, val, 0))
+                self.emit_load_imm(10, idx)
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_GLOBAL, 0))
 
-            elif op == sgvm_core.OP_NIL:
+            elif op == OP_NIL:
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, 0, 0)) 
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 0, 0)) 
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_TRUE:
+            elif op == OP_TRUE:
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, 0, 1))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 0, 1))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_FALSE:
+            elif op == OP_FALSE:
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, 0, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 0, 0))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_GET_GLOBAL:
+            elif op == OP_GET_GLOBAL:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, rd, srvm_core.OBJ_GET_GLOBAL, 0))
+                self.emit_load_imm(10, idx)
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_GET_GLOBAL, 0))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_SET_GLOBAL:
+            elif op == OP_SET_GLOBAL:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                let val = pop(self.reg_stack)
+                let val = self.pop_reg()
                 if val != 11:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, val, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_GLOBAL, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, val, 0))
+                self.emit_load_imm(10, idx)
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_GLOBAL, 0))
             
-            elif op == sgvm_core.OP_IMPORT:
+            elif op == OP_IMPORT:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, rd, srvm_core.VMO_IMPORT, 0))
+                self.emit_load_imm(10, idx)
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_IMPORT, 0))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_GET_LOCAL:
-                let idx = int(svm_bytecode[i])
-                i = i + 1
+            elif op == OP_GET_LOCAL:
+                let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_LOAD, srvm_core.F3_LD, rd, 8, idx * 8))
+                self.emit_32(self.encoder.encode_i(OP_LOAD, F3_LD, rd, 8, idx * 8))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_SET_LOCAL:
-                let idx = int(svm_bytecode[i])
-                i = i + 1
-                let rs = pop(self.reg_stack)
-                self.emit_32(self.encoder.encode_s(srvm_core.OP_STORE, srvm_core.F3_SD, 8, rs, idx * 8))
+            elif op == OP_SET_LOCAL:
+                let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                let rs = self.pop_reg()
+                self.emit_32(self.encoder.encode_s(OP_STORE, F3_SD, 8, rs, idx * 8))
                 
-            elif op == sgvm_core.OP_SETUP_TRY:
+            elif op == OP_SETUP_TRY:
                 let catch_ip = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
                 let patch_pc = len(self.output_bytes)
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, srvm_core.VMO_SETUP_TRY, 0)) 
+                self.emit_32(self.encoder.encode_i(OP_VMSYS, F3_VM_OPS, 0, VMO_SETUP_TRY, 0)) 
                 push(self.jump_patches, [patch_pc, catch_ip])
 
-            elif op == sgvm_core.OP_END_TRY:
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_END_TRY, 0))
+            elif op == OP_END_TRY:
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_END_TRY, 0))
 
-            elif op == sgvm_core.OP_RAISE:
-                let exc_obj = pop(self.reg_stack)
+            elif op == OP_RAISE:
+                let exc_obj = self.pop_reg()
                 if exc_obj != 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, exc_obj, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_RAISE, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, exc_obj, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_RAISE, 0))
 
-            elif op == sgvm_core.OP_PUSH_ENV:
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_PUSH_ENV, 0))
+            elif op == OP_PUSH_ENV:
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_PUSH_ENV, 0))
 
-            elif op == sgvm_core.OP_POP_ENV:
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_POP_ENV, 0))
+            elif op == OP_POP_ENV:
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_POP_ENV, 0))
 
-            elif op == sgvm_core.OP_JUMP_IF_FALSE:
+            elif op == OP_JUMP_IF_FALSE:
                 let target_ip = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                let cond = pop(self.reg_stack)
+                let cond = self.pop_reg()
                 let patch_pc = len(self.output_bytes)
-                self.emit_32(self.encoder.encode_b(srvm_core.OP_BRANCH, srvm_core.F3_BEQ, cond, 0, 0)) 
+                self.emit_32(self.encoder.encode_b(OP_BRANCH, F3_BEQ, cond, 0, 0)) 
                 push(self.jump_patches, [patch_pc, target_ip])
 
-            elif op == sgvm_core.OP_RETURN:
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_JALR, 0, 0, 1, 0))
+            elif op == OP_RETURN:
+                self.emit_32(self.encoder.encode_i(OP_JALR, 0, 0, 1, 0))
 
-            elif op == sgvm_core.OP_DEFINE_FUNCTION:
+            elif op == OP_DEFINE_FUNCTION:
                 let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
                 let chunk_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, chunk_idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 11, srvm_core.OBJ_NEW_FUNC, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, name_idx))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 0, srvm_core.OBJ_SET_GLOBAL, 0))
+                self.emit_load_imm(10, chunk_idx)
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 11, OBJ_NEW_FUNC, 0))
+                self.emit_load_imm(10, name_idx)
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_GLOBAL, 0))
 
-            elif op == sgvm_core.OP_CALL:
+            elif op == OP_CALL:
                 let argc = int(svm_bytecode[i])
                 i = i + 1
                 var args = []
                 var k = 0
                 while k < argc:
-                    push(args, pop(self.reg_stack))
+                    push(args, self.pop_reg())
                     k = k + 1
                 # Preserve the callee in t0 (x5) BEFORE argument placement,
                 # otherwise a callee allocated to x10 is clobbered when arg0
                 # is moved into x10 (the a0 slot).
-                let callee_reg = pop(self.reg_stack)
+                let callee_reg = self.pop_reg()
                 if callee_reg != 5:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 5, callee_reg, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, callee_reg, 0))
                 k = argc - 1
                 while k >= 0:
                     let src = args[argc - 1 - k]
                     let dest = 10 + k
                     if src != dest and src != 5:
-                        self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, dest, src, 0))
+                        self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, dest, src, 0))
                     k = k - 1
                 # Call via t0 (x5), which holds the preserved callee.
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_CALL, 5))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_CALL, 5))
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd, 10, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 10, 0))
                 push(self.reg_stack, rd)
 
-            elif op == sgvm_core.OP_CALL_METHOD:
+            elif op == OP_CALL_METHOD:
                 let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 let argc = int(svm_bytecode[i+2])
                 i = i + 3
                 var args = []
                 var k = 0
                 while k < argc:
-                    push(args, pop(self.reg_stack))
+                    push(args, self.pop_reg())
                     k = k + 1
-                let obj = pop(self.reg_stack)
+                let obj = self.pop_reg()
                 
                 # Move obj to x18
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 18, obj, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 18, obj, 0))
                 # Move args to x19..
                 k = 0
                 while k < argc:
                     let src = args[argc - 1 - k]
                     let dest = 19 + k
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, dest, src, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, dest, src, 0))
                     k = k + 1
                 
                 # Load name_idx to x10
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 0, name_idx))
+                self.emit_load_imm(10, name_idx)
                 # Call OBJ_METHOD_BIND on obj (x18), target x29, setting x28 flag
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_OBJ_OPS, 0, 29, srvm_core.OBJ_METHOD_BIND, 18))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 29, OBJ_METHOD_BIND, 18))
                 
                 # Branch if x28 == 0 (class call) to class_call block.
                 # Offset is (argc + 3) * 4 bytes.
-                self.emit_32(self.encoder.encode_b(srvm_core.OP_BRANCH, srvm_core.F3_BEQ, 28, 0, (argc + 3) * 4))
+                self.emit_32(self.encoder.encode_b(OP_BRANCH, F3_BEQ, 28, 0, (argc + 3) * 4))
                 
                 # Instance call block:
                 # Move obj (x18) to x10
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, 18, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 18, 0))
                 # Move args (x19..) to x11..
                 k = 0
                 while k < argc:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11 + k, 19 + k, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11 + k, 19 + k, 0))
                     k = k + 1
                 # JUMP over class_call block.
                 # Offset is (argc + 1) * 4 bytes.
-                self.emit_32(self.encoder.encode_j(srvm_core.OP_JAL, 0, (argc + 1) * 4))
+                self.emit_32(self.encoder.encode_j(OP_JAL, 0, (argc + 1) * 4))
                 
                 # Class call block:
                 # Move args (x19..) to x10..
                 k = 0
                 while k < argc:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10 + k, 19 + k, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10 + k, 19 + k, 0))
                     k = k + 1
                 
                 # Do call: VMO_CALL(x29)
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_CALL, 29))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_CALL, 29))
                 # Get return value: rd = x10
                 let rd_ret = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd_ret, 10, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd_ret, 10, 0))
                 push(self.reg_stack, rd_ret)
 
-            elif op == sgvm_core.OP_PRINT:
-                let rs = pop(self.reg_stack)
+            elif op == OP_PRINT:
+                let rs = self.pop_reg()
                 if rs != 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, rs, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_PRINT, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_PRINT, 0))
                 
-            elif op == sgvm_core.OP_HALT:
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_VM_OPS, 0, 0, srvm_core.VMO_HALT, 0))
+            elif op == OP_HALT:
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_HALT, 0))
 
             elif op == 59: # OP_GPU_POLL_EVENTS (halt)
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 0, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, 0, 0, 0))
 
             elif op == 69: # OP_GPU_CMD_BEGIN_RP (get_trap)
                 let rd2 = self.alloc_reg()
                 let rd1 = self.alloc_reg()
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 1, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd1, 10, 0))
-                self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, rd2, 11, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, 0, 1, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd1, 10, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd2, 11, 0))
                 push(self.reg_stack, rd1)
                 push(self.reg_stack, rd2)
 
             elif op == 70: # OP_GPU_CMD_END_RP (enable_interrupts)
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 2, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, 0, 2, 0))
 
             elif op == 71: # OP_GPU_CMD_DRAW (set_timer)
-                let arg4 = pop(self.reg_stack)
-                let arg3 = pop(self.reg_stack)
-                let arg2 = pop(self.reg_stack)
-                let arg1 = pop(self.reg_stack)
+                let arg4 = self.pop_reg()
+                let arg3 = self.pop_reg()
+                let arg2 = self.pop_reg()
+                let arg1 = self.pop_reg()
                 if arg1 != 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, arg1, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 3, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, arg1, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, 0, 3, 0))
 
             elif op == 62: # OP_GPU_KEY_PRESSED (peek64)
-                let addr = pop(self.reg_stack)
+                let addr = self.pop_reg()
                 let rd = self.alloc_reg()
                 if addr != 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, addr, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, rd, 4, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, addr, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, rd, 4, 0))
                 push(self.reg_stack, rd)
 
             elif op == 84: # OP_GPU_UPDATE_UNIFORM (poke64)
-                let val = pop(self.reg_stack)
-                let addr = pop(self.reg_stack)
+                let val = self.pop_reg()
+                let addr = self.pop_reg()
                 if val != 11:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, val, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, val, 0))
                 if addr != 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, addr, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 5, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, addr, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, 0, 5, 0))
 
             elif op == 85: # OP_GPU_CMD_PUSH_CONST (poke32)
-                let arg4 = pop(self.reg_stack)
-                let arg3 = pop(self.reg_stack)
-                let val = pop(self.reg_stack)
-                let addr = pop(self.reg_stack)
+                let arg4 = self.pop_reg()
+                let arg3 = self.pop_reg()
+                let val = self.pop_reg()
+                let addr = self.pop_reg()
                 if val != 11:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 11, val, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, val, 0))
                 if addr != 10:
-                    self.emit_32(self.encoder.encode_i(srvm_core.OP_IMM, srvm_core.F3_ADDI, 10, addr, 0))
-                self.emit_32(self.encoder.encode_r(srvm_core.OP_VMSYS, srvm_core.F3_GPU_OPS, 0, 0, 6, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, addr, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, 0, 6, 0))
         
         var p = 0
         while p < len(self.jump_patches):
@@ -3683,23 +3752,23 @@ class StackToRiscVTranslator:
             if self.label_map[str(target_ip)] != nil:
                 let target_pc = self.label_map[str(target_ip)]
                 let offset = target_pc - patch_pc
-                let b0 = self.output_bytes[patch_pc]
+                let b0 = int(self.output_bytes[patch_pc])
                 let opcode = b0 & 0x7F
                 var instr = 0
-                if opcode == srvm_core.OP_JAL:
-                    instr = self.encoder.encode_j(srvm_core.OP_JAL, 0, offset)
-                elif opcode == srvm_core.OP_BRANCH:
+                if opcode == OP_JAL:
+                    instr = self.encoder.encode_j(OP_JAL, 0, offset)
+                elif opcode == OP_BRANCH:
                     let raw = int(self.output_bytes[patch_pc]) | (int(self.output_bytes[patch_pc+1]) << 8) | (int(self.output_bytes[patch_pc+2]) << 16) | (int(self.output_bytes[patch_pc+3]) << 24)
                     let rs1 = (raw >> 15) & 0x1F
                     let rs2 = (raw >> 20) & 0x1F
                     let f3 = (raw >> 12) & 0x07
-                    instr = self.encoder.encode_b(srvm_core.OP_BRANCH, f3, rs1, rs2, offset)
-                elif opcode == srvm_core.OP_VMSYS:
+                    instr = self.encoder.encode_b(OP_BRANCH, f3, rs1, rs2, offset)
+                elif opcode == OP_VMSYS:
                     let raw = int(self.output_bytes[patch_pc]) | (int(self.output_bytes[patch_pc+1]) << 8) | (int(self.output_bytes[patch_pc+2]) << 16) | (int(self.output_bytes[patch_pc+3]) << 24)
                     let rd = (raw >> 7) & 0x1F
                     let sub_op = (raw >> 15) & 0x1F
                     let f3 = (raw >> 12) & 0x07
-                    instr = self.encoder.encode_i(srvm_core.OP_VMSYS, f3, rd, sub_op, offset)
+                    instr = self.encoder.encode_i(OP_VMSYS, f3, rd, sub_op, offset)
                 if instr != 0:
                     self.patch_32(patch_pc, instr)
             p = p + 1
@@ -3709,9 +3778,10 @@ class StackToRiscVTranslator:
 class SGRVCompiler:
     proc init(self):
         self.translator = StackToRiscVTranslator(nil)
-        self.utils = srvm_core.SRVMUtils()
+        self.utils = SRVMUtils()
 
     proc compile(self, sgvm_data):
+        print "DEBUG SGRV compile entry, len=" + str(len(sgvm_data))
         var pos = 0
         if len(sgvm_data) < 4: return nil
         if int(sgvm_data[0]) == 35:
@@ -3719,6 +3789,7 @@ class SGRVCompiler:
             if pos < len(sgvm_data): pos = pos + 1
         
         if int(sgvm_data[pos]) != 83 or int(sgvm_data[pos+1]) != 71 or int(sgvm_data[pos+2]) != 86 or int(sgvm_data[pos+3]) != 77:
+            print "DEBUG SGRV magic mismatch!"
             return nil
         pos = pos + 4 + 2 # Skip magic and version
         
@@ -3726,14 +3797,17 @@ class SGRVCompiler:
         pos = pos + 2
         let const_count = (int(sgvm_data[pos]) << 8) | int(sgvm_data[pos+1])
         pos = pos + 2
+        print "DEBUG SGRV func_count=" + str(func_count) + " const_count=" + str(const_count)
         
         var constants = []
         
         var output = [83, 71, 82, 86, 0, 1]
-        push(output, (func_count >> 8) & 0xFF)
-        push(output, func_count & 0xFF)
-        push(output, (const_count >> 8) & 0xFF)
-        push(output, const_count & 0xFF)
+        let fc_rem = int(func_count) % 256
+        push(output, (int(func_count) - fc_rem) / 256)
+        push(output, fc_rem)
+        let cc_rem = int(const_count) % 256
+        push(output, (int(const_count) - cc_rem) / 256)
+        push(output, cc_rem)
         
         var ci = 0
         while ci < const_count:
@@ -3748,12 +3822,13 @@ class SGRVCompiler:
                     push(output, int(sgvm_data[pos + k]))
                     k = k + 1
                 pos = pos + 8
-                # Simplified: Need to unpack to get number object
-                push(constants, {"type": 1})
+                let numval = self.utils.unpack_double(val_bytes, 0)
+                push(constants, {"type": 1, "num": numval})
             elif t == 3: # String
                 let slen = (int(sgvm_data[pos]) << 8) | int(sgvm_data[pos+1])
-                push(output, (slen >> 8) & 0xFF)
-                push(output, slen & 0xFF)
+                let slen_rem = int(slen) % 256
+                push(output, (int(slen) - slen_rem) / 256)
+                push(output, slen_rem)
                 pos = pos + 2
                 var s = ""
                 var k = 0
@@ -3772,13 +3847,22 @@ class SGRVCompiler:
         let num_chunks = (int(sgvm_data[pos]) << 24) | (int(sgvm_data[pos+1]) << 16) | (int(sgvm_data[pos+2]) << 8) | int(sgvm_data[pos+3])
         pos = pos + 4
         
-        push(output, (num_chunks >> 24) & 0xFF)
-        push(output, (num_chunks >> 16) & 0xFF)
-        push(output, (num_chunks >> 8) & 0xFF)
-        push(output, num_chunks & 0xFF)
+        var nc_val = int(num_chunks)
+        let nc0 = nc_val % 256
+        let nc1_v = (nc_val - nc0) / 256
+        let nc1 = nc1_v % 256
+        let nc2_v = (nc1_v - nc1) / 256
+        let nc2 = nc2_v % 256
+        let nc3 = (nc2_v - nc2) / 256
+        push(output, nc3)
+        push(output, nc2)
+        push(output, nc1)
+        push(output, nc0)
         
         var chunk_idx = 0
         while chunk_idx < num_chunks:
+            if chunk_idx % 50 == 0:
+                print "DEBUG SGRV compile chunk " + str(chunk_idx) + "/" + str(num_chunks)
             let clen = (int(sgvm_data[pos]) << 24) | (int(sgvm_data[pos+1]) << 16) | (int(sgvm_data[pos+2]) << 8) | int(sgvm_data[pos+3])
             pos = pos + 4
             var svm_bc = []
@@ -3789,13 +3873,24 @@ class SGRVCompiler:
             pos = pos + clen
             let translated = self.translator.translate(svm_bc)
             let t_len = len(translated)
-            push(output, (t_len >> 24) & 0xFF)
-            push(output, (t_len >> 16) & 0xFF)
-            push(output, (t_len >> 8) & 0xFF)
-            push(output, t_len & 0xFF)
+            
+            var tl_val = int(t_len)
+            let tl0 = tl_val % 256
+            let tl1_v = (tl_val - tl0) / 256
+            let tl1 = tl1_v % 256
+            let tl2_v = (tl1_v - tl1) / 256
+            let tl2 = tl2_v % 256
+            let tl3 = (tl2_v - tl2) / 256
+            push(output, tl3)
+            push(output, tl2)
+            push(output, tl1)
+            push(output, tl0)
             i = 0
             while i < t_len:
-                push(output, translated[i])
+                let b_val = translated[i]
+                if b_val == nil or type(b_val) != "number":
+                    print "DEBUG SGRVCompiler chunk_idx=" + str(chunk_idx) + " i=" + str(i) + " b_val=" + str(b_val) + " type=" + str(type(b_val))
+                push(output, int(b_val))
                 i = i + 1
             chunk_idx = chunk_idx + 1
         return output
@@ -3859,7 +3954,7 @@ class SRVM:
     proc safe_get_constant(self, idx):
         if idx >= 0 and idx < len(self.state.constants):
             return self.state.constants[idx]
-        print "Error: Constant pool index out of bounds: " + str(idx)
+        print "Error: Constant pool index out of bounds: " + str(idx) + " at PC=" + str(self.state.pc)
         self.state.running = false
         return nil
 
@@ -3916,16 +4011,16 @@ class SRVM:
     proc execute(self, instr):
         let op = instr.opcode
         
-        if op == srvm_core.OP_LUI:
+        if op == OP_LUI:
             self.state.x[instr.rd] = instr.imm_u
             self.state.pc = self.state.pc + 4
-        elif op == srvm_core.OP_AUIPC:
+        elif op == OP_AUIPC:
             self.state.x[instr.rd] = self.state.pc + instr.imm_u
             self.state.pc = self.state.pc + 4
-        elif op == srvm_core.OP_JAL:
+        elif op == OP_JAL:
             self.state.x[instr.rd] = self.state.pc + 4
             self.state.pc = self.state.pc + instr.imm_j
-        elif op == srvm_core.OP_JALR:
+        elif op == OP_JALR:
             let target = (self.state.x[instr.rs1] + instr.imm_i) & ~1
             let rd_val = self.state.pc + 4
             
@@ -3944,19 +4039,22 @@ class SRVM:
 
             self.state.x[instr.rd] = rd_val
             self.state.pc = target
-        elif op == srvm_core.OP_BRANCH:
+        elif op == OP_BRANCH:
             self.handle_branch(instr)
-        elif op == srvm_core.OP_IMM:
+        elif op == OP_IMM:
             self.handle_imm(instr)
-        elif op == srvm_core.OP_REG:
+        elif op == OP_REG:
             self.handle_reg(instr)
-        elif op == srvm_core.OP_LDC:
+        elif op == OP_LUI:
+            self.state.x[instr.rd] = instr.imm_u
+            self.state.pc = self.state.pc + 4
+        elif op == OP_LDC:
             self.handle_ldc(instr)
-        elif op == srvm_core.OP_LOAD:
+        elif op == OP_LOAD:
             self.handle_load(instr)
-        elif op == srvm_core.OP_STORE:
+        elif op == OP_STORE:
             self.handle_store(instr)
-        elif op == srvm_core.OP_VMSYS:
+        elif op == OP_VMSYS:
             self.handle_vmsys(instr)
         else:
             if self.trace:
@@ -3964,7 +4062,7 @@ class SRVM:
             self.state.running = false
 
     proc handle_ldc(self, instr):
-        let idx = (instr.decode_u_imm() >> 12) & 0xFFFFF
+        let idx = (instr.raw >> 12) & 0xFFFFF
         self.state.x[instr.rd] = self.safe_get_constant(idx)
         self.state.pc = self.state.pc + 4
 
@@ -4000,12 +4098,12 @@ class SRVM:
         let rs2_val = self.state.x[instr.rs2]
         var take = false
         let f3 = instr.funct3
-        if f3 == srvm_core.F3_BEQ: take = (rs1_val == rs2_val)
-        elif f3 == srvm_core.F3_BNE: take = (rs1_val != rs2_val)
-        elif f3 == srvm_core.F3_BLT: take = (rs1_val < rs2_val)
-        elif f3 == srvm_core.F3_BGE: take = (rs1_val >= rs2_val)
-        elif f3 == srvm_core.F3_BLTU: take = (rs1_val < rs2_val) # TODO: unsigned comparison
-        elif f3 == srvm_core.F3_BGEU: take = (rs1_val >= rs2_val) # TODO: unsigned comparison
+        if f3 == F3_BEQ: take = (rs1_val == rs2_val)
+        elif f3 == F3_BNE: take = (rs1_val != rs2_val)
+        elif f3 == F3_BLT: take = (rs1_val < rs2_val)
+        elif f3 == F3_BGE: take = (rs1_val >= rs2_val)
+        elif f3 == F3_BLTU: take = (rs1_val < rs2_val) # TODO: unsigned comparison
+        elif f3 == F3_BGEU: take = (rs1_val >= rs2_val) # TODO: unsigned comparison
         
         if take:
             self.state.pc = self.state.pc + instr.imm_b
@@ -4016,20 +4114,20 @@ class SRVM:
         let rs1_val = self.state.x[instr.rs1]
         let imm = instr.imm_i
         let f3 = instr.funct3
-        if f3 == srvm_core.F3_ADDI:
+        if f3 == F3_ADDI:
             if imm == 0: self.state.x[instr.rd] = rs1_val
             else: self.state.x[instr.rd] = rs1_val + imm
-        elif f3 == srvm_core.F3_SLTI:
+        elif f3 == F3_SLTI:
             if rs1_val < imm: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
-        elif f3 == srvm_core.F3_SLTIU:
+        elif f3 == F3_SLTIU:
             if rs1_val < imm: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
-        elif f3 == srvm_core.F3_XORI: self.state.x[instr.rd] = rs1_val ^ imm
-        elif f3 == srvm_core.F3_ORI: self.state.x[instr.rd] = rs1_val | imm
-        elif f3 == srvm_core.F3_ANDI: self.state.x[instr.rd] = rs1_val & imm
-        elif f3 == srvm_core.F3_SLLI: self.state.x[instr.rd] = rs1_val << (imm & 0x3F)
-        elif f3 == srvm_core.F3_SRLI:
+        elif f3 == F3_XORI: self.state.x[instr.rd] = rs1_val ^ imm
+        elif f3 == F3_ORI: self.state.x[instr.rd] = rs1_val | imm
+        elif f3 == F3_ANDI: self.state.x[instr.rd] = rs1_val & imm
+        elif f3 == F3_SLLI: self.state.x[instr.rd] = rs1_val << (imm & 0x3F)
+        elif f3 == F3_SRLI:
             let shamt = imm & 0x3F
             if instr.funct7 == 0x20:
                 # SRAI: arithmetic right shift (sign-extending)
@@ -4052,30 +4150,30 @@ class SRVM:
         let f7 = instr.funct7
 
         if f7 == 0x01: # M-extension
-            if f3 == srvm_core.F3_ADD: # MUL
+            if f3 == F3_ADD: # MUL
                 self.state.x[instr.rd] = rs1_val * rs2_val
-            elif f3 == srvm_core.F3_XOR: # DIV
+            elif f3 == F3_XOR: # DIV
                 if rs2_val != 0: self.state.x[instr.rd] = rs1_val / rs2_val
                 else: self.state.x[instr.rd] = 0
-            elif f3 == srvm_core.F3_OR: # REM
+            elif f3 == F3_OR: # REM
                 if rs2_val != 0: self.state.x[instr.rd] = rs1_val % rs2_val
                 else: self.state.x[instr.rd] = 0
             self.state.pc = self.state.pc + 4
             return
 
-        if f3 == srvm_core.F3_ADD:
+        if f3 == F3_ADD:
             if f7 == 0x00: 
                 self.state.x[instr.rd] = rs1_val + rs2_val
             elif f7 == 0x20: self.state.x[instr.rd] = rs1_val - rs2_val
-        elif f3 == srvm_core.F3_SLL: self.state.x[instr.rd] = rs1_val << (rs2_val & 0x3F)
-        elif f3 == srvm_core.F3_SLT:
+        elif f3 == F3_SLL: self.state.x[instr.rd] = rs1_val << (rs2_val & 0x3F)
+        elif f3 == F3_SLT:
             if rs1_val < rs2_val: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
-        elif f3 == srvm_core.F3_SLTU:
+        elif f3 == F3_SLTU:
             if rs1_val < rs2_val: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
-        elif f3 == srvm_core.F3_XOR: self.state.x[instr.rd] = rs1_val ^ rs2_val
-        elif f3 == srvm_core.F3_SRL:
+        elif f3 == F3_XOR: self.state.x[instr.rd] = rs1_val ^ rs2_val
+        elif f3 == F3_SRL:
             let shamt = rs2_val & 0x3F
             if f7 == 0x20:
                 # SRA: arithmetic right shift
@@ -4087,18 +4185,18 @@ class SRVM:
                     self.state.x[instr.rd] = unsigned_val >> shamt
                 else:
                     self.state.x[instr.rd] = rs1_val >> shamt
-        elif f3 == srvm_core.F3_OR: self.state.x[instr.rd] = rs1_val | rs2_val
-        elif f3 == srvm_core.F3_AND: self.state.x[instr.rd] = rs1_val & rs2_val
+        elif f3 == F3_OR: self.state.x[instr.rd] = rs1_val | rs2_val
+        elif f3 == F3_AND: self.state.x[instr.rd] = rs1_val & rs2_val
         self.state.pc = self.state.pc + 4
 
     proc handle_vmsys(self, instr):
         let f3 = instr.funct3
         let sub_op = instr.rs1
         
-        if f3 == srvm_core.F3_VM_OPS:
-            if sub_op == srvm_core.VMO_HALT:
+        if f3 == F3_VM_OPS:
+            if sub_op == VMO_HALT:
                 self.state.running = false
-            elif sub_op == srvm_core.VMO_IMPORT:
+            elif sub_op == VMO_IMPORT:
                 let idx = int(self.state.x[10]) # a0
                 let name = self.safe_get_constant(idx)
                 if not self.state.running: return
@@ -4151,11 +4249,11 @@ class SRVM:
                             self.state.x[instr.rd] = {"__type__": "module", "__name__": name}
                     catch e:
                         self.state.x[instr.rd] = {"__type__": "module", "__name__": name}
-            elif sub_op == srvm_core.VMO_PRINT:
+            elif sub_op == VMO_PRINT:
                 print str(self.state.x[10]) # Use a0
-            elif sub_op == srvm_core.VMO_PRINTM:
+            elif sub_op == VMO_PRINTM:
                 print str(self.state.x[10])
-            elif sub_op == srvm_core.VMO_PUSH_ENV:
+            elif sub_op == VMO_PUSH_ENV:
                 # Security: Prevent environment stack exhaustion (DoS)
                 if len(self.state.call_stack) >= self.state.max_call_depth:
                     print "Error: Call depth limit exceeded"
@@ -4163,10 +4261,10 @@ class SRVM:
                     return
                 push(self.state.call_stack, self.state.heap)
                 self.state.heap = {}
-            elif sub_op == srvm_core.VMO_POP_ENV:
+            elif sub_op == VMO_POP_ENV:
                 if len(self.state.call_stack) > 0:
                     self.state.heap = pop(self.state.call_stack)
-            elif sub_op == srvm_core.VMO_CALL:
+            elif sub_op == VMO_CALL:
                 # Security: Prevent infinite recursion from exhausting host resources (DoS)
                 if len(self.state.call_stack) >= self.state.max_call_depth:
                     print "Error: Call depth limit exceeded"
@@ -4291,12 +4389,12 @@ class SRVM:
                     self.state.pc = 0
                     self.state.x[1] = 0
                     return
-            elif sub_op == srvm_core.VMO_ARRAY_LEN:
+            elif sub_op == VMO_ARRAY_LEN:
                 let obj = self.state.x[instr.rs2]
                 if type(obj) == "list": self.state.x[instr.rd] = len(obj)
                 elif type(obj) == "dict": self.state.x[instr.rd] = len(obj)
                 else: self.state.x[instr.rd] = 0
-            elif sub_op == srvm_core.VMO_SETUP_TRY:
+            elif sub_op == VMO_SETUP_TRY:
                 # Security: Prevent nested handlers from exhausting VM memory (DoS)
                 if len(self.state.try_stack) >= self.state.max_try_depth:
                     print "Error: Handler depth limit exceeded"
@@ -4305,10 +4403,10 @@ class SRVM:
 
                 let catch_offset = instr.imm_i
                 push(self.state.try_stack, [self.state.pc + catch_offset, len(self.state.call_stack)])
-            elif sub_op == srvm_core.VMO_END_TRY:
+            elif sub_op == VMO_END_TRY:
                 if len(self.state.try_stack) > 0:
                     pop(self.state.try_stack)
-            elif sub_op == srvm_core.VMO_RAISE:
+            elif sub_op == VMO_RAISE:
                 let exc_obj = self.state.x[10] # a0
                 if len(self.state.try_stack) > 0:
                     let handler = pop(self.state.try_stack)
@@ -4323,8 +4421,8 @@ class SRVM:
                     print "Unhandled exception: " + str(exc_obj)
                     self.state.running = false
                     return
-        elif f3 == srvm_core.F3_OBJ_OPS:
-            if sub_op == srvm_core.OBJ_GET_GLOBAL:
+        elif f3 == F3_OBJ_OPS:
+            if sub_op == OBJ_GET_GLOBAL:
                 let idx = int(self.state.x[10]) # a0
                 let name = self.safe_get_constant(idx)
                 if not self.state.running: return
@@ -4336,7 +4434,7 @@ class SRVM:
                     self.state.x[instr.rd] = {"__builtin__": name}
                 else:
                     self.state.x[instr.rd] = nil
-            elif sub_op == srvm_core.OBJ_SET_GLOBAL:
+            elif sub_op == OBJ_SET_GLOBAL:
                 let idx = int(self.state.x[10]) # a0
                 let val = self.state.x[11] # a1
                 let name = self.safe_get_constant(idx)
@@ -4345,7 +4443,7 @@ class SRVM:
                     print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
                 else:
                     self.state.heap[name] = val
-            elif sub_op == srvm_core.OBJ_GET_PROP:
+            elif sub_op == OBJ_GET_PROP:
                 let obj = self.state.x[instr.rs2]
                 let name_idx = int(self.state.x[10])
                 let name = self.safe_get_constant(name_idx)
@@ -4354,7 +4452,7 @@ class SRVM:
                     self.state.x[instr.rd] = nil
                 elif type(obj) == "dict": self.state.x[instr.rd] = obj[name]
                 else: self.state.x[instr.rd] = nil
-            elif sub_op == srvm_core.OBJ_SET_PROP:
+            elif sub_op == OBJ_SET_PROP:
                 let obj = self.state.x[instr.rs2]
                 let name_idx = int(self.state.x[10])
                 let val = self.state.x[11]
@@ -4366,10 +4464,10 @@ class SRVM:
                     print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
                 elif type(obj) == "dict":
                     obj[name] = val
-            elif sub_op == srvm_core.OBJ_NEW_FUNC:
+            elif sub_op == OBJ_NEW_FUNC:
                 let chunk_idx = int(self.state.x[10])
                 self.state.x[instr.rd] = {"type": "function", "chunk_idx": chunk_idx}
-            elif sub_op == srvm_core.OBJ_ARRAY_NEW:
+            elif sub_op == OBJ_ARRAY_NEW:
                 let size = int(self.state.x[10])
                 # Security: Prevent memory exhaustion via large array allocation (DoS)
                 if size < 0 or size > self.state.max_array_size:
@@ -4384,7 +4482,7 @@ class SRVM:
                     push(arr, init_val)
                     i = i + 1
                 self.state.x[instr.rd] = arr
-            elif sub_op == srvm_core.OBJ_GET_INDEX:
+            elif sub_op == OBJ_GET_INDEX:
                 let obj = self.state.x[instr.rs2]
                 let raw_idx = self.state.x[10]
                 if self.state.safe_mode and type(raw_idx) == "string" and startswith(raw_idx, "__") and not startswith(raw_idx, "__arg"):
@@ -4397,7 +4495,7 @@ class SRVM:
                         self.state.x[instr.rd] = obj[idx]
                     else: self.state.x[instr.rd] = nil
                 else: self.state.x[instr.rd] = nil
-            elif sub_op == srvm_core.OBJ_SET_INDEX:
+            elif sub_op == OBJ_SET_INDEX:
                 let obj = self.state.x[instr.rs2]
                 let raw_idx = self.state.x[10]
                 let val = self.state.x[11]
@@ -4411,7 +4509,7 @@ class SRVM:
                     let idx = int(raw_idx)
                     if idx >= 0 and idx < len(obj):
                         obj[idx] = val
-        elif f3 == srvm_core.F3_GPU_OPS:
+        elif f3 == F3_GPU_OPS:
             self.handle_gpu(instr)
         
         self.state.pc = self.state.pc + 4
@@ -5028,6 +5126,19 @@ class SGVMCLI:
             print_help()
             return
         
+        if cmd == "run":
+            self.handle_run(args, 2)
+            return
+        elif cmd == "compile":
+            self.handle_compile(args, 2)
+            return
+        elif cmd == "dis":
+            self.handle_dis(args, 2)
+            return
+        elif cmd == "hex":
+            self.handle_hex(args)
+            return
+        
         # Check if called via symlink (e.g. /usr/local/bin/sgvm or ./sgvm)
         let binary_name = args[0]
         if endswith(binary_name, "/sgvm") or binary_name == "sgvm":
@@ -5036,19 +5147,6 @@ class SGVMCLI:
         elif endswith(binary_name, "/sgvmc") or binary_name == "sgvmc":
             self.handle_compile(args, 1)
             return
-
-        if cmd == "":
-            print_help()
-            return
-
-        if cmd == "run":
-            self.handle_run(args, 2)
-        elif cmd == "compile":
-            self.handle_compile(args, 2)
-        elif cmd == "dis":
-            self.handle_dis(args, 2)
-        elif cmd == "hex":
-            self.handle_hex(args)
         elif cmd != "":
             print COLOR_RED + "❌ Unknown command: " + COLOR_RESET + cmd
 

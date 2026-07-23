@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## v0.9.9 (2026-07-23)
 
+### Self-Hosting & Compilation
+- **Stack VM self-hosting**: `sagevm_standalone.sage` compiles to `.sgvm` (~96 KB) and executes correctly — SageVM compiles itself.
+- **RISC-V compilation pipeline**: Full `.sage` → SVM bytecode → RV64I instruction translation → `.sgrv` binary (~199 KB) via `StackToRiscVTranslator`.
+- **CLI dispatch fix**: Moved direct subcommand checks (`run`, `compile`, `dis`, `hex`) ahead of symlink shorthand matching to prevent misrouting.
+- **Standalone build pipeline**: Python concatenation script strips module imports and rewrites class constructors for single-file standalone compilation.
+
+### MetalVM Parity (SVM)
+- **Truthiness conformance**: `is_truthy()` helper ensures only `nil`, `false`, and `0` are falsy — empty strings, arrays, and dicts are now truthy (matching MetalVM spec).
+- **Deep structural equality**: `equal_val()` for `OP_EQUAL` / `OP_NOT_EQUAL` performs recursive structural comparison for dicts, arrays, and tuples.
+- **String repetition**: `OP_MUL` now supports `"a" * 3` → `"aaa"` via `str_repeat()` helper.
+- **Division-by-zero → nil**: `OP_DIV` and `OP_MOD` return `nil` on zero divisor instead of halting the VM.
+- **GPU opcode stubs**: Opcodes 59–86 handled with safe no-op/default behavior in `execute_op()`.
+- **`OP_HALT` dispatch**: Added to `execute_op()` fallback path.
+
+### SRVM Fixes
+- **`OP_LUI` dispatch**: Added `elif op == OP_LUI` to `SRVMVM.step()` — required for large immediate values emitted by `emit_load_imm()`.
+- **Module namespace stripping**: Removed all `srvm_core.`, `sgvm_core.`, `srvm_profiler.` prefixes from SRVM source files for standalone build compatibility.
+- **`pop_reg()` safety helper**: Returns fallback register `x11` when `reg_stack` is empty, preventing `nil` from leaking into instruction encoding.
+- **Array mutation fix**: `TypeProfiler.analyze()` uses append-only `push(result, hint)` instead of index assignment (which crashes the host C runtime).
+
 ### Security & Correctness
 - **[C5] Division-by-zero guards**: Added runtime checks for `OP_DIV` and `OP_MOD` in both SVM hot-path and `execute_op()` fallback to prevent host crashes.
 - **[C1] SRVM register allocator spilling**: Fixed silent data corruption when expressions require more than 8 temporary registers by implementing stack spilling.
@@ -11,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - **[C7] --no-exec flag**: Added `exec_enabled` property and `--no-exec` CLI flag to disable `OP_EXEC_AST_STMT` independently of safe mode.
 - **[M5] Safe mode host function guard**: Added safe_mode check to prevent direct host function/native fn calls via `OP_CALL`.
 - **[M12] OP_DEFINE_GLOBAL bounds check**: Added constant pool bounds validation.
+- **Hardened byte writing**: `sage_io_writebytes` in `sgvm_debug.c` supports both `SAGE_TAG_BYTES` and `SAGE_TAG_ARRAY` safely.
 
 ### Features
 - **[H7] SVM builtin parity**: Added 16 missing builtins to SVM `call_builtin()`: `push`, `pop`, `chr`, `ord`, `startswith`, `endswith`, `contains`, `join`, `split`, `replace`, `upper`, `lower`, `strip`, `dict_has`, `dict_keys`, `dict_values`.
@@ -26,6 +47,7 @@ All notable changes to this project will be documented in this file.
 - **[M8] sagemake install**: Now supports `PREFIX` env var for custom install paths; graceful sudo fallback.
 - **[L1] Cleanup**: Removed stale `.sage.backup` files.
 - Added 6 new test suites: `div_zero_safety`, `builtin_string_ops`, `builtin_collection_ops`, `security_host_func`, `chr_ord_ops`, `split_join_ops`.
+
 
 ## [2026-07-16]
 

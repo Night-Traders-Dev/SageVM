@@ -101,6 +101,19 @@ class SGVMCLI:
             print_help()
             return
         
+        if cmd == "run":
+            self.handle_run(args, 2)
+            return
+        elif cmd == "compile":
+            self.handle_compile(args, 2)
+            return
+        elif cmd == "dis":
+            self.handle_dis(args, 2)
+            return
+        elif cmd == "hex":
+            self.handle_hex(args)
+            return
+        
         # Check if called via symlink (e.g. /usr/local/bin/sgvm or ./sgvm)
         let binary_name = args[0]
         if endswith(binary_name, "/sgvm") or binary_name == "sgvm":
@@ -109,19 +122,6 @@ class SGVMCLI:
         elif endswith(binary_name, "/sgvmc") or binary_name == "sgvmc":
             self.handle_compile(args, 1)
             return
-
-        if cmd == "":
-            print_help()
-            return
-
-        if cmd == "run":
-            self.handle_run(args, 2)
-        elif cmd == "compile":
-            self.handle_compile(args, 2)
-        elif cmd == "dis":
-            self.handle_dis(args, 2)
-        elif cmd == "hex":
-            self.handle_hex(args)
         elif cmd != "":
             print COLOR_RED + "❌ Unknown command: " + COLOR_RESET + cmd
 

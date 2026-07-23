@@ -172,17 +172,22 @@ class SGVMUtils:
             return ""
         var start = 0
         while start < len(s):
-            if ord(s[start]) <= 32:
+            let ch = s[start]
+            let o = ord(ch)
+            if o <= 32:
                 start = start + 1
             else:
                 break
         var eidx = len(s)
         while eidx > start:
-            if ord(s[eidx-1]) <= 32:
+            let ch = s[eidx-1]
+            let o = ord(ch)
+            if o <= 32:
                 eidx = eidx - 1
             else:
                 break
-        return self.my_substr(s, start, eidx - start)
+        let res = self.my_substr(s, start, eidx - start)
+        return res
 
     proc strip_comment(self, line):
         # Remove # comments from a line of .svm text

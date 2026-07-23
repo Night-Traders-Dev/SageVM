@@ -22,6 +22,7 @@ from sgvm_core import OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_GET_L
 
 class SGVMCompiler:
     proc init(self):
+        print "DEBUG SGVMCompiler.init entry"
         self.output_bytes = []
         self.global_consts = []
         self.const_map = {} 
@@ -32,7 +33,13 @@ class SGVMCompiler:
         self.utils = SGVMUtils()
 
     proc write_byte(self, b):
-        push(self.output_bytes, self.utils.my_int(b))
+        if b == nil:
+            push(self.output_bytes, 0)
+        elif type(b) == "string":
+            if len(b) > 0: push(self.output_bytes, ord(b))
+            else: push(self.output_bytes, 0)
+        else:
+            push(self.output_bytes, self.utils.my_int(b))
 
     proc write_string(self, s):
         var i = 0
@@ -299,7 +306,9 @@ class SGVMCompiler:
                 while j < clen * 2:
                     var op = ut.parse_hex_byte(hex, j)
                     # Mapping host opcodes (0-based) to VM opcodes
-                    if op == 0x34: op = 52 # BC_OP_IMPORT
+                    if op == 0x31: op = 35 # BC_OP_JUMP
+                    elif op == 0x32: op = 36 # BC_OP_JUMP_IF_FALSE
+                    elif op == 0x34: op = 52 # BC_OP_IMPORT
                     elif op == 0x26: op = 38 # BC_OP_CALL_METHOD
                     elif op == 0x25: op = 37 # BC_OP_CALL
                     elif op == 0x33: op = 51 # BC_OP_LOOP_BACK
@@ -316,8 +325,8 @@ class SGVMCompiler:
                     elif op == 0x0c: op = 12 # BC_OP_SET_INDEX
                     elif op == 0x0d: op = 13 # BC_OP_LOAD_FUNCTION
                     elif op == 0x0e: op = 14 # BC_OP_SLICE
-                    elif op == 0x3b: op = 88 # BC_OP_GET_LOCAL
-                    elif op == 0x3c: op = 89 # BC_OP_SET_LOCAL
+                    elif op == 0x45: op = 88 # BC_OP_GET_LOCAL
+                    elif op == 0x46: op = 89 # BC_OP_SET_LOCAL
                     elif op == 0x3d: op = 90 # BC_OP_YIELD
                     elif op == 0x3e: op = 91 # BC_OP_CREATE_GENERATOR
                     elif op == 0x3f: op = 92 # BC_OP_GENERATOR_NEXT
@@ -354,7 +363,7 @@ class SGVMCompiler:
                         if local_idx >= 0 and local_idx < len(ltg_raw): val = ltg_raw[local_idx]
                         self.write_be16(val)
                         j = j + 4
-                    elif op == 13 or op == 35 or op == 36 or op == 39 or op == 40 or op == 41 or op == 43 or op == 51 or op == 56:
+                    elif op == 13 or op == 35 or op == 36 or op == 39 or op == 40 or op == 41 or op == 43 or op == 51 or op == 56 or op == 88 or op == 89:
                         let v1 = ut.parse_hex_byte(hex, j)
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         self.write_be16(v1 * 256 + v2)
@@ -435,6 +444,7 @@ class SGVMCompiler:
             var cmd = sage_bin + " --emit-vm " + in_file + " -o " + svm_file
             
             let status = sys_exec(cmd)
+            print "DEBUG after sys_exec status=" + str(status)
             if status != 0:
                 print "Error: Failed to generate SVM from " + in_file
                 return false
@@ -443,14 +453,18 @@ class SGVMCompiler:
         if content == nil:
             print "Error: Could not read SVM file: " + svm_file
             return false
+        print "DEBUG after io_readfile content len=" + str(len(content))
         
         let lines = ut.split_lines(content)
+        print "DEBUG after split_lines count=" + str(len(lines))
         
         let counts = self.first_pass(lines)
         let function_count = counts[0]
         let chunk_count = counts[1]
+        print "DEBUG after first_pass function_count=" + str(function_count) + " chunk_count=" + str(chunk_count)
         
         self.second_pass(lines, function_count, chunk_count, use_shebang)
+        print "DEBUG after second_pass output_bytes len=" + str(len(self.output_bytes))
         
         io_writebytes(out_file, self.output_bytes)
         return true

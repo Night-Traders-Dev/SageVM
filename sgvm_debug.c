@@ -683,6 +683,7 @@ static SageValue sage_native_thread_sleep(SageValue ms) {
 static SageValue sage_native_thread_id(void) { return sage_number((double)(uintptr_t)pthread_self()); }
 
 static SageValue sage_native_io_readbytes(SageValue path) {
+    printf("DEBUG sage_native_io_readbytes path.type=%d path='%s'\n", path.type, path.type == SAGE_TAG_STRING ? path.as.string : "NON-STRING");
     if (path.type != SAGE_TAG_STRING) return sage_nil();
     FILE* f = fopen(path.as.string, "rb");
     if (!f) return sage_nil();
@@ -861,21 +862,33 @@ static SageValue sage_add(SageValue left, SageValue right) {
 }
 
 static SageValue sage_sub(SageValue left, SageValue right) {
-    if (left.type != SAGE_TAG_NUMBER || right.type != SAGE_TAG_NUMBER) sage_fail("Runtime Error: Operands must be numbers.");
+    if (left.type != SAGE_TAG_NUMBER || right.type != SAGE_TAG_NUMBER) {
+        printf("DEBUG sage_sub failed: left.type=%d right.type=%d\n", left.type, right.type);
+        sage_fail("Runtime Error: Operands must be numbers.");
+    }
     return sage_number(left.as.number - right.as.number);
 }
 static SageValue sage_mul(SageValue left, SageValue right) {
-    if (left.type != SAGE_TAG_NUMBER || right.type != SAGE_TAG_NUMBER) sage_fail("Runtime Error: Operands must be numbers.");
+    if (left.type != SAGE_TAG_NUMBER || right.type != SAGE_TAG_NUMBER) {
+        printf("DEBUG sage_mul failed: left.type=%d right.type=%d\n", left.type, right.type);
+        sage_fail("Runtime Error: Operands must be numbers.");
+    }
     return sage_number(left.as.number * right.as.number);
 }
 static SageValue sage_div(SageValue left, SageValue right) {
-    if (left.type != SAGE_TAG_NUMBER || right.type != SAGE_TAG_NUMBER) sage_fail("Runtime Error: Operands must be numbers.");
-    if (right.as.number == 0) return sage_nil();
+    if (left.type != SAGE_TAG_NUMBER || right.type != SAGE_TAG_NUMBER) {
+        printf("DEBUG sage_div failed: left.type=%d right.type=%d\n", left.type, right.type);
+        sage_fail("Runtime Error: Operands must be numbers.");
+    }
+    if (right.as.number == 0) sage_fail("Runtime Error: Division by zero.");
     return sage_number(left.as.number / right.as.number);
 }
 static SageValue sage_mod(SageValue left, SageValue right) {
-    if (left.type != SAGE_TAG_NUMBER || right.type != SAGE_TAG_NUMBER) sage_fail("Runtime Error: Operands must be numbers.");
-    if (right.as.number == 0) return sage_nil();
+    if (left.type != SAGE_TAG_NUMBER || right.type != SAGE_TAG_NUMBER) {
+        printf("DEBUG sage_mod failed: left.type=%d right.type=%d\n", left.type, right.type);
+        sage_fail("Runtime Error: Operands must be numbers.");
+    }
+    if (right.as.number == 0) sage_fail("Runtime Error: Modulo by zero.");
     return sage_number(fmod(left.as.number, right.as.number));
 }
 static SageValue sage_eq(SageValue left, SageValue right) { return sage_bool(sage_values_equal(left, right)); }
@@ -1505,11 +1518,20 @@ static SageValue sage_io_writefile(SageValue p, SageValue c) {
     fwrite(c.as.string, 1, strlen(c.as.string), f); fclose(f); return sage_bool(1);
 }
 static SageValue sage_io_writebytes(SageValue p, SageValue arr) {
-    if(p.type != SAGE_TAG_STRING || arr.type != SAGE_TAG_ARRAY) return sage_bool(0);
+    if(p.type != SAGE_TAG_STRING) return sage_bool(0);
+    if(arr.type == SAGE_TAG_BYTES) {
+        FILE* f = fopen(p.as.string, "wb"); if(!f) return sage_bool(0);
+        if(arr.as.bytes->count > 0) fwrite(arr.as.bytes->data, 1, arr.as.bytes->count, f);
+        fclose(f); return sage_bool(1);
+    }
+    if(arr.type != SAGE_TAG_ARRAY) return sage_bool(0);
     FILE* f = fopen(p.as.string, "wb"); if(!f) return sage_bool(0);
     SageArray* a = arr.as.array;
-    unsigned char* buf = malloc(a->count);
-    for(int i=0; i<a->count; i++) buf[i] = (unsigned char)a->elements[i].as.number;
+    unsigned char* buf = malloc(a->count ? a->count : 1);
+    for(int i=0; i<a->count; i++) {
+        if(a->elements[i].type == SAGE_TAG_NUMBER) buf[i] = (unsigned char)a->elements[i].as.number;
+        else buf[i] = 0;
+    }
     fwrite(buf, 1, a->count, f); fclose(f); free(buf); return sage_bool(1);
 }
 static SageValue sage_io_readbytes(SageValue p) {

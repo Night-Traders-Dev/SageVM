@@ -1,3 +1,7 @@
+from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS
+from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
+from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
+from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT, OBJ_METHOD_BIND, OBJ_GET_PROP, OBJ_SET_PROP, OBJ_NEW_FUNC, OBJ_ARRAY_NEW, OBJ_DICT_NEW, OBJ_TUPLE_NEW, OBJ_GET_INDEX, OBJ_SET_INDEX, SRVMUtils
 # Sage RISC-V Virtual Machine (SRVM)
 # Core Interpreter Implementation (RV64I)
 
@@ -57,7 +61,7 @@ class SRVM:
     proc safe_get_constant(self, idx):
         if idx >= 0 and idx < len(self.state.constants):
             return self.state.constants[idx]
-        print "Error: Constant pool index out of bounds: " + str(idx)
+        print "Error: Constant pool index out of bounds: " + str(idx) + " at PC=" + str(self.state.pc)
         self.state.running = false
         return nil
 
@@ -114,16 +118,16 @@ class SRVM:
     proc execute(self, instr):
         let op = instr.opcode
         
-        if op == srvm_core.OP_LUI:
+        if op == OP_LUI:
             self.state.x[instr.rd] = instr.imm_u
             self.state.pc = self.state.pc + 4
-        elif op == srvm_core.OP_AUIPC:
+        elif op == OP_AUIPC:
             self.state.x[instr.rd] = self.state.pc + instr.imm_u
             self.state.pc = self.state.pc + 4
-        elif op == srvm_core.OP_JAL:
+        elif op == OP_JAL:
             self.state.x[instr.rd] = self.state.pc + 4
             self.state.pc = self.state.pc + instr.imm_j
-        elif op == srvm_core.OP_JALR:
+        elif op == OP_JALR:
             let target = (self.state.x[instr.rs1] + instr.imm_i) & ~1
             let rd_val = self.state.pc + 4
             
@@ -142,19 +146,22 @@ class SRVM:
 
             self.state.x[instr.rd] = rd_val
             self.state.pc = target
-        elif op == srvm_core.OP_BRANCH:
+        elif op == OP_BRANCH:
             self.handle_branch(instr)
-        elif op == srvm_core.OP_IMM:
+        elif op == OP_IMM:
             self.handle_imm(instr)
-        elif op == srvm_core.OP_REG:
+        elif op == OP_REG:
             self.handle_reg(instr)
-        elif op == srvm_core.OP_LDC:
+        elif op == OP_LUI:
+            self.state.x[instr.rd] = instr.imm_u
+            self.state.pc = self.state.pc + 4
+        elif op == OP_LDC:
             self.handle_ldc(instr)
-        elif op == srvm_core.OP_LOAD:
+        elif op == OP_LOAD:
             self.handle_load(instr)
-        elif op == srvm_core.OP_STORE:
+        elif op == OP_STORE:
             self.handle_store(instr)
-        elif op == srvm_core.OP_VMSYS:
+        elif op == OP_VMSYS:
             self.handle_vmsys(instr)
         else:
             if self.trace:
@@ -162,7 +169,7 @@ class SRVM:
             self.state.running = false
 
     proc handle_ldc(self, instr):
-        let idx = (instr.decode_u_imm() >> 12) & 0xFFFFF
+        let idx = (instr.raw >> 12) & 0xFFFFF
         self.state.x[instr.rd] = self.safe_get_constant(idx)
         self.state.pc = self.state.pc + 4
 
@@ -198,12 +205,12 @@ class SRVM:
         let rs2_val = self.state.x[instr.rs2]
         var take = false
         let f3 = instr.funct3
-        if f3 == srvm_core.F3_BEQ: take = (rs1_val == rs2_val)
-        elif f3 == srvm_core.F3_BNE: take = (rs1_val != rs2_val)
-        elif f3 == srvm_core.F3_BLT: take = (rs1_val < rs2_val)
-        elif f3 == srvm_core.F3_BGE: take = (rs1_val >= rs2_val)
-        elif f3 == srvm_core.F3_BLTU: take = (rs1_val < rs2_val) # TODO: unsigned comparison
-        elif f3 == srvm_core.F3_BGEU: take = (rs1_val >= rs2_val) # TODO: unsigned comparison
+        if f3 == F3_BEQ: take = (rs1_val == rs2_val)
+        elif f3 == F3_BNE: take = (rs1_val != rs2_val)
+        elif f3 == F3_BLT: take = (rs1_val < rs2_val)
+        elif f3 == F3_BGE: take = (rs1_val >= rs2_val)
+        elif f3 == F3_BLTU: take = (rs1_val < rs2_val) # TODO: unsigned comparison
+        elif f3 == F3_BGEU: take = (rs1_val >= rs2_val) # TODO: unsigned comparison
         
         if take:
             self.state.pc = self.state.pc + instr.imm_b
@@ -214,20 +221,20 @@ class SRVM:
         let rs1_val = self.state.x[instr.rs1]
         let imm = instr.imm_i
         let f3 = instr.funct3
-        if f3 == srvm_core.F3_ADDI:
+        if f3 == F3_ADDI:
             if imm == 0: self.state.x[instr.rd] = rs1_val
             else: self.state.x[instr.rd] = rs1_val + imm
-        elif f3 == srvm_core.F3_SLTI:
+        elif f3 == F3_SLTI:
             if rs1_val < imm: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
-        elif f3 == srvm_core.F3_SLTIU:
+        elif f3 == F3_SLTIU:
             if rs1_val < imm: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
-        elif f3 == srvm_core.F3_XORI: self.state.x[instr.rd] = rs1_val ^ imm
-        elif f3 == srvm_core.F3_ORI: self.state.x[instr.rd] = rs1_val | imm
-        elif f3 == srvm_core.F3_ANDI: self.state.x[instr.rd] = rs1_val & imm
-        elif f3 == srvm_core.F3_SLLI: self.state.x[instr.rd] = rs1_val << (imm & 0x3F)
-        elif f3 == srvm_core.F3_SRLI:
+        elif f3 == F3_XORI: self.state.x[instr.rd] = rs1_val ^ imm
+        elif f3 == F3_ORI: self.state.x[instr.rd] = rs1_val | imm
+        elif f3 == F3_ANDI: self.state.x[instr.rd] = rs1_val & imm
+        elif f3 == F3_SLLI: self.state.x[instr.rd] = rs1_val << (imm & 0x3F)
+        elif f3 == F3_SRLI:
             let shamt = imm & 0x3F
             if instr.funct7 == 0x20:
                 # SRAI: arithmetic right shift (sign-extending)
@@ -250,30 +257,30 @@ class SRVM:
         let f7 = instr.funct7
 
         if f7 == 0x01: # M-extension
-            if f3 == srvm_core.F3_ADD: # MUL
+            if f3 == F3_ADD: # MUL
                 self.state.x[instr.rd] = rs1_val * rs2_val
-            elif f3 == srvm_core.F3_XOR: # DIV
+            elif f3 == F3_XOR: # DIV
                 if rs2_val != 0: self.state.x[instr.rd] = rs1_val / rs2_val
                 else: self.state.x[instr.rd] = 0
-            elif f3 == srvm_core.F3_OR: # REM
+            elif f3 == F3_OR: # REM
                 if rs2_val != 0: self.state.x[instr.rd] = rs1_val % rs2_val
                 else: self.state.x[instr.rd] = 0
             self.state.pc = self.state.pc + 4
             return
 
-        if f3 == srvm_core.F3_ADD:
+        if f3 == F3_ADD:
             if f7 == 0x00: 
                 self.state.x[instr.rd] = rs1_val + rs2_val
             elif f7 == 0x20: self.state.x[instr.rd] = rs1_val - rs2_val
-        elif f3 == srvm_core.F3_SLL: self.state.x[instr.rd] = rs1_val << (rs2_val & 0x3F)
-        elif f3 == srvm_core.F3_SLT:
+        elif f3 == F3_SLL: self.state.x[instr.rd] = rs1_val << (rs2_val & 0x3F)
+        elif f3 == F3_SLT:
             if rs1_val < rs2_val: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
-        elif f3 == srvm_core.F3_SLTU:
+        elif f3 == F3_SLTU:
             if rs1_val < rs2_val: self.state.x[instr.rd] = 1
             else: self.state.x[instr.rd] = 0
-        elif f3 == srvm_core.F3_XOR: self.state.x[instr.rd] = rs1_val ^ rs2_val
-        elif f3 == srvm_core.F3_SRL:
+        elif f3 == F3_XOR: self.state.x[instr.rd] = rs1_val ^ rs2_val
+        elif f3 == F3_SRL:
             let shamt = rs2_val & 0x3F
             if f7 == 0x20:
                 # SRA: arithmetic right shift
@@ -285,18 +292,18 @@ class SRVM:
                     self.state.x[instr.rd] = unsigned_val >> shamt
                 else:
                     self.state.x[instr.rd] = rs1_val >> shamt
-        elif f3 == srvm_core.F3_OR: self.state.x[instr.rd] = rs1_val | rs2_val
-        elif f3 == srvm_core.F3_AND: self.state.x[instr.rd] = rs1_val & rs2_val
+        elif f3 == F3_OR: self.state.x[instr.rd] = rs1_val | rs2_val
+        elif f3 == F3_AND: self.state.x[instr.rd] = rs1_val & rs2_val
         self.state.pc = self.state.pc + 4
 
     proc handle_vmsys(self, instr):
         let f3 = instr.funct3
         let sub_op = instr.rs1
         
-        if f3 == srvm_core.F3_VM_OPS:
-            if sub_op == srvm_core.VMO_HALT:
+        if f3 == F3_VM_OPS:
+            if sub_op == VMO_HALT:
                 self.state.running = false
-            elif sub_op == srvm_core.VMO_IMPORT:
+            elif sub_op == VMO_IMPORT:
                 let idx = int(self.state.x[10]) # a0
                 let name = self.safe_get_constant(idx)
                 if not self.state.running: return
@@ -349,11 +356,11 @@ class SRVM:
                             self.state.x[instr.rd] = {"__type__": "module", "__name__": name}
                     catch e:
                         self.state.x[instr.rd] = {"__type__": "module", "__name__": name}
-            elif sub_op == srvm_core.VMO_PRINT:
+            elif sub_op == VMO_PRINT:
                 print str(self.state.x[10]) # Use a0
-            elif sub_op == srvm_core.VMO_PRINTM:
+            elif sub_op == VMO_PRINTM:
                 print str(self.state.x[10])
-            elif sub_op == srvm_core.VMO_PUSH_ENV:
+            elif sub_op == VMO_PUSH_ENV:
                 # Security: Prevent environment stack exhaustion (DoS)
                 if len(self.state.call_stack) >= self.state.max_call_depth:
                     print "Error: Call depth limit exceeded"
@@ -361,10 +368,10 @@ class SRVM:
                     return
                 push(self.state.call_stack, self.state.heap)
                 self.state.heap = {}
-            elif sub_op == srvm_core.VMO_POP_ENV:
+            elif sub_op == VMO_POP_ENV:
                 if len(self.state.call_stack) > 0:
                     self.state.heap = pop(self.state.call_stack)
-            elif sub_op == srvm_core.VMO_CALL:
+            elif sub_op == VMO_CALL:
                 # Security: Prevent infinite recursion from exhausting host resources (DoS)
                 if len(self.state.call_stack) >= self.state.max_call_depth:
                     print "Error: Call depth limit exceeded"
@@ -489,12 +496,12 @@ class SRVM:
                     self.state.pc = 0
                     self.state.x[1] = 0
                     return
-            elif sub_op == srvm_core.VMO_ARRAY_LEN:
+            elif sub_op == VMO_ARRAY_LEN:
                 let obj = self.state.x[instr.rs2]
                 if type(obj) == "list": self.state.x[instr.rd] = len(obj)
                 elif type(obj) == "dict": self.state.x[instr.rd] = len(obj)
                 else: self.state.x[instr.rd] = 0
-            elif sub_op == srvm_core.VMO_SETUP_TRY:
+            elif sub_op == VMO_SETUP_TRY:
                 # Security: Prevent nested handlers from exhausting VM memory (DoS)
                 if len(self.state.try_stack) >= self.state.max_try_depth:
                     print "Error: Handler depth limit exceeded"
@@ -503,10 +510,10 @@ class SRVM:
 
                 let catch_offset = instr.imm_i
                 push(self.state.try_stack, [self.state.pc + catch_offset, len(self.state.call_stack)])
-            elif sub_op == srvm_core.VMO_END_TRY:
+            elif sub_op == VMO_END_TRY:
                 if len(self.state.try_stack) > 0:
                     pop(self.state.try_stack)
-            elif sub_op == srvm_core.VMO_RAISE:
+            elif sub_op == VMO_RAISE:
                 let exc_obj = self.state.x[10] # a0
                 if len(self.state.try_stack) > 0:
                     let handler = pop(self.state.try_stack)
@@ -521,8 +528,8 @@ class SRVM:
                     print "Unhandled exception: " + str(exc_obj)
                     self.state.running = false
                     return
-        elif f3 == srvm_core.F3_OBJ_OPS:
-            if sub_op == srvm_core.OBJ_GET_GLOBAL:
+        elif f3 == F3_OBJ_OPS:
+            if sub_op == OBJ_GET_GLOBAL:
                 let idx = int(self.state.x[10]) # a0
                 let name = self.safe_get_constant(idx)
                 if not self.state.running: return
@@ -534,7 +541,7 @@ class SRVM:
                     self.state.x[instr.rd] = {"__builtin__": name}
                 else:
                     self.state.x[instr.rd] = nil
-            elif sub_op == srvm_core.OBJ_SET_GLOBAL:
+            elif sub_op == OBJ_SET_GLOBAL:
                 let idx = int(self.state.x[10]) # a0
                 let val = self.state.x[11] # a1
                 let name = self.safe_get_constant(idx)
@@ -543,7 +550,7 @@ class SRVM:
                     print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
                 else:
                     self.state.heap[name] = val
-            elif sub_op == srvm_core.OBJ_GET_PROP:
+            elif sub_op == OBJ_GET_PROP:
                 let obj = self.state.x[instr.rs2]
                 let name_idx = int(self.state.x[10])
                 let name = self.safe_get_constant(name_idx)
@@ -552,7 +559,7 @@ class SRVM:
                     self.state.x[instr.rd] = nil
                 elif type(obj) == "dict": self.state.x[instr.rd] = obj[name]
                 else: self.state.x[instr.rd] = nil
-            elif sub_op == srvm_core.OBJ_SET_PROP:
+            elif sub_op == OBJ_SET_PROP:
                 let obj = self.state.x[instr.rs2]
                 let name_idx = int(self.state.x[10])
                 let val = self.state.x[11]
@@ -564,10 +571,10 @@ class SRVM:
                     print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
                 elif type(obj) == "dict":
                     obj[name] = val
-            elif sub_op == srvm_core.OBJ_NEW_FUNC:
+            elif sub_op == OBJ_NEW_FUNC:
                 let chunk_idx = int(self.state.x[10])
                 self.state.x[instr.rd] = {"type": "function", "chunk_idx": chunk_idx}
-            elif sub_op == srvm_core.OBJ_ARRAY_NEW:
+            elif sub_op == OBJ_ARRAY_NEW:
                 let size = int(self.state.x[10])
                 # Security: Prevent memory exhaustion via large array allocation (DoS)
                 if size < 0 or size > self.state.max_array_size:
@@ -582,7 +589,7 @@ class SRVM:
                     push(arr, init_val)
                     i = i + 1
                 self.state.x[instr.rd] = arr
-            elif sub_op == srvm_core.OBJ_GET_INDEX:
+            elif sub_op == OBJ_GET_INDEX:
                 let obj = self.state.x[instr.rs2]
                 let raw_idx = self.state.x[10]
                 if self.state.safe_mode and type(raw_idx) == "string" and startswith(raw_idx, "__") and not startswith(raw_idx, "__arg"):
@@ -595,7 +602,7 @@ class SRVM:
                         self.state.x[instr.rd] = obj[idx]
                     else: self.state.x[instr.rd] = nil
                 else: self.state.x[instr.rd] = nil
-            elif sub_op == srvm_core.OBJ_SET_INDEX:
+            elif sub_op == OBJ_SET_INDEX:
                 let obj = self.state.x[instr.rs2]
                 let raw_idx = self.state.x[10]
                 let val = self.state.x[11]
@@ -609,7 +616,7 @@ class SRVM:
                     let idx = int(raw_idx)
                     if idx >= 0 and idx < len(obj):
                         obj[idx] = val
-        elif f3 == srvm_core.F3_GPU_OPS:
+        elif f3 == F3_GPU_OPS:
             self.handle_gpu(instr)
         
         self.state.pc = self.state.pc + 4
