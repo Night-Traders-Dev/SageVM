@@ -213,12 +213,14 @@ class SGVMCLI:
         var output_file = ""
         var use_shebang = false
         var riscv = false
+        var debug = false
         var pos_idx = 0
         var iter_idx = start_idx
         while iter_idx < len(args):
             let a = args[iter_idx]
             if a == "--shebang": use_shebang = true
             elif a == "--riscv": riscv = true
+            elif a == "--debug": debug = true
             elif a == "-v" or a == "--version":
                 print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.9" + COLOR_RESET
                 return
@@ -229,6 +231,7 @@ class SGVMCLI:
                 print COLOR_BOLD + "Options:" + COLOR_RESET
                 print "  --shebang  Add #!/usr/bin/env sagevm run to output"
                 print "  --riscv    Force compilation to RISC-V binary (.sgrv)"
+                print "  --debug    Enable verbose debug logging"
                 return
             else:
                 if pos_idx == 0: input_file = a
@@ -236,7 +239,7 @@ class SGVMCLI:
                 pos_idx = pos_idx + 1
             iter_idx = iter_idx + 1
         
-        print "DEBUG: input_file=" + str(input_file) + " output_file=" + str(output_file)
+        if debug: print "DEBUG: input_file=" + str(input_file) + " output_file=" + str(output_file)
         if input_file == "":
             print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
             print "Usage: " + COLOR_BOLD + "sagevm compile" + COLOR_RESET + " <input.sage> [output.sgvm|sgrv] [--shebang] [--riscv]"
@@ -254,11 +257,13 @@ class SGVMCLI:
             else: output_file = base + ".sgvm"
         
         let compiler = sgvm_compiler.SGVMCompiler()
+        compiler.debug = debug
         if compiler.compile(input_file, output_file, use_shebang):
             if riscv:
                 # Post-process: Translate SVM to SRVM
                 let svm_data = io.readbytes(output_file)
                 let rv_compiler = srvm_compiler.SGRVCompiler()
+                rv_compiler.debug = debug
                 let sgrv_data = rv_compiler.compile(svm_data)
                 if sgrv_data != nil:
                     io_writebytes(output_file, sgrv_data)

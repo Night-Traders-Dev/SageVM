@@ -22,7 +22,7 @@ from sgvm_core import OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_GET_L
 
 class SGVMCompiler:
     proc init(self):
-        print "DEBUG SGVMCompiler.init entry"
+        self.debug = false
         self.output_bytes = []
         self.global_consts = []
         self.const_map = {} 
@@ -148,7 +148,7 @@ class SGVMCompiler:
         return idx
 
     proc first_pass(self, lines):
-        print "DEBUG entering first_pass, lines len=" + str(len(lines))
+        if self.debug: print "DEBUG entering first_pass, lines len=" + str(len(lines))
         let ut = self.utils
         var i = 0
         var chunk_count = 0
@@ -415,16 +415,16 @@ class SGVMCompiler:
             let ch = path[i]
             let res = contains(safe_chars, ch)
             if not res:
-                print "DEBUG is_safe_path failed on char='" + str(ch) + "' ord=" + str(ord(ch)) + " path='" + str(path) + "'"
+                if self.debug: print "DEBUG is_safe_path failed on char='" + str(ch) + "' ord=" + str(ord(ch)) + " path='" + str(path) + "'"
                 return false
             i = i + 1
         return true
 
     proc compile(self, input_file, output_file, use_shebang):
-        print "DEBUG SGVMCompiler.compile self.utils=" + str(self.utils) + " input_file=" + str(input_file) + " type=" + str(type(input_file)) + " output_file=" + str(output_file)
+        if self.debug: print "DEBUG SGVMCompiler.compile self.utils=" + str(self.utils) + " input_file=" + str(input_file) + " type=" + str(type(input_file)) + " output_file=" + str(output_file)
         let ut = self.utils
         var in_file = ut.trim(input_file)
-        print "DEBUG after trim in_file='" + str(in_file) + "' len=" + str(len(in_file))
+        if self.debug: print "DEBUG after trim in_file='" + str(in_file) + "' len=" + str(len(in_file))
         var out_file = ut.trim(output_file)
 
         # Security: Prevent command injection and flag injection via robust path validation
@@ -444,7 +444,7 @@ class SGVMCompiler:
             var cmd = sage_bin + " --emit-vm " + in_file + " -o " + svm_file
             
             let status = sys_exec(cmd)
-            print "DEBUG after sys_exec status=" + str(status)
+            if self.debug: print "DEBUG after sys_exec status=" + str(status)
             if status != 0:
                 print "Error: Failed to generate SVM from " + in_file
                 return false
@@ -453,18 +453,18 @@ class SGVMCompiler:
         if content == nil:
             print "Error: Could not read SVM file: " + svm_file
             return false
-        print "DEBUG after io_readfile content len=" + str(len(content))
+        if self.debug: print "DEBUG after io_readfile content len=" + str(len(content))
         
         let lines = ut.split_lines(content)
-        print "DEBUG after split_lines count=" + str(len(lines))
+        if self.debug: print "DEBUG after split_lines count=" + str(len(lines))
         
         let counts = self.first_pass(lines)
         let function_count = counts[0]
         let chunk_count = counts[1]
-        print "DEBUG after first_pass function_count=" + str(function_count) + " chunk_count=" + str(chunk_count)
+        if self.debug: print "DEBUG after first_pass function_count=" + str(function_count) + " chunk_count=" + str(chunk_count)
         
         self.second_pass(lines, function_count, chunk_count, use_shebang)
-        print "DEBUG after second_pass output_bytes len=" + str(len(self.output_bytes))
+        if self.debug: print "DEBUG after second_pass output_bytes len=" + str(len(self.output_bytes))
         
         io_writebytes(out_file, self.output_bytes)
         return true

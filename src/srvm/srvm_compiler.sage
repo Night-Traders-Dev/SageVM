@@ -23,6 +23,7 @@ class StackToRiscVTranslator:
         self.output_bytes = []
         self.label_map = {} # SVM IP -> SRVM PC
         self.jump_patches = [] # (SRVM PC to patch, target SVM IP)
+        self.debug = false
 
     proc emit_32(self, val):
         push(self.output_bytes, val & 0xFF)
@@ -106,20 +107,20 @@ class StackToRiscVTranslator:
             
             self.label_map[str(ip)] = len(self.output_bytes)
             let op = int(svm_bytecode[i])
-            print "DEBUG translate op=" + str(op) + " i=" + str(i)
+            if self.debug: print "DEBUG translate op=" + str(op) + " i=" + str(i)
             i = i + 1
             
             if op == OP_CONSTANT:
-                print "DEBUG OP_CONSTANT step 1 i=" + str(i)
+                if self.debug: print "DEBUG OP_CONSTANT step 1 i=" + str(i)
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
-                print "DEBUG OP_CONSTANT step 2 idx=" + str(idx)
+                if self.debug: print "DEBUG OP_CONSTANT step 2 idx=" + str(idx)
                 i = i + 2
                 let rd = self.alloc_reg()
-                print "DEBUG OP_CONSTANT step 3 rd=" + str(rd)
+                if self.debug: print "DEBUG OP_CONSTANT step 3 rd=" + str(rd)
                 let u_val = self.encoder.encode_u(OP_LDC, rd, idx << 12)
-                print "DEBUG OP_CONSTANT step 4 u_val=" + str(u_val)
+                if self.debug: print "DEBUG OP_CONSTANT step 4 u_val=" + str(u_val)
                 self.emit_32(u_val)
-                print "DEBUG OP_CONSTANT step 5"
+                if self.debug: print "DEBUG OP_CONSTANT step 5"
                 push(self.reg_stack, rd)
                 
             elif op == OP_ADD:
@@ -657,9 +658,10 @@ class SGRVCompiler:
     proc init(self):
         self.translator = StackToRiscVTranslator(nil)
         self.utils = SRVMUtils()
+        self.debug = false
 
     proc compile(self, sgvm_data):
-        print "DEBUG SGRV compile entry, len=" + str(len(sgvm_data))
+        if self.debug: print "DEBUG SGRV compile entry, len=" + str(len(sgvm_data))
         var pos = 0
         if len(sgvm_data) < 4: return nil
         if int(sgvm_data[0]) == 35:
@@ -667,7 +669,7 @@ class SGRVCompiler:
             if pos < len(sgvm_data): pos = pos + 1
         
         if int(sgvm_data[pos]) != 83 or int(sgvm_data[pos+1]) != 71 or int(sgvm_data[pos+2]) != 86 or int(sgvm_data[pos+3]) != 77:
-            print "DEBUG SGRV magic mismatch!"
+            if self.debug: print "DEBUG SGRV magic mismatch!"
             return nil
         pos = pos + 4 + 2 # Skip magic and version
         
@@ -675,7 +677,7 @@ class SGRVCompiler:
         pos = pos + 2
         let const_count = (int(sgvm_data[pos]) << 8) | int(sgvm_data[pos+1])
         pos = pos + 2
-        print "DEBUG SGRV func_count=" + str(func_count) + " const_count=" + str(const_count)
+        if self.debug: print "DEBUG SGRV func_count=" + str(func_count) + " const_count=" + str(const_count)
         
         var constants = []
         
@@ -740,7 +742,7 @@ class SGRVCompiler:
         var chunk_idx = 0
         while chunk_idx < num_chunks:
             if chunk_idx % 50 == 0:
-                print "DEBUG SGRV compile chunk " + str(chunk_idx) + "/" + str(num_chunks)
+                if self.debug: print "DEBUG SGRV compile chunk " + str(chunk_idx) + "/" + str(num_chunks)
             let clen = (int(sgvm_data[pos]) << 24) | (int(sgvm_data[pos+1]) << 16) | (int(sgvm_data[pos+2]) << 8) | int(sgvm_data[pos+3])
             pos = pos + 4
             var svm_bc = []
@@ -767,7 +769,7 @@ class SGRVCompiler:
             while i < t_len:
                 let b_val = translated[i]
                 if b_val == nil or type(b_val) != "number":
-                    print "DEBUG SGRVCompiler chunk_idx=" + str(chunk_idx) + " i=" + str(i) + " b_val=" + str(b_val) + " type=" + str(type(b_val))
+                    if self.debug: print "DEBUG SGRVCompiler chunk_idx=" + str(chunk_idx) + " i=" + str(i) + " b_val=" + str(b_val) + " type=" + str(type(b_val))
                 push(output, int(b_val))
                 i = i + 1
             chunk_idx = chunk_idx + 1

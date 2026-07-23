@@ -412,7 +412,7 @@ class MetalVM:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                print "DEBUG OP_LESS_EQUAL a=" + str(a) + " (" + str(type(a)) + ") b=" + str(b) + " (" + str(type(b)) + ")"
+                if self.trace: print "DEBUG OP_LESS_EQUAL a=" + str(a) + " (" + str(type(a)) + ") b=" + str(b) + " (" + str(type(b)) + ")"
                 if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a <= b
                 else: stack[stack_len-1] = false
             elif op == OP_GREATER:

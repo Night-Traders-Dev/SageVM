@@ -10,14 +10,15 @@ class SRVMRunner:
         self.vm = srvm_vm.SRVM()
 
     proc run_file(self, input_file, debug=false, safe_mode=false, ffi_enabled=true):
-        print "DEBUG: SRVMRunner.run_file called for " + input_file
+        if debug:
+            print "DEBUG: SRVMRunner.run_file called for " + input_file
         var data = io.readbytes(input_file)
         if data == nil:
-            print "DEBUG: data is NIL"
             print "❌ Error: Could not read file: " + input_file
             return false
-        print "DEBUG: data len=" + str(len(data))
-        print "DEBUG: header=" + str(int(data[0])) + " " + str(int(data[1])) + " " + str(int(data[2])) + " " + str(int(data[3]))
+        if debug:
+            print "DEBUG: data len=" + str(len(data))
+            print "DEBUG: header=" + str(int(data[0])) + " " + str(int(data[1])) + " " + str(int(data[2])) + " " + str(int(data[3]))
         
         if len(data) < 4 or int(data[0]) != 83 or int(data[1]) != 71 or int(data[2]) != 82 or int(data[3]) != 86:
             print "❌ Error: Invalid SGRV header in " + input_file
@@ -33,12 +34,11 @@ class SRVMRunner:
         let func_count = (int(data[off]) << 8) | int(data[off+1])
         off = off + 2
 
-        print "DEBUG: loading constants..."
-        
         # Load Constants
         let const_count = (int(data[off]) << 8) | int(data[off+1])
-        print "DEBUG: loader const_count=" + str(const_count)
         off = off + 2
+        if debug:
+            print "DEBUG: loading constants, const_count=" + str(const_count)
         
         let ut = srvm_core.SRVMUtils()
         
