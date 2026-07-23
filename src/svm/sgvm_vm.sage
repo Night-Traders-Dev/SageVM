@@ -815,9 +815,15 @@ class MetalVM:
         elif callee == "__builtin_reflect_get_methods": return reflect_get_methods(args[0])
         elif callee == "__builtin_reflect_get_class": return reflect_get_class(args[0])
         elif callee == "__builtin_push":
+            if self.is_protected(args[0]):
+                print "Error: Modification of protected object is restricted in safe mode"
+                return nil
             push(args[0], args[1])
             return nil
         elif callee == "__builtin_pop":
+            if self.is_protected(args[0]):
+                print "Error: Modification of protected object is restricted in safe mode"
+                return nil
             return pop(args[0])
         elif callee == "__builtin_chr":
             if len(args) == 0 or args[0] == nil: return ""
