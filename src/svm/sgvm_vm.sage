@@ -42,6 +42,7 @@ class MetalVM:
         self.trace = false
         self.safe_mode = false
         self.ffi_enabled = true
+        self.exec_enabled = true
         self.modules = {}
         self.utils = SGVMUtils()
         # Security: Limits to prevent Denial of Service (DoS) via resource exhaustion
@@ -115,6 +116,23 @@ class MetalVM:
         # Reflection builtins
         self.globals["reflect_get_methods"] = "__builtin_reflect_get_methods"
         self.globals["reflect_get_class"] = "__builtin_reflect_get_class"
+        # String/Collection builtins
+        self.globals["push"] = "__builtin_push"
+        self.globals["pop"] = "__builtin_pop"
+        self.globals["chr"] = "__builtin_chr"
+        self.globals["ord"] = "__builtin_ord"
+        self.globals["startswith"] = "__builtin_startswith"
+        self.globals["endswith"] = "__builtin_endswith"
+        self.globals["contains"] = "__builtin_contains"
+        self.globals["join"] = "__builtin_join"
+        self.globals["split"] = "__builtin_split"
+        self.globals["replace"] = "__builtin_replace"
+        self.globals["upper"] = "__builtin_upper"
+        self.globals["lower"] = "__builtin_lower"
+        self.globals["strip"] = "__builtin_strip"
+        self.globals["dict_has"] = "__builtin_dict_has"
+        self.globals["dict_keys"] = "__builtin_dict_keys"
+        self.globals["dict_values"] = "__builtin_dict_values"
 
     proc is_protected(self, obj):
         # Security helper: Check if an object is a protected module or host bridge
@@ -322,6 +340,10 @@ class MetalVM:
             elif op == OP_DIV:
                 let b = pop(stack)
                 stack_len = stack_len - 1
+                if b == 0:
+                    print "Error: Division by zero"
+                    halted = true
+                    break
                 stack[stack_len-1] = stack[stack_len-1] / b
             elif op == OP_SUB:
                 let b = pop(stack)
@@ -367,6 +389,10 @@ class MetalVM:
             elif op == OP_MOD:
                 let b = pop(stack)
                 stack_len = stack_len - 1
+                if b == 0:
+                    print "Error: Division by zero (modulo)"
+                    halted = true
+                    break
                 stack[stack_len-1] = stack[stack_len-1] % b
             elif op == OP_BIT_AND:
                 let b = pop(stack)
@@ -641,6 +667,39 @@ class MetalVM:
         elif callee == "__builtin_gc_disable": return gc_disable()
         elif callee == "__builtin_reflect_get_methods": return reflect_get_methods(args[0])
         elif callee == "__builtin_reflect_get_class": return reflect_get_class(args[0])
+        elif callee == "__builtin_push":
+            push(args[0], args[1])
+            return nil
+        elif callee == "__builtin_pop":
+            return pop(args[0])
+        elif callee == "__builtin_chr":
+            return chr(args[0])
+        elif callee == "__builtin_ord":
+            return ord(args[0])
+        elif callee == "__builtin_startswith":
+            return startswith(args[0], args[1])
+        elif callee == "__builtin_endswith":
+            return endswith(args[0], args[1])
+        elif callee == "__builtin_contains":
+            return contains(args[0], args[1])
+        elif callee == "__builtin_join":
+            return join(args[0], args[1])
+        elif callee == "__builtin_split":
+            return split(args[0], args[1])
+        elif callee == "__builtin_replace":
+            return replace(args[0], args[1], args[2])
+        elif callee == "__builtin_upper":
+            return upper(args[0])
+        elif callee == "__builtin_lower":
+            return lower(args[0])
+        elif callee == "__builtin_strip":
+            return strip(args[0])
+        elif callee == "__builtin_dict_has":
+            return dict_has(args[0], args[1])
+        elif callee == "__builtin_dict_keys":
+            return dict_keys(args[0])
+        elif callee == "__builtin_dict_values":
+            return dict_values(args[0])
         else:
             print "Error: Unknown builtin: " + callee
             return nil
@@ -699,6 +758,10 @@ class MetalVM:
         elif op == OP_DEFINE_GLOBAL:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
+            if idx >= len(self.constants):
+                print "Error: Constant pool index out of bounds: " + str(idx)
+                self.halted = true
+                return false
             let name = self.constants[idx]
             let val = pop(self.stack)
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
@@ -744,10 +807,18 @@ class MetalVM:
         elif op == OP_DIV:
             let b = pop(self.stack)
             let a = pop(self.stack)
+            if b == 0:
+                print "Error: Division by zero"
+                self.halted = true
+                return false
             push(self.stack, a / b)
         elif op == OP_MOD:
             let b = pop(self.stack)
             let a = pop(self.stack)
+            if b == 0:
+                print "Error: Division by zero (modulo)"
+                self.halted = true
+                return false
             push(self.stack, a % b)
         elif op == OP_EQUAL:
             let b = pop(self.stack)
@@ -959,19 +1030,23 @@ class MetalVM:
             elif type(callee) == "string":
                 push(self.stack, self.call_builtin(callee, args))
             elif type(callee) == "function" or type(callee) == "native fn":
-                # Delegation Bridge: using sys.call to avoid AOT tracing issues
-                if argc == 0: push(self.stack, sys.call(callee))
-                elif argc == 1: push(self.stack, sys.call(callee, args[0]))
-                elif argc == 2: push(self.stack, sys.call(callee, args[0], args[1]))
-                elif argc == 3: push(self.stack, sys.call(callee, args[0], args[1], args[2]))
-                elif argc == 4: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3]))
-                elif argc == 5: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4]))
-                elif argc == 6: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4], args[5]))
-                elif argc == 7: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4], args[5], args[6]))
-                elif argc == 8: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
-                else:
-                    print "Error: Host call with >8 args not implemented"
+                if self.safe_mode:
+                    print "Error: Direct host function call is restricted in safe mode"
                     push(self.stack, nil)
+                else:
+                    # Delegation Bridge: using sys.call to avoid AOT tracing issues
+                    if argc == 0: push(self.stack, sys.call(callee))
+                    elif argc == 1: push(self.stack, sys.call(callee, args[0]))
+                    elif argc == 2: push(self.stack, sys.call(callee, args[0], args[1]))
+                    elif argc == 3: push(self.stack, sys.call(callee, args[0], args[1], args[2]))
+                    elif argc == 4: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3]))
+                    elif argc == 5: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4]))
+                    elif argc == 6: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4], args[5]))
+                    elif argc == 7: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4], args[5], args[6]))
+                    elif argc == 8: push(self.stack, sys.call(callee, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
+                    else:
+                        print "Error: Host call with >8 args not implemented"
+                        push(self.stack, nil)
             else:
                 print "Error: Callee not a function or builtin name"
         elif op == OP_CALL_METHOD:
@@ -1265,8 +1340,8 @@ class MetalVM:
                 print "Unhandled exception: " + str(val)
                 self.halted = true
         elif op == OP_EXEC_AST_STMT:
-            if self.safe_mode:
-                print "Error: sys.exec is restricted in safe mode"
+            if self.safe_mode or not self.exec_enabled:
+                print "Error: Code execution is restricted"
                 self.ip = self.ip + 2
                 return true
             let idx = ut.read_be16(self.code, self.ip)
@@ -1405,6 +1480,16 @@ class MetalVM:
              let gx = pop(self.stack)
              let cmd = pop(self.stack)
              gpu.cmd_dispatch(cmd, gx, gy, gz)
+        elif op == OP_YIELD:
+            print "Error: OP_YIELD is not yet implemented in SVM"
+            self.halted = true
+        elif op == OP_CREATE_GENERATOR:
+            self.ip = self.ip + 4
+            print "Error: OP_CREATE_GENERATOR is not yet implemented in SVM"
+            self.halted = true
+        elif op == OP_GENERATOR_NEXT:
+            print "Error: OP_GENERATOR_NEXT is not yet implemented in SVM"
+            self.halted = true
         else:
             print "Unknown OP: " + str(op)
             self.halted = true

@@ -21,7 +21,7 @@ except ImportError:
     HAS_RICH = False
 
 # Configuration
-VERSION = "0.9.3"
+VERSION = "0.9.9"
 if Path("VERSION").exists():
     VERSION = Path("VERSION").read_text().strip()
 
@@ -134,18 +134,28 @@ def perform_install(args):
         return
 
     banner("Installation")
-    section("Installing SageVM system-wide")
+    section("Installing SageVM")
     
-    # Simple install logic: copy binaries to /usr/local/bin
+    install_dir = os.environ.get("PREFIX", "/usr/local")
+    bin_dir = os.path.join(install_dir, "bin")
+    os.makedirs(bin_dir, exist_ok=True)
+    
     bins = ["sagevm"]
     for b in bins:
-        step(f"Installing {b}")
-        res = run_cmd(["sudo", "cp", b, f"/usr/local/bin/{b}"])
-        if res and res.returncode == 0:
-            run_cmd(["sudo", "chmod", "755", f"/usr/local/bin/{b}"])
+        step(f"Installing {b} to {bin_dir}")
+        dest = os.path.join(bin_dir, b)
+        try:
+            shutil.copy2(b, dest)
+            os.chmod(dest, 0o755)
             step_ok("installed")
-        else:
-            step_fail(f"failed to install {b}")
+        except PermissionError:
+            # Fallback to sudo if direct copy fails
+            res = run_cmd(["sudo", "cp", b, dest])
+            if res and res.returncode == 0:
+                run_cmd(["sudo", "chmod", "755", dest])
+                step_ok("installed (sudo)")
+            else:
+                step_fail(f"failed to install {b} - try: sudo cp {b} {dest}")
 
 def main():
     parser = argparse.ArgumentParser(description="SageVM Unified Build System")

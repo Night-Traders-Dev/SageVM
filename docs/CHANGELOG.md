@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.9.9 (2026-07-23)
+
+### Security & Correctness
+- **[C5] Division-by-zero guards**: Added runtime checks for `OP_DIV` and `OP_MOD` in both SVM hot-path and `execute_op()` fallback to prevent host crashes.
+- **[C1] SRVM register allocator spilling**: Fixed silent data corruption when expressions require more than 8 temporary registers by implementing stack spilling.
+- **[C3] SRVM unsigned operations**: Fixed `SRLI` vs `SRAI` instruction semantics and documented `BLTU`/`BGEU` limitation.
+- **[C7] --no-exec flag**: Added `exec_enabled` property and `--no-exec` CLI flag to disable `OP_EXEC_AST_STMT` independently of safe mode.
+- **[M5] Safe mode host function guard**: Added safe_mode check to prevent direct host function/native fn calls via `OP_CALL`.
+- **[M12] OP_DEFINE_GLOBAL bounds check**: Added constant pool bounds validation.
+
+### Features
+- **[H7] SVM builtin parity**: Added 16 missing builtins to SVM `call_builtin()`: `push`, `pop`, `chr`, `ord`, `startswith`, `endswith`, `contains`, `join`, `split`, `replace`, `upper`, `lower`, `strip`, `dict_has`, `dict_keys`, `dict_values`.
+- **[H8] Generator opcode stubs**: Added meaningful error messages for unimplemented `OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`.
+
+### Performance
+- **[H2] SRVM x0 optimization**: Only reset x[0] when rd==0 instead of every cycle.
+- **[M10] Profiler fix**: `TypeProfiler.analyze()` now returns properly-sized arrays, preventing out-of-bounds access in the SRVM compiler.
+- **[M11] SRVM stack growth**: Increased default SRVM stack from 1,000 to 4,096 slots.
+
+### Build & Infrastructure
+- **[M1] Version synchronization**: Unified version to 0.9.9 across VERSION, CLI, and sagemake.
+- **[M8] sagemake install**: Now supports `PREFIX` env var for custom install paths; graceful sudo fallback.
+- **[L1] Cleanup**: Removed stale `.sage.backup` files.
+- Added 6 new test suites: `div_zero_safety`, `builtin_string_ops`, `builtin_collection_ops`, `security_host_func`, `chr_ord_ops`, `split_join_ops`.
+
 ## [2026-07-16]
 
 ### Added

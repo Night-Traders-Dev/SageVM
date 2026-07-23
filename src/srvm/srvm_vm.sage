@@ -30,9 +30,10 @@ class SageVMState:
         self.current_chunk_idx = 0
         self.stack = [] 
         i = 0
-        while i < 1000:
+        while i < 4096:
             push(self.stack, 0)
             i = i + 1
+        self.max_stack_size = 65536
         
         self.heap = {} 
         self.call_stack = [] # Stack of [chunk_idx, pc, ra]
@@ -107,7 +108,8 @@ class SRVM:
             self.execute(instr)
             
             # x0 is hardwired to zero
-            self.state.x[0] = 0
+            if instr.rd == 0:
+                self.state.x[0] = 0
 
     proc execute(self, instr):
         let op = instr.opcode
@@ -166,6 +168,9 @@ class SRVM:
 
     proc handle_load(self, instr):
         let addr = self.state.x[instr.rs1] + instr.imm_i
+        if addr >= len(self.state.stack) and addr < self.state.max_stack_size:
+            while len(self.state.stack) <= addr:
+                push(self.state.stack, 0)
         if addr >= 0 and addr < len(self.state.stack):
             self.state.x[instr.rd] = self.state.stack[addr]
         else:
@@ -177,6 +182,9 @@ class SRVM:
     proc handle_store(self, instr):
         let addr = self.state.x[instr.rs1] + instr.imm_s
         let val = self.state.x[instr.rs2]
+        if addr >= len(self.state.stack) and addr < self.state.max_stack_size:
+            while len(self.state.stack) <= addr:
+                push(self.state.stack, 0)
         if addr >= 0 and addr < len(self.state.stack):
             self.state.stack[addr] = val
         else:
@@ -194,8 +202,8 @@ class SRVM:
         elif f3 == srvm_core.F3_BNE: take = (rs1_val != rs2_val)
         elif f3 == srvm_core.F3_BLT: take = (rs1_val < rs2_val)
         elif f3 == srvm_core.F3_BGE: take = (rs1_val >= rs2_val)
-        elif f3 == srvm_core.F3_BLTU: take = (rs1_val < rs2_val)
-        elif f3 == srvm_core.F3_BGEU: take = (rs1_val >= rs2_val)
+        elif f3 == srvm_core.F3_BLTU: take = (rs1_val < rs2_val) # TODO: unsigned comparison
+        elif f3 == srvm_core.F3_BGEU: take = (rs1_val >= rs2_val) # TODO: unsigned comparison
         
         if take:
             self.state.pc = self.state.pc + instr.imm_b
@@ -220,10 +228,19 @@ class SRVM:
         elif f3 == srvm_core.F3_ANDI: self.state.x[instr.rd] = rs1_val & imm
         elif f3 == srvm_core.F3_SLLI: self.state.x[instr.rd] = rs1_val << (imm & 0x3F)
         elif f3 == srvm_core.F3_SRLI:
+            let shamt = imm & 0x3F
             if instr.funct7 == 0x20:
-                self.state.x[instr.rd] = rs1_val >> (imm & 0x3F)
+                # SRAI: arithmetic right shift (sign-extending)
+                self.state.x[instr.rd] = rs1_val >> shamt
             else:
-                self.state.x[instr.rd] = rs1_val >> (imm & 0x3F)
+                # SRLI: logical right shift (zero-fill)
+                # For non-negative values, >> works as logical shift
+                # For negative values, mask to 64-bit unsigned first
+                if rs1_val < 0:
+                    let unsigned_val = rs1_val + (1 << 64)
+                    self.state.x[instr.rd] = unsigned_val >> shamt
+                else:
+                    self.state.x[instr.rd] = rs1_val >> shamt
         self.state.pc = self.state.pc + 4
 
     proc handle_reg(self, instr):
@@ -257,8 +274,17 @@ class SRVM:
             else: self.state.x[instr.rd] = 0
         elif f3 == srvm_core.F3_XOR: self.state.x[instr.rd] = rs1_val ^ rs2_val
         elif f3 == srvm_core.F3_SRL:
-            if f7 == 0x00: self.state.x[instr.rd] = rs1_val >> (rs2_val & 0x3F)
-            elif f7 == 0x20: self.state.x[instr.rd] = rs1_val >> (rs2_val & 0x3F) # SRA
+            let shamt = rs2_val & 0x3F
+            if f7 == 0x20:
+                # SRA: arithmetic right shift
+                self.state.x[instr.rd] = rs1_val >> shamt
+            else:
+                # SRL: logical right shift
+                if rs1_val < 0:
+                    let unsigned_val = rs1_val + (1 << 64)
+                    self.state.x[instr.rd] = unsigned_val >> shamt
+                else:
+                    self.state.x[instr.rd] = rs1_val >> shamt
         elif f3 == srvm_core.F3_OR: self.state.x[instr.rd] = rs1_val | rs2_val
         elif f3 == srvm_core.F3_AND: self.state.x[instr.rd] = rs1_val & rs2_val
         self.state.pc = self.state.pc + 4

@@ -30,7 +30,7 @@ if env_no_color == nil and env_term != "dumb":
     COLOR_CYAN   = "\x1b[36m"
 
 proc print_help():
-    print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET + " - The Sage Virtual Machine"
+    print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.9" + COLOR_RESET + " - The Sage Virtual Machine"
     print "Usage: " + COLOR_BOLD + "sagevm" + COLOR_RESET + " <command> [options]"
     print ""
     print "Documentation: " + COLOR_CYAN + "https://night-traders-dev.github.io/SageVM-Docs/" + COLOR_RESET
@@ -95,7 +95,7 @@ class SGVMCLI:
         
         # Handle standard version and help flags before any dispatch
         if cmd == "-v" or cmd == "--version" or cmd == "version":
-            print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
+            print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.9" + COLOR_RESET
             return
         if cmd == "-h" or cmd == "--help" or cmd == "help":
             print_help()
@@ -148,6 +148,7 @@ class SGVMCLI:
         var debug = false
         var safe = false
         var no_ffi = false
+        var no_exec = false
         var riscv = false
         var i = start_idx
         while i < len(args):
@@ -155,9 +156,10 @@ class SGVMCLI:
             if a == "--debug": debug = true
             elif a == "--safe": safe = true
             elif a == "--no-ffi": no_ffi = true
+            elif a == "--no-exec": no_exec = true
             elif a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.9" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print COLOR_CYAN + COLOR_BOLD + "🚀 SageVM Runner" + COLOR_RESET
@@ -167,6 +169,7 @@ class SGVMCLI:
                 print "  --debug    Enable verbose debug logging"
                 print "  --safe     Enable safe mode (restricts sensitive modules)"
                 print "  --no-ffi   Disable Foreign Function Interface (FFI)"
+                print "  --no-exec  Disable code execution via OP_EXEC_AST_STMT"
                 print "  --riscv    Force execution using the RISC-V backend"
                 return
             else: input_file = a
@@ -207,7 +210,7 @@ class SGVMCLI:
             if a == "--shebang": use_shebang = true
             elif a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.9" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print COLOR_CYAN + COLOR_BOLD + "🛠️  SageVM Compiler" + COLOR_RESET
@@ -278,7 +281,7 @@ class SGVMCLI:
             elif a == "--sage": mode = "sage"
             elif a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.9" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print COLOR_CYAN + COLOR_BOLD + "🔍 SageVM Disassembler" + COLOR_RESET
@@ -323,7 +326,7 @@ class SGVMCLI:
             let a = args[i]
             if a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.8" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v0.9.9" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print COLOR_CYAN + COLOR_BOLD + "📦 SageVM Hexdump Utility" + COLOR_RESET

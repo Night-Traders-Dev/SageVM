@@ -12,6 +12,8 @@ class StackToRiscVTranslator:
         self.profiler = srvm_profiler.TypeProfiler(constants)
         self.reg_stack = []
         self.next_reg = 10 # Start from a0 (x10)
+        self.spill_slots = [] # Track spilled registers
+        self.spill_offset = 0 # Next available spill slot
         self.output_bytes = []
         self.label_map = {} # SVM IP -> SRVM PC
         self.jump_patches = [] # (SRVM PC to patch, target SVM IP)
@@ -32,7 +34,14 @@ class StackToRiscVTranslator:
         let r = self.next_reg
         self.next_reg = self.next_reg + 1
         if self.next_reg > 17:
-            self.next_reg = 10
+            # Spill: save x10 to stack, then reuse x10
+            let spill_reg = 10
+            let slot = self.spill_offset
+            self.spill_offset = self.spill_offset + 1
+            self.emit_32(self.encoder.encode_s(srvm_core.OP_STORE, srvm_core.F3_SD, 2, spill_reg, slot * 8))
+            push(self.spill_slots, slot)
+            self.next_reg = 11
+            return spill_reg
         return r
 
     proc translate(self, svm_bytecode):
@@ -42,6 +51,8 @@ class StackToRiscVTranslator:
         self.output_bytes = []
         self.reg_stack = []
         self.next_reg = 10
+        self.spill_slots = []
+        self.spill_offset = 0
         self.label_map = {}
         self.jump_patches = []
         
