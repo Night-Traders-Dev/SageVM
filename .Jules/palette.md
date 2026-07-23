@@ -45,3 +45,7 @@
 ## 2026-07-05 - [Search Recovery and Accessibility in Opcode Reference]
 **Learning:** Providing a clear "Clear all filters" button in a zero-results state significantly improves user flow by allowing immediate recovery without manual input clearing. Adding ARIA labels to search inputs and clear buttons ensures the interface remains accessible to screen reader users.
 **Action:** Always implement a "Clear all filters" button for empty search results and ensure all search-related interactive elements have descriptive ARIA labels.
+
+## 2026-07-21 - [Keyboard-Accessible Cards & Search Recovery]
+**Learning:** Enhancing grid card components for interactive lists (like Opcode Reference) with `role="button"`, focus indicators, and custom Enter/Space key triggers makes them fully keyboard navigable and screen reader accessible. Pairing a clearable search input button with a visible empty-state recovery action reduces navigational friction and eliminates dead-ends for both visual and screen-reader users.
+**Action:** Design card grids with visual and keyboard focus-state indicators, and provide explicit, descriptive screen-reader labels on buttons that clear filters or reset states.
