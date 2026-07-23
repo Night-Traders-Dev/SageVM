@@ -55,6 +55,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
 - **Control Flow Integrity**: No illegal jumps; recursive depth is limited to 1,024 frames (`max_call_depth`).
 - **Lexical Integrity**: The current SVM implementation does not support lexical capture (closures). Functions rely on the dynamic execution stack and global scope; attempts to use lexical variables from outer scopes will resolve to `nil` or global values unless passed explicitly.
 - **Type Safety**: Operations are performed on valid operand types.
+  - *Note: In the current SVM interpreter, `len(nil)` evaluated via `OP_ARRAY_LEN` returns `0` due to host SageLang inheritance, which deviates from the test suite's expectation of `nil`.*
 - **Boundary Checks**: No out-of-bounds access to memory, object arenas, or VM-internal collections. Both SVM and SRVM interpreters implement explicit bounds checks for constant pool and chunk indexing to prevent host-level runtime errors or silent state corruption. Execution state is accelerated by caching `current_local_base` for local variable access.
   - **SVM**: Operand stack depth is limited to 65,536 entries (`max_stack_depth`). Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
   - **SRVM**: The fixed stack area is initialized with 1,000 slots. Recursive call depth and exception handler nesting are limited to 1,024 frames. Max array size is 1,000,000 entries.

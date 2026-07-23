@@ -35,8 +35,12 @@ This document outlines the features and standard library modules currently unsup
 - [x] **SRVM Sandboxing**: Implement `safe_mode` and `no_ffi` enforcement for the RISC-V backend to achieve parity with SVM security.
 - [x] **SVM Builtin Protection**: Implement `__builtin__` protection for the SVM backend to match SRVM security parity (Resolved 2026-07-15).
 - [x] **SVM Builtin Gaps**: Implement missing string/collection utilities (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`, `contains`) in `src/svm/sgvm_vm.sage`.
-- [ ] **String Repetition**: Implement `OP_MUL` support for string repetition with `*` in `src/svm/sgvm_vm.sage`.
+- [x] **String Repetition**: Implement `OP_MUL` support for string repetition with `*` in `src/svm/sgvm_vm.sage`.
 - [ ] **Disassembler Label Gaps**: Implement descriptive labels for local variable (88-89), generator (90-92), matrix (87), and GPU (59-86) opcodes in `src/svm/sgvm_disassembler_logic.sage`.
+- [ ] **OP_ARRAY_LEN on nil**: Resolve SVM discrepancy where `len(nil)` returns `0` (inherited from host SageLang) instead of the expected `nil` (re-implement `OP_ARRAY_LEN` check for `nil` operand in `src/svm/sgvm_vm.sage`).
+- [ ] **System Exit / Halt**: Resolve SVM issue where calling `sys.exit` from guest VM does not halt the guest interpreter loop (implement `exit` mapping in `self.globals["sys"]` or handle `nil` call fallback properly).
+- [ ] **Generator Tests Alignment**: Resolve SVM failures in generator test execution by completing the generator opcodes implementation.
+- [ ] **Safe Mode Output Alignment**: Align error printing for protected object modification to ensure exceptions are correctly caught/printed in SVM.
 - [ ] **SRVM Opcode Gaps**: Implement missing register-based opcodes in `src/srvm/srvm_vm.sage`:
   - `VMO_NOP`, `VMO_IMPORT`, `VMO_EXEC_AST`, `VMO_CMP_BINARY`
   - `OBJ_NEW_CLASS`, `OBJ_INHERIT`, `OBJ_METHOD_BIND`, `OBJ_DICT_NEW`, `OBJ_TUPLE_NEW`, `OBJ_SLICE`

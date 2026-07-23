@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-24]
+
+### Changed
+- **Documentation Sync**: Synchronized technical specifications, roadmaps, and architectural documentation with the current v0.9.9 state.
+- **Roadmap Realignment**: Marked **String Repetition** (`OP_MUL` with `*` on strings) as fully supported in the SVM interpreter after verifying implementation in `src/svm/sgvm_vm.sage`.
+
+### Fixed
+- **Discrepancy Documentation**: Documented key execution differences and test-suite alignment gaps in `docs/ROADMAP.md` and `docs/SPEC.md`, including `OP_ARRAY_LEN` evaluating `nil` to `0` instead of `nil` due to host inheritance, `sys.exit` failing to halt guest execution, and generator/safe-mode test failures.
+
 ## v0.9.9 (2026-07-23)
 
 ### Security & Correctness
