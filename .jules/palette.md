@@ -17,3 +17,7 @@
 ## 2026-07-17 - [Accessible Range Inputs & Custom Controls]
 **Learning:** Interactive range sliders and file upload inputs must have explicit ARIA labels. Relying solely on flanking text span elements or visual titles is insufficient for screen readers to convey control purpose.
 **Action:** Always verify that every custom input type (including hidden file inputs wrapped in labels and range sliders) has a dedicated `aria-label` describing its exact function.
+
+## 2026-07-18 - [Accessible Interactive Toggles & Submodule Management]
+**Learning:** Custom interactive components like the Globals panel header in the playground require full keyboard navigation (role="button", tabIndex={0}, and keydown event handlers) and proper ARIA states (aria-pressed/aria-expanded) to ensure compatibility with screen readers. Furthermore, since the documentation resides in a git submodule 'docs/site', changes must be committed in the sub-repository before updating the parent repository's submodule pointer.
+**Action:** Always implement keyboard listeners (Space & Enter) and ARIA states for collapsible panels, and ensure submodule commits are resolved first in parent-submodule setups.
