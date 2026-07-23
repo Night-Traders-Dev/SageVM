@@ -4,7 +4,7 @@ nil is falsy
 1 is truthy
 0 is falsy
 -1 is truthy
-empty string is truthy
+empty string is falsy
 non-empty string is truthy
 empty array is truthy
 non-empty array is truthy

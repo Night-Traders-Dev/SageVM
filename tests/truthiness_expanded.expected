@@ -1,7 +1,7 @@
 0 is falsy
 nil is falsy
 false is falsy
-empty string is truthy
+empty string is falsy
 empty array is truthy
 empty dict is truthy
 1 is truthy

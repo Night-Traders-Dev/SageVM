@@ -23,9 +23,55 @@ proc reflect_get_methods(obj):
 proc reflect_get_class(obj):
     return nil
 
+proc is_truthy(val):
+    if val == nil or val == false or val == 0:
+        return false
+    if type(val) == "string" and len(val) == 0:
+        return false
+    return true
+
+proc str_repeat(s, count):
+    if count <= 0:
+        return ""
+    var res = ""
+    var i = 0
+    while i < count:
+        res = res + s
+        i = i + 1
+    return res
+
 let g_gil = host_thread.mutex()
 
 class MetalVM:
+    proc equal_val(self, a, b):
+        if type(a) != type(b):
+            return false
+        if type(a) == "dict":
+            let keys_a = dict_keys(a)
+            let keys_b = dict_keys(b)
+            if len(keys_a) != len(keys_b):
+                return false
+            var i = 0
+            while i < len(keys_a):
+                let k = keys_a[i]
+                if not dict_has(b, k):
+                    return false
+                if not self.equal_val(a[k], b[k]):
+                    return false
+                i = i + 1
+            return true
+        elif type(a) == "array" or type(a) == "tuple":
+            if len(a) != len(b):
+                return false
+            var i = 0
+            while i < len(a):
+                if not self.equal_val(a[i], b[i]):
+                    return false
+                i = i + 1
+            return true
+        else:
+            return a == b
+
     proc init(self):
         self.stack = []
         self.constants = []
@@ -211,52 +257,20 @@ class MetalVM:
                     stack_len = stack_len + 1
                     continue
                 # Performance: Fast-path for common scope depths bypassing expensive dict_has where possible
-                if scopes_len == 1:
-                    let val = scopes[0][name]
-                    if val != nil:
-                        push(stack, val)
-                    elif dict_has(scopes[0], name):
-                        push(stack, nil)
-                    elif dict_has(globals, name):
+                var found = false
+                var si = scopes_len - 1
+                while si >= 0:
+                    if dict_has(scopes[si], name):
+                        push(stack, scopes[si][name])
+                        found = true
+                        si = -1
+                    else:
+                        si = si - 1
+                if not found:
+                    if dict_has(globals, name):
                         push(stack, globals[name])
                     else:
                         push(stack, nil)
-                elif scopes_len == 2:
-                    let val1 = scopes[1][name]
-                    if val1 != nil:
-                        push(stack, val1)
-                    elif dict_has(scopes[1], name):
-                        push(stack, nil)
-                    else:
-                        let val0 = scopes[0][name]
-                        if val0 != nil:
-                            push(stack, val0)
-                        elif dict_has(scopes[0], name):
-                            push(stack, nil)
-                        elif dict_has(globals, name):
-                            push(stack, globals[name])
-                        else:
-                            push(stack, nil)
-                else:
-                    var found = false
-                    var si = scopes_len - 1
-                    while si >= 0:
-                        let s_val = scopes[si][name]
-                        if s_val != nil:
-                            push(stack, s_val)
-                            found = true
-                            si = -1
-                        elif dict_has(scopes[si], name):
-                            push(stack, nil)
-                            found = true
-                            si = -1
-                        else:
-                            si = si - 1
-                    if not found:
-                        if dict_has(globals, name):
-                            push(stack, globals[name])
-                        else:
-                            push(stack, nil)
                 stack_len = stack_len + 1
             elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
@@ -322,7 +336,7 @@ class MetalVM:
             elif op == OP_JUMP_IF_FALSE:
                 let target = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if not stack[stack_len-1]: ip = target
+                if not is_truthy(stack[stack_len-1]): ip = target
             elif op == OP_LOOP_BACK:
                 if stack_len > max_stack:
                     print "Error: Stack overflow"
@@ -336,15 +350,20 @@ class MetalVM:
             elif op == OP_MUL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] * b
+                let a = stack[stack_len-1]
+                if type(a) == "string" and type(b) == "number":
+                    stack[stack_len-1] = str_repeat(a, int(b))
+                elif type(a) == "number" and type(b) == "string":
+                    stack[stack_len-1] = str_repeat(b, int(a))
+                else:
+                    stack[stack_len-1] = a * b
             elif op == OP_DIV:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 if b == 0:
-                    print "Error: Division by zero"
-                    halted = true
-                    break
-                stack[stack_len-1] = stack[stack_len-1] / b
+                    stack[stack_len-1] = nil
+                else:
+                    stack[stack_len-1] = stack[stack_len-1] / b
             elif op == OP_SUB:
                 let b = pop(stack)
                 stack_len = stack_len - 1
@@ -352,11 +371,11 @@ class MetalVM:
             elif op == OP_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = (stack[stack_len-1] == b)
+                stack[stack_len-1] = self.equal_val(stack[stack_len-1], b)
             elif op == OP_NOT_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = (stack[stack_len-1] != b)
+                stack[stack_len-1] = not self.equal_val(stack[stack_len-1], b)
             elif op == OP_LESS_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
@@ -390,10 +409,9 @@ class MetalVM:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 if b == 0:
-                    print "Error: Division by zero (modulo)"
-                    halted = true
-                    break
-                stack[stack_len-1] = stack[stack_len-1] % b
+                    stack[stack_len-1] = nil
+                else:
+                    stack[stack_len-1] = stack[stack_len-1] % b
             elif op == OP_BIT_AND:
                 let b = pop(stack)
                 stack_len = stack_len - 1
@@ -417,9 +435,9 @@ class MetalVM:
                 stack_len = stack_len - 1
                 stack[stack_len-1] = stack[stack_len-1] >> b
             elif op == OP_NOT:
-                stack[stack_len-1] = not stack[stack_len-1]
+                stack[stack_len-1] = not is_truthy(stack[stack_len-1])
             elif op == OP_TRUTHY:
-                stack[stack_len-1] = not (not stack[stack_len-1])
+                stack[stack_len-1] = is_truthy(stack[stack_len-1])
             elif op == OP_PRINT:
                 print pop(stack)
                 stack_len = stack_len - 1
@@ -661,6 +679,15 @@ class MetalVM:
                 print "Error: sys.exec is restricted in safe mode"
                 return nil
             return sys_exec(args[0])
+        elif callee == "__builtin_sys_exit":
+            self.halted = true
+            return nil
+        elif callee == "__builtin_gpu_get_time":
+            return 0.0
+        elif callee == "__builtin_gpu_poll_events":
+            return nil
+        elif callee == "__builtin_gpu_mouse_pos":
+            return {"x": 0, "y": 0}
         elif callee == "__builtin_gc_collect": return gc_collect()
         elif callee == "__builtin_gc_stats": return gc_stats()
         elif callee == "__builtin_gc_enable": return gc_enable()
@@ -803,31 +830,34 @@ class MetalVM:
         elif op == OP_MUL:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            push(self.stack, a * b)
+            if type(a) == "string" and type(b) == "number":
+                push(self.stack, str_repeat(a, int(b)))
+            elif type(a) == "number" and type(b) == "string":
+                push(self.stack, str_repeat(b, int(a)))
+            else:
+                push(self.stack, a * b)
         elif op == OP_DIV:
             let b = pop(self.stack)
             let a = pop(self.stack)
             if b == 0:
-                print "Error: Division by zero"
-                self.halted = true
-                return false
-            push(self.stack, a / b)
+                push(self.stack, nil)
+            else:
+                push(self.stack, a / b)
         elif op == OP_MOD:
             let b = pop(self.stack)
             let a = pop(self.stack)
             if b == 0:
-                print "Error: Division by zero (modulo)"
-                self.halted = true
-                return false
-            push(self.stack, a % b)
+                push(self.stack, nil)
+            else:
+                push(self.stack, a % b)
         elif op == OP_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            push(self.stack, a == b)
+            push(self.stack, self.equal_val(a, b))
         elif op == OP_NOT_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            push(self.stack, a != b)
+            push(self.stack, not self.equal_val(a, b))
         elif op == OP_GREATER:
             let b = pop(self.stack)
             let a = pop(self.stack)
@@ -867,7 +897,7 @@ class MetalVM:
             let a = pop(self.stack)
             push(self.stack, a >> b)
         elif op == OP_TRUTHY:
-            push(self.stack, not (not pop(self.stack)))
+            push(self.stack, is_truthy(pop(self.stack)))
         elif op == OP_JUMP:
             if len(self.stack) > self.max_stack_depth:
                 print "Error: Stack overflow"
@@ -881,8 +911,7 @@ class MetalVM:
             let st_len = len(st)
             let idx = st_len - 1
             let cond = st[idx]
-            if not cond:
-                self.ip = target
+            if not is_truthy(cond): self.ip = target
         elif op == OP_LOOP_BACK:
             if len(self.stack) > self.max_stack_depth:
                 print "Error: Stack overflow"
@@ -1029,6 +1058,7 @@ class MetalVM:
                     print "Error: Callee dict has no __type__"
             elif type(callee) == "string":
                 push(self.stack, self.call_builtin(callee, args))
+                if self.halted: return false
             elif type(callee) == "function" or type(callee) == "native fn":
                 if self.safe_mode:
                     print "Error: Direct host function call is restricted in safe mode"
@@ -1195,6 +1225,7 @@ class MetalVM:
                 self.return_value = val
         elif op == OP_HALT:
             self.halted = true
+            return false
         elif op == OP_CLASS:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
@@ -1260,15 +1291,15 @@ class MetalVM:
                         let s = {"args": sys.args()}
                         s["__type__"] = "module"
                         s["exec"] = "__builtin_sys_exec"
-                        s["exit"] = sys.exit
+                        s["exit"] = "__builtin_sys_exit"
                         push(self.stack, s)
                     elif name == "net": push(self.stack, net)
                     elif name == "gpu":
                         let g = {}
                         g["__type__"] = "module"
-                        g["poll_events"] = gpu.poll_events
-                        g["get_time"] = gpu.get_time
-                        g["mouse_pos"] = gpu.mouse_pos
+                        g["poll_events"] = "__builtin_gpu_poll_events"
+                        g["get_time"] = "__builtin_gpu_get_time"
+                        g["mouse_pos"] = "__builtin_gpu_mouse_pos"
                         push(self.stack, g)
                     elif name == "ml_native": push(self.stack, ml_native)
                     elif name == "thread": push(self.stack, host_thread)
@@ -1380,14 +1411,24 @@ class MetalVM:
         elif op == OP_CONTINUE:
             print "Error: Unexpected loop continue opcode"
             self.halted = true
-        elif op == OP_GPU_POLL_EVENTS: gpu.poll_events()
-        elif op == OP_GPU_WINDOW_SHOULD_CLOSE: push(self.stack, gpu.window_should_close())
-        elif op == OP_GPU_GET_TIME: push(self.stack, gpu.get_time())
-        elif op == OP_GPU_KEY_PRESSED: push(self.stack, gpu.key_pressed(pop(self.stack)))
-        elif op == OP_GPU_KEY_DOWN: push(self.stack, gpu.key_down(pop(self.stack)))
-        elif op == OP_GPU_MOUSE_POS: push(self.stack, gpu.mouse_pos())
-        elif op == OP_GPU_MOUSE_DELTA: push(self.stack, gpu.mouse_delta())
-        elif op == OP_GPU_UPDATE_INPUT: gpu.update_input()
+        elif op == 76: # BC_OP_GPU_POLL_EVENTS
+            return true
+        elif op == 77: # BC_OP_GPU_WINDOW_SHOULD_CLOSE
+            push(self.stack, false)
+        elif op == 78: # BC_OP_GPU_GET_TIME
+            push(self.stack, 0.0)
+        elif op == 79: # BC_OP_GPU_KEY_PRESSED
+            pop(self.stack)
+            push(self.stack, false)
+        elif op == 80: # BC_OP_GPU_KEY_DOWN
+            pop(self.stack)
+            push(self.stack, false)
+        elif op == 81: # BC_OP_GPU_MOUSE_POS
+            push(self.stack, {"x": 0, "y": 0})
+        elif op == 82: # BC_OP_GPU_MOUSE_DELTA
+            push(self.stack, {"x": 0, "y": 0})
+        elif op == 83: # BC_OP_GPU_UPDATE_INPUT
+            return true
         elif op == OP_GPU_BEGIN_COMMANDS: push(self.stack, gpu.begin_commands(pop(self.stack)))
         elif op == OP_GPU_END_COMMANDS: push(self.stack, gpu.end_commands(pop(self.stack)))
         elif op == OP_GPU_CMD_BEGIN_RP:
