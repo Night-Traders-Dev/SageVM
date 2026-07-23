@@ -2,7 +2,7 @@ import sys
 import io
 
 proc sys_exec(cmd):
-    return sys.exec(cmd)
+    return sys_exec_cmd(cmd)
 
 proc io_readfile(path):
     return io.readfile(path)
@@ -141,6 +141,7 @@ class SGVMCompiler:
         return idx
 
     proc first_pass(self, lines):
+        print "DEBUG entering first_pass, lines len=" + str(len(lines))
         let ut = self.utils
         var i = 0
         var chunk_count = 0
@@ -246,7 +247,7 @@ class SGVMCompiler:
                                 pi = pi + 1
                         
                         if param_idx >= 0:
-                            let idx_str = str(param_idx)
+                            let idx_str = str(param_idx + 1)
                             let arg_name = "__arg" + idx_str
                             let arg_idx = self.add_const_str(arg_name)
                             ltg_chunk[j] = arg_idx
@@ -328,8 +329,8 @@ class SGVMCompiler:
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         let local_idx = v1 * 256 + v2
                         let ltg = self.local_to_global[self.current_chunk]
-                        let val = ltg[local_idx]
-                        # print "DEBUG: Chunk " + str(self.current_chunk) + " op " + str(op) + " mapping local " + str(local_idx) + " to global " + str(val)
+                        var val = 0
+                        if local_idx >= 0 and local_idx < len(ltg): val = ltg[local_idx]
                         self.write_be16(val)
                         j = j + 4
                     elif op == 8: # DEFINE_FUNCTION
@@ -337,7 +338,8 @@ class SGVMCompiler:
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         let local_idx = v1 * 256 + v2
                         let ltg_raw = self.local_to_global_raw[self.current_chunk]
-                        let val = ltg_raw[local_idx]
+                        var val = 0
+                        if local_idx >= 0 and local_idx < len(ltg_raw): val = ltg_raw[local_idx]
                         self.write_be16(val)
                         let f1 = ut.parse_hex_byte(hex, j + 4)
                         let f2 = ut.parse_hex_byte(hex, j + 6)
@@ -348,7 +350,8 @@ class SGVMCompiler:
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         let local_idx = v1 * 256 + v2
                         let ltg_raw = self.local_to_global_raw[self.current_chunk]
-                        let val = ltg_raw[local_idx]
+                        var val = 0
+                        if local_idx >= 0 and local_idx < len(ltg_raw): val = ltg_raw[local_idx]
                         self.write_be16(val)
                         j = j + 4
                     elif op == 13 or op == 35 or op == 36 or op == 39 or op == 40 or op == 41 or op == 43 or op == 51 or op == 56:
@@ -361,12 +364,12 @@ class SGVMCompiler:
                         self.write_byte(val)
                         j = j + 2
                     elif op == 91: # CREATE_GENERATOR
-                        # Same format as DEFINE_FUNCTION: name_idx (u16 remapped) + fn_idx (u16 pass-through)
                         let v1 = ut.parse_hex_byte(hex, j)
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         let local_idx = v1 * 256 + v2
                         let ltg_raw = self.local_to_global_raw[self.current_chunk]
-                        let val = ltg_raw[local_idx]
+                        var val = 0
+                        if local_idx >= 0 and local_idx < len(ltg_raw): val = ltg_raw[local_idx]
                         self.write_be16(val)
                         let f1 = ut.parse_hex_byte(hex, j + 4)
                         let f2 = ut.parse_hex_byte(hex, j + 6)
@@ -382,7 +385,8 @@ class SGVMCompiler:
                         let v2 = ut.parse_hex_byte(hex, j + 2)
                         let local_idx = v1 * 256 + v2
                         let ltg_raw = self.local_to_global_raw[self.current_chunk]
-                        let val = ltg_raw[local_idx]
+                        var val = 0
+                        if local_idx >= 0 and local_idx < len(ltg_raw): val = ltg_raw[local_idx]
                         self.write_be16(val)
                         let call_arg = ut.parse_hex_byte(hex, j + 4)
                         self.write_byte(call_arg)
@@ -399,32 +403,40 @@ class SGVMCompiler:
         let safe_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/._- "
         var i = 0
         while i < len(path):
-            if not contains(safe_chars, path[i]):
+            let ch = path[i]
+            let res = contains(safe_chars, ch)
+            if not res:
+                print "DEBUG is_safe_path failed on char='" + str(ch) + "' ord=" + str(ord(ch)) + " path='" + str(path) + "'"
                 return false
             i = i + 1
         return true
 
     proc compile(self, input_file, output_file, use_shebang):
+        print "DEBUG SGVMCompiler.compile self.utils=" + str(self.utils) + " input_file=" + str(input_file) + " type=" + str(type(input_file)) + " output_file=" + str(output_file)
         let ut = self.utils
+        var in_file = ut.trim(input_file)
+        print "DEBUG after trim in_file='" + str(in_file) + "' len=" + str(len(in_file))
+        var out_file = ut.trim(output_file)
 
         # Security: Prevent command injection and flag injection via robust path validation
-        if not self.is_safe_path(input_file):
-            print "Error: Illegal characters or format in input path: " + input_file
+        if not self.is_safe_path(in_file):
+            print "Error: Illegal characters or format in input path: " + str(in_file)
             return false
-        if not self.is_safe_path(output_file):
-            print "Error: Illegal characters or format in output path: " + output_file
+        if not self.is_safe_path(out_file):
+            print "Error: Illegal characters or format in output path: " + str(out_file)
             return false
 
-        var svm_file = input_file
-        if endswith(input_file, ".sage"):
+        var svm_file = in_file
+        if endswith(in_file, ".sage"):
             let ext = ".svm"
-            svm_file = input_file + ext
-            # Security: Wrap paths in single quotes to prevent shell interpretation (Defense in depth)
-            var cmd = "sage --emit-vm '" + input_file + "' -o '" + svm_file + "'"
+            svm_file = in_file + ext
+            var sage_bin = ".deps/SageLang/core/sage"
+            if io_readfile(sage_bin) == nil: sage_bin = "sage"
+            var cmd = sage_bin + " --emit-vm " + in_file + " -o " + svm_file
             
             let status = sys_exec(cmd)
             if status != 0:
-                print "Error: Failed to generate SVM from " + input_file
+                print "Error: Failed to generate SVM from " + in_file
                 return false
         
         let content = io_readfile(svm_file)
@@ -440,5 +452,5 @@ class SGVMCompiler:
         
         self.second_pass(lines, function_count, chunk_count, use_shebang)
         
-        io_writebytes(output_file, self.output_bytes)
+        io_writebytes(out_file, self.output_bytes)
         return true

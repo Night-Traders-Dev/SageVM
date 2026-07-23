@@ -1,3 +1,6 @@
+proc sys_exec_cmd(cmd):
+    return sys.system(cmd)
+
 # Bytecode opcodes (Sync with bytecode.h and metal_vm.h)
 let OP_CONSTANT       = 0
 let OP_NIL            = 1
@@ -104,6 +107,8 @@ class SGVMUtils:
         return int(x)
 
     proc hex_to_byte(self, h):
+        if h == nil or len(h) < 2:
+            return 0
         let chars = "0123456789abcdef"
         var v1 = 0
         var v2 = 0
@@ -123,30 +128,20 @@ class SGVMUtils:
         return v1 * 16 + v2
 
     proc split_lines(self, s):
+        if s == nil: return []
         let lines = []
         var current = ""
-        let nl = chr(10)
+        let nl = "\n"
+        let cr = "\r"
         var i = 0
-        while i < len(s):
-            let char_val = s[i]
-            var is_nl = false
-            var is_cr = false
-            if type(char_val) == "number":
-                is_nl = (char_val == 10)
-                is_cr = (char_val == 13)
-            else:
-                is_nl = (char_val == nl)
-                is_cr = (char_val == chr(13))
-            
-            if is_nl:
+        let slen = len(s)
+        while i < slen:
+            let ch = s[i]
+            if ch == nl:
                 push(lines, current)
                 current = ""
-            else:
-                if not is_cr:
-                    if type(char_val) == "number":
-                        current = current + chr(char_val)
-                    else:
-                        current = current + char_val
+            elif ch != cr:
+                current = current + ch
             i = i + 1
         if len(current) > 0:
             push(lines, current)
@@ -173,7 +168,7 @@ class SGVMUtils:
         return self.my_int(bval)
 
     proc trim(self, s):
-        if len(s) == 0:
+        if s == nil or type(s) != "string" or len(s) == 0:
             return ""
         var start = 0
         while start < len(s):

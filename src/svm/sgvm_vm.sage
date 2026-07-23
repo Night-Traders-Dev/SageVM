@@ -287,9 +287,17 @@ class MetalVM:
                 if halted: break
                 stack[local_base + idx] = val
             elif op == OP_ADD:
-                let b = pop(stack)
+                var b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] + b
+                var a = stack[stack_len-1]
+                if type(a) == "string" or type(b) == "string":
+                    if a == nil: a = ""
+                    if b == nil: b = ""
+                    stack[stack_len-1] = str(a) + str(b)
+                else:
+                    if a == nil: a = 0
+                    if b == nil: b = 0
+                    stack[stack_len-1] = a + b
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -347,11 +355,15 @@ class MetalVM:
             elif op == OP_LESS:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] < b
-            elif op == OP_MUL:
-                let b = pop(stack)
-                stack_len = stack_len - 1
                 let a = stack[stack_len-1]
+                if a == nil or b == nil: stack[stack_len-1] = false
+                else: stack[stack_len-1] = a < b
+            elif op == OP_MUL:
+                var b = pop(stack)
+                stack_len = stack_len - 1
+                var a = stack[stack_len-1]
+                if a == nil: a = 0
+                if b == nil: b = 0
                 if type(a) == "string" and type(b) == "number":
                     stack[stack_len-1] = str_repeat(a, int(b))
                 elif type(a) == "number" and type(b) == "string":
@@ -359,16 +371,21 @@ class MetalVM:
                 else:
                     stack[stack_len-1] = a * b
             elif op == OP_DIV:
-                let b = pop(stack)
+                var b = pop(stack)
                 stack_len = stack_len - 1
-                if b == 0:
+                var a = stack[stack_len-1]
+                if a == nil: a = 0
+                if b == nil or b == 0:
                     stack[stack_len-1] = nil
                 else:
-                    stack[stack_len-1] = stack[stack_len-1] / b
+                    stack[stack_len-1] = a / b
             elif op == OP_SUB:
-                let b = pop(stack)
+                var b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] - b
+                var a = stack[stack_len-1]
+                if a == nil: a = 0
+                if b == nil: b = 0
+                stack[stack_len-1] = a - b
             elif op == OP_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
@@ -380,15 +397,21 @@ class MetalVM:
             elif op == OP_LESS_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] <= b
+                let a = stack[stack_len-1]
+                if a == nil or b == nil: stack[stack_len-1] = false
+                else: stack[stack_len-1] = a <= b
             elif op == OP_GREATER:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] > b
+                let a = stack[stack_len-1]
+                if a == nil or b == nil: stack[stack_len-1] = false
+                else: stack[stack_len-1] = a > b
             elif op == OP_GREATER_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] >= b
+                let a = stack[stack_len-1]
+                if a == nil or b == nil: stack[stack_len-1] = false
+                else: stack[stack_len-1] = a >= b
             elif op == OP_NIL:
                 push(stack, nil)
                 stack_len = stack_len + 1
@@ -409,32 +432,55 @@ class MetalVM:
             elif op == OP_MOD:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                if b == 0:
+                var a = stack[stack_len-1]
+                if a == nil: a = 0
+                if b == nil or b == 0:
                     stack[stack_len-1] = nil
                 else:
-                    stack[stack_len-1] = stack[stack_len-1] % b
+                    stack[stack_len-1] = a % b
             elif op == OP_BIT_AND:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] & b
+                var a = stack[stack_len-1]
+                var b_val = b
+                if a == nil: a = 0
+                if b_val == nil: b_val = 0
+                stack[stack_len-1] = a & b_val
             elif op == OP_BIT_OR:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] | b
+                var a = stack[stack_len-1]
+                var b_val = b
+                if a == nil: a = 0
+                if b_val == nil: b_val = 0
+                stack[stack_len-1] = a | b_val
             elif op == OP_BIT_XOR:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] ^ b
+                var a = stack[stack_len-1]
+                var b_val = b
+                if a == nil: a = 0
+                if b_val == nil: b_val = 0
+                stack[stack_len-1] = a ^ b_val
             elif op == OP_BIT_NOT:
-                stack[stack_len-1] = ~stack[stack_len-1]
+                if stack[stack_len-1] == nil: stack[stack_len-1] = 0
+                else: stack[stack_len-1] = ~stack[stack_len-1]
             elif op == OP_SHIFT_LEFT:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] << b
+                var a = stack[stack_len-1]
+                var b_val = b
+                if a == nil: a = 0
+                if b_val == nil: b_val = 0
+                stack[stack_len-1] = a << b_val
             elif op == OP_SHIFT_RIGHT:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = stack[stack_len-1] >> b
+                var a = stack[stack_len-1]
+                var b_val = b
+                if a == nil: a = 0
+                if b_val == nil: b_val = 0
+                stack[stack_len-1] = a >> b_val
             elif op == OP_NOT:
                 stack[stack_len-1] = not is_truthy(stack[stack_len-1])
             elif op == OP_TRUTHY:
@@ -443,7 +489,8 @@ class MetalVM:
                 print pop(stack)
                 stack_len = stack_len - 1
             elif op == OP_NEGATE:
-                stack[stack_len-1] = -stack[stack_len-1]
+                if stack[stack_len-1] == nil: stack[stack_len-1] = 0
+                else: stack[stack_len-1] = -stack[stack_len-1]
             elif op == OP_ARRAY_LEN:
                 stack[stack_len-1] = len(stack[stack_len-1])
             elif op == OP_PUSH_ENV:
@@ -469,7 +516,23 @@ class MetalVM:
                     stack[stack_len-2] = nil
                 else:
                     pop(stack)
-                    stack[stack_len-2] = obj[idx]
+                    if type(obj) == "array" or type(obj) == "tuple":
+                        let i_idx = int(idx)
+                        if i_idx >= 0 and i_idx < len(obj):
+                            stack[stack_len-2] = obj[i_idx]
+                        else:
+                            stack[stack_len-2] = nil
+                    elif type(obj) == "string":
+                        let i_idx = int(idx)
+                        if i_idx >= 0 and i_idx < len(obj):
+                            stack[stack_len-2] = obj[i_idx]
+                        else:
+                            stack[stack_len-2] = nil
+                    elif type(obj) == "dict":
+                        if dict_has(obj, idx): stack[stack_len-2] = obj[idx]
+                        else: stack[stack_len-2] = nil
+                    else:
+                        stack[stack_len-2] = nil
                 stack_len = stack_len - 1
             elif op == OP_SET_INDEX:
                 let val = stack[stack_len-1]
@@ -486,7 +549,12 @@ class MetalVM:
                     pop(stack)
                     stack[stack_len-3] = nil
                 else:
-                    obj[idx] = val
+                    if type(obj) == "array" or type(obj) == "tuple":
+                        let i_idx = int(idx)
+                        if i_idx >= 0 and i_idx < len(obj):
+                            obj[i_idx] = val
+                    elif type(obj) == "dict":
+                        obj[idx] = val
                     pop(stack)
                     pop(stack)
                     stack[stack_len-3] = val
@@ -506,6 +574,8 @@ class MetalVM:
                             stack[stack_len-1] = obj["__class__"]["__methods__"][name]
                         elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
                             stack[stack_len-1] = obj["__methods__"][name]
+                        elif dict_has(obj, "__type__") and obj["__type__"] == "module" and dict_has(scopes[0], name):
+                            stack[stack_len-1] = scopes[0][name]
                         else:
                             stack[stack_len-1] = nil
                     else:
@@ -569,10 +639,18 @@ class MetalVM:
         elif callee == "__builtin_str":
             return str(args[0])
         elif callee == "__builtin_int":
+            if len(args) == 0 or args[0] == nil:
+                return 0
+            if type(args[0]) == "string":
+                let n = tonumber(args[0])
+                if n == nil: return 0
+                return int(n)
             return int(args[0])
         elif callee == "__builtin_tonumber":
+            if len(args) == 0 or args[0] == nil: return nil
             return tonumber(args[0])
         elif callee == "__builtin_len":
+            if len(args) == 0 or args[0] == nil: return 0
             return len(args[0])
         elif callee == "__builtin_print":
             print args[0]
@@ -582,7 +660,22 @@ class MetalVM:
         elif callee == "__builtin_type":
             return type(args[0])
         elif callee == "__builtin_slice":
-            return slice(args[0], args[1], args[2])
+            var s0 = args[0]
+            var s1 = args[1]
+            var s2 = args[2]
+            if s0 == nil: return ""
+            if s1 == nil: s1 = 0
+            if s2 == nil: s2 = len(s0)
+            return slice(s0, s1, s2)
+        elif callee == "__builtin_startswith":
+            if args[0] == nil or args[1] == nil: return false
+            return startswith(args[0], args[1])
+        elif callee == "__builtin_endswith":
+            if args[0] == nil or args[1] == nil: return false
+            return endswith(args[0], args[1])
+        elif callee == "__builtin_contains":
+            if args[0] == nil or args[1] == nil: return false
+            return contains(args[0], args[1])
         elif callee == "__builtin_math_printm":
             let matrix = args[0]
             if type(matrix) != "array":
@@ -680,8 +773,34 @@ class MetalVM:
                 print "Error: sys.exec is restricted in safe mode"
                 return nil
             return sys_exec(args[0])
+        elif callee == "__builtin_sys_system":
+            if self.safe_mode:
+                print "Error: sys.system is restricted in safe mode"
+                return -1
+            return sys.system(args[0])
         elif callee == "__builtin_sys_exit":
             self.halted = true
+            return nil
+        elif callee == "__builtin_sys_getenv":
+            if len(args) > 0 and type(args[0]) == "string":
+                return sys.getenv(args[0])
+            return nil
+        elif callee == "__builtin_io_writebytes":
+            if self.safe_mode:
+                print "Error: io.writebytes is restricted in safe mode"
+                return nil
+            return io_writebytes(args[0], args[1])
+        elif callee == "__builtin_io_readbytes":
+            if self.safe_mode:
+                print "Error: io.readbytes is restricted in safe mode"
+                return nil
+            return io.readbytes(args[0])
+        elif callee == "__builtin_io_readfile":
+            if self.safe_mode:
+                print "Error: io.readfile is restricted in safe mode"
+                return nil
+            return io.readfile(args[0])
+        elif callee == "__builtin_thread_mutex":
             return nil
         elif callee == "__builtin_gpu_get_time":
             return 0.0
@@ -701,8 +820,10 @@ class MetalVM:
         elif callee == "__builtin_pop":
             return pop(args[0])
         elif callee == "__builtin_chr":
-            return chr(args[0])
+            if len(args) == 0 or args[0] == nil: return ""
+            return chr(int(args[0]))
         elif callee == "__builtin_ord":
+            if len(args) == 0 or args[0] == nil or type(args[0]) != "string" or len(args[0]) == 0: return 0
             return ord(args[0])
         elif callee == "__builtin_startswith":
             return startswith(args[0], args[1])
@@ -862,40 +983,54 @@ class MetalVM:
         elif op == OP_GREATER:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            push(self.stack, a > b)
+            if a == nil or b == nil: push(self.stack, false)
+            else: push(self.stack, a > b)
         elif op == OP_GREATER_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            push(self.stack, a >= b)
+            if a == nil or b == nil: push(self.stack, false)
+            else: push(self.stack, a >= b)
         elif op == OP_LESS:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            push(self.stack, a < b)
+            if a == nil or b == nil: push(self.stack, false)
+            else: push(self.stack, a < b)
         elif op == OP_LESS_EQUAL:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            push(self.stack, a <= b)
+            if a == nil or b == nil: push(self.stack, false)
+            else: push(self.stack, a <= b)
         elif op == OP_BIT_AND:
-            let b = pop(self.stack)
-            let a = pop(self.stack)
+            var b = pop(self.stack)
+            var a = pop(self.stack)
+            if a == nil: a = 0
+            if b == nil: b = 0
             push(self.stack, a & b)
         elif op == OP_BIT_OR:
-            let b = pop(self.stack)
-            let a = pop(self.stack)
+            var b = pop(self.stack)
+            var a = pop(self.stack)
+            if a == nil: a = 0
+            if b == nil: b = 0
             push(self.stack, a | b)
         elif op == OP_BIT_XOR:
-            let b = pop(self.stack)
-            let a = pop(self.stack)
+            var b = pop(self.stack)
+            var a = pop(self.stack)
+            if a == nil: a = 0
+            if b == nil: b = 0
             push(self.stack, a ^ b)
         elif op == OP_BIT_NOT:
             push(self.stack, ~pop(self.stack))
         elif op == OP_SHIFT_LEFT:
-            let b = pop(self.stack)
-            let a = pop(self.stack)
+            var b = pop(self.stack)
+            var a = pop(self.stack)
+            if a == nil: a = 0
+            if b == nil: b = 0
             push(self.stack, a << b)
         elif op == OP_SHIFT_RIGHT:
-            let b = pop(self.stack)
-            let a = pop(self.stack)
+            var b = pop(self.stack)
+            var a = pop(self.stack)
+            if a == nil: a = 0
+            if b == nil: b = 0
             push(self.stack, a >> b)
         elif op == OP_TRUTHY:
             push(self.stack, is_truthy(pop(self.stack)))
@@ -1145,7 +1280,7 @@ class MetalVM:
                         let arg_name = "__arg" + str(j + 1)
                         self.scopes[len(self.scopes)-1][arg_name] = args[j]
                         j = j + 1
-            elif type(obj) == "module":
+            elif type(obj) == "module" or (type(obj) == "dict" and dict_has(obj, "__type__") and obj["__type__"] == "module"):
                 # Host module method/attribute access
                 if dict_has(obj, name):
                     let val = obj[name]
@@ -1287,7 +1422,14 @@ class MetalVM:
                         m["cos"] = math.cos
                         m["printm"] = "__builtin_math_printm"
                         push(self.stack, m)
-                    elif name == "io": push(self.stack, io)
+                    elif name == "io":
+                        let iom = {}
+                        iom["__type__"] = "module"
+                        iom["readfile"] = "__builtin_io_readfile"
+                        iom["readbytes"] = "__builtin_io_readbytes"
+                        iom["writebytes"] = "__builtin_io_writebytes"
+                        iom["writefile"] = io.writefile
+                        push(self.stack, iom)
                     elif name == "sys":
                         var sys_args_list = sys.args()
                         if self.user_args != nil:
@@ -1295,7 +1437,9 @@ class MetalVM:
                         let s = {"args": sys_args_list}
                         s["__type__"] = "module"
                         s["exec"] = "__builtin_sys_exec"
+                        s["system"] = "__builtin_sys_exec"
                         s["exit"] = "__builtin_sys_exit"
+                        s["getenv"] = "__builtin_sys_getenv"
                         push(self.stack, s)
                     elif name == "net": push(self.stack, net)
                     elif name == "gpu":
@@ -1306,13 +1450,35 @@ class MetalVM:
                         g["mouse_pos"] = "__builtin_gpu_mouse_pos"
                         push(self.stack, g)
                     elif name == "ml_native": push(self.stack, ml_native)
-                    elif name == "thread": push(self.stack, host_thread)
+                    elif name == "thread":
+                        let tm = {}
+                        tm["__type__"] = "module"
+                        tm["mutex"] = "__builtin_thread_mutex"
+                        push(self.stack, tm)
                     elif name == "mem": push(self.stack, self.globals["mem"])
                     elif name == "ffi": push(self.stack, self.globals["ffi"])
                     elif name == "struct": push(self.stack, self.globals["struct"])
                     else:
-                        # TODO: Implement full .sgvm dynamic loading
-                        push(self.stack, {"__type__": "module", "__name__": name})
+                        # Dynamic loading of user .sage modules
+                        var mod_path = name + ".sage"
+                        if io.readbytes(mod_path) == nil:
+                            if io.readbytes("src/" + name + ".sage") != nil:
+                                mod_path = "src/" + name + ".sage"
+                            elif io.readbytes("src/svm/" + name + ".sage") != nil:
+                                mod_path = "src/svm/" + name + ".sage"
+                            elif io.readbytes("src/srvm/" + name + ".sage") != nil:
+                                mod_path = "src/srvm/" + name + ".sage"
+                        
+                        let mod_bytes = io.readbytes(mod_path)
+                        if mod_bytes != nil:
+                            let mod_src = io.readfile(mod_path)
+                            if mod_src != nil:
+                                self.call_builtin("__builtin_sys_exec", [mod_src])
+                                push(self.stack, {"__type__": "module", "__name__": name})
+                            else:
+                                push(self.stack, {"__type__": "module", "__name__": name})
+                        else:
+                            push(self.stack, {"__type__": "module", "__name__": name})
                 catch e:
                     push(self.stack, {"__type__": "module", "__name__": name})
         elif op == OP_SETUP_TRY:

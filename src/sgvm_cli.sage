@@ -101,12 +101,12 @@ class SGVMCLI:
             print_help()
             return
         
-        # Check if called via symlink
+        # Check if called via symlink (e.g. /usr/local/bin/sgvm or ./sgvm)
         let binary_name = args[0]
-        if endswith(binary_name, "sgvm"):
+        if endswith(binary_name, "/sgvm") or binary_name == "sgvm":
             self.handle_run(args, 1)
             return
-        elif endswith(binary_name, "sgvmc"):
+        elif endswith(binary_name, "/sgvmc") or binary_name == "sgvmc":
             self.handle_compile(args, 1)
             return
 
@@ -236,6 +236,7 @@ class SGVMCLI:
                 pos_idx = pos_idx + 1
             iter_idx = iter_idx + 1
         
+        print "DEBUG: input_file=" + str(input_file) + " output_file=" + str(output_file)
         if input_file == "":
             print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
             print "Usage: " + COLOR_BOLD + "sagevm compile" + COLOR_RESET + " <input.sage> [output.sgvm|sgrv] [--shebang] [--riscv]"
