@@ -145,6 +145,7 @@ class SGVMCLI:
 
     proc handle_run(self, args, start_idx):
         var input_file = ""
+        var input_file_idx = -1
         var debug = false
         var safe = false
         var no_ffi = false
@@ -172,14 +173,24 @@ class SGVMCLI:
                 print "  --no-exec  Disable code execution via OP_EXEC_AST_STMT"
                 print "  --riscv    Force execution using the RISC-V backend"
                 return
-            else: input_file = a
+            else:
+                input_file = a
+                input_file_idx = i
+                i = len(args)
             i = i + 1
         
         if input_file == "":
             print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
             print "Usage: " + COLOR_BOLD + "sagevm run" + COLOR_RESET + " <file.sgvm|sgrv> [--debug] [--safe] [--no-ffi] [--riscv]"
             return
-        
+
+        var guest_args = [input_file]
+        if input_file_idx >= 0:
+            var gi = input_file_idx + 1
+            while gi < len(args):
+                push(guest_args, args[gi])
+                gi = gi + 1
+
         # Verify file existence
         let data = self.verify_input(input_file, false)
         if data == nil: return
@@ -195,7 +206,7 @@ class SGVMCLI:
             runner.run_file(input_file, debug, safe, not no_ffi)
         else:
             let runner = sgvm_runner.SGVMRunner()
-            runner.run_file(input_file, debug, safe, not no_ffi)
+            runner.run_file(input_file, debug, safe, not no_ffi, guest_args)
 
     proc handle_compile(self, args, start_idx):
         var input_file = ""

@@ -89,6 +89,7 @@ class MetalVM:
         self.safe_mode = false
         self.ffi_enabled = true
         self.exec_enabled = true
+        self.user_args = nil
         self.modules = {}
         self.utils = SGVMUtils()
         # Security: Limits to prevent Denial of Service (DoS) via resource exhaustion
@@ -1288,7 +1289,10 @@ class MetalVM:
                         push(self.stack, m)
                     elif name == "io": push(self.stack, io)
                     elif name == "sys":
-                        let s = {"args": sys.args()}
+                        var sys_args_list = sys.args()
+                        if self.user_args != nil:
+                            sys_args_list = self.user_args
+                        let s = {"args": sys_args_list}
                         s["__type__"] = "module"
                         s["exec"] = "__builtin_sys_exec"
                         s["exit"] = "__builtin_sys_exit"
