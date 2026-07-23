@@ -1,5 +1,7 @@
 # SageVM: Unified Virtual Machine Substrate
 
+![SageVM Header Banner](assets/sagevm.png)
+
 SageVM is a high-performance, pure SageLang implementation of the Sage Virtual Machine (SGVM). It provides a portable execution substrate for SageOS, supporting both traditional stack-based and modern RISC-V register-based architectures.
 
 ## Features (v0.9.9)
