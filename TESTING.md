@@ -47,6 +47,11 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `index_oob.sage`: Tests out-of-bounds indexing for arrays and missing keys for dictionaries.
 - `call_error.sage`: Tests calling non-callable objects (bug flagged: doesn't currently raise exception).
 
+### Coverage Expansion (2026-07-20)
+- `string_indexing.sage`: Tests bracket character indexing on strings (including out-of-bounds boundary values returning `nil`).
+- `slice_builtin.sage`: Tests the `slice` builtin function on arrays and strings.
+- `io_module.sage`: Tests native `io` module bridging (bug flagged: native functions/modules evaluation type mismatch bug).
+
 ### Coverage Expansion (2026-07-16)
 - `import_user_module.sage`: Tests `OP_IMPORT` for non-native modules (returns dummy object).
 - `array_len_edge.sage`: Tests `len()` (OP_ARRAY_LEN) on various types and edge cases.
@@ -76,6 +81,7 @@ As of July 2026, several tests are expected to fail due to documented but unimpl
 - `string_repeat.sage`: Missing SVM implementation for string repetition with `*`.
 - `halt_op.sage`: Fails because `sys.exit` currently does not halt the VM interpreter.
 - `generators.sage`: Fails because SVM lacks a native generator engine (`OP_YIELD`/`OP_GENERATOR_NEXT` state preservation).
+- `io_module.sage`: Fails / raises error because the host native bridging layer evaluates native modules to type `"unknown"`, preventing proper dynamic method dispatch (native functions/modules evaluation type mismatch bug).
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
