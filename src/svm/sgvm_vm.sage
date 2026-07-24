@@ -5,6 +5,7 @@ import thread as host_thread
 import sys
 import gpu
 import ml_native
+import jit_engine
 
 from sgvm_core import SGVMUtils
 from sgvm_core import OP_CONSTANT, OP_NIL, OP_TRUE, OP_FALSE, OP_POP, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_GET_INDEX, OP_SET_INDEX, OP_LOAD_FUNCTION, OP_SLICE, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD, OP_NEGATE, OP_EQUAL, OP_NOT_EQUAL, OP_GREATER, OP_GREATER_EQUAL, OP_LESS, OP_LESS_EQUAL, OP_BIT_AND, OP_BIT_OR, OP_BIT_XOR, OP_BIT_NOT, OP_SHIFT_LEFT, OP_SHIFT_RIGHT, OP_NOT, OP_TRUTHY, OP_JUMP, OP_JUMP_IF_FALSE, OP_CALL, OP_CALL_METHOD, OP_ARRAY, OP_TUPLE, OP_DICT, OP_PRINT, OP_EXEC_AST_STMT, OP_RETURN, OP_MATH_PRINTM, OP_PUSH_ENV, OP_POP_ENV, OP_DUP, OP_ARRAY_LEN, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_INHERIT, OP_SETUP_TRY, OP_END_TRY, OP_RAISE, OP_GET_LOCAL, OP_SET_LOCAL, OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_HALT
@@ -105,6 +106,8 @@ class MetalVM:
         self.current_local_base = 0
         self.active_generator = nil
         self.gen_caller_stack = []
+        self.jit_enabled = false
+        self.jit_engine = jit_engine.JITEngine()
 
     proc safe_get_constant(self, idx):
         if idx >= 0 and idx < len(self.constants): return self.constants[idx]
@@ -201,6 +204,13 @@ class MetalVM:
         self.code = code
         self.ip = 0
         self.halted = false
+
+        if self.jit_enabled:
+            self.jit_engine.enabled = true
+            let chunk_id = len(self.call_stack)
+            if self.jit_engine.record_and_check(chunk_id):
+                if self.trace: print "⚡ [JIT] Compiling SVM chunk " + str(chunk_id) + " to JIT block"
+                self.jit_engine.compile_svm_chunk(chunk_id, code, self.constants)
 
         # Performance: Cache frequently used properties as local variables
         var ip = 0

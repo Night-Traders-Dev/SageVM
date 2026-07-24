@@ -14,6 +14,7 @@ import thread as host_thread
 import sys
 import gpu
 import ml_native
+import jit_engine
 
 class SageVMState:
     proc init(self):
@@ -49,6 +50,8 @@ class SageVMState:
         self.max_array_size = 1000000
         self.safe_mode = false
         self.ffi_enabled = true
+        self.jit_enabled = false
+        self.jit_engine = jit_engine.JITEngine()
         
         # Register x2 is typically stack pointer (sp)
         self.x[2] = len(self.stack)
@@ -92,6 +95,13 @@ class SRVM:
         
         self.state.pc = 0
         self.state.running = true
+        
+        if self.state.jit_enabled:
+            self.state.jit_engine.enabled = true
+            let chunk_id = self.state.current_chunk_idx
+            if self.state.jit_engine.record_and_check(chunk_id):
+                if self.trace: print "⚡ [JIT] Compiling SRVM chunk " + str(chunk_id) + " to RISC-V JIT block"
+                self.state.jit_engine.compile_srvm_chunk(chunk_id, bytecode, self.state.constants)
         
         while self.state.running and self.state.pc < len(self.state.bytecode):
             # Fetch

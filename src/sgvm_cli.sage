@@ -155,6 +155,7 @@ class SGVMCLI:
         var no_ffi = false
         var no_exec = false
         var riscv = false
+        var jit = false
         var i = start_idx
         while i < len(args):
             let a = args[i]
@@ -163,6 +164,7 @@ class SGVMCLI:
             elif a == "--no-ffi": no_ffi = true
             elif a == "--no-exec": no_exec = true
             elif a == "--riscv": riscv = true
+            elif a == "--jit": jit = true
             elif a == "-v" or a == "--version":
                 print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.0.0" + COLOR_RESET
                 return
@@ -176,6 +178,7 @@ class SGVMCLI:
                 print "  --no-ffi   Disable Foreign Function Interface (FFI)"
                 print "  --no-exec  Disable code execution via OP_EXEC_AST_STMT"
                 print "  --riscv    Force execution using the RISC-V backend"
+                print "  --jit      Enable Tier-1 JIT compilation engine (SVM & SRVM)"
                 return
             else:
                 input_file = a
@@ -185,7 +188,7 @@ class SGVMCLI:
         
         if input_file == "":
             print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
-            print "Usage: " + COLOR_BOLD + "sagevm run" + COLOR_RESET + " <file.sgvm|sgrv> [--debug] [--safe] [--no-ffi] [--riscv]"
+            print "Usage: " + COLOR_BOLD + "sagevm run" + COLOR_RESET + " <file.sgvm|sgrv> [--debug] [--safe] [--no-ffi] [--riscv] [--jit]"
             return
 
         var guest_args = [input_file]
@@ -207,10 +210,10 @@ class SGVMCLI:
 
         if riscv:
             let runner = srvm_runner.SRVMRunner()
-            runner.run_file(input_file, debug, safe, not no_ffi)
+            runner.run_file(input_file, debug, safe, not no_ffi, jit)
         else:
             let runner = sgvm_runner.SGVMRunner()
-            runner.run_file(input_file, debug, safe, not no_ffi, guest_args)
+            runner.run_file(input_file, debug, safe, not no_ffi, guest_args, jit)
 
     proc handle_compile(self, args, start_idx):
         var input_file = ""
@@ -380,6 +383,7 @@ class SGVMCLI:
         var riscv = true
         var debug = false
         var safe = false
+        var jit = false
         var iter_idx = start_idx
         while iter_idx < len(args):
             let a = args[iter_idx]
@@ -387,9 +391,10 @@ class SGVMCLI:
             elif a == "--riscv": riscv = true
             elif a == "--debug": debug = true
             elif a == "--safe": safe = true
+            elif a == "--jit": jit = true
             elif a == "-h" or a == "--help":
                 print COLOR_CYAN + COLOR_BOLD + "💻 SageVM Interactive REPL" + COLOR_RESET
-                print "Usage: " + COLOR_BOLD + "sagevm repl" + COLOR_RESET + " [--riscv | --svm] [--debug] [--safe]"
+                print "Usage: " + COLOR_BOLD + "sagevm repl" + COLOR_RESET + " [--riscv | --svm] [--debug] [--safe] [--jit]"
                 return
             iter_idx = iter_idx + 1
 
@@ -398,6 +403,9 @@ class SGVMCLI:
         if not riscv:
             target_name = COLOR_CYAN + "SVM (Stack Machine)" + COLOR_RESET
             prompt_str = COLOR_CYAN + COLOR_BOLD + "svm> " + COLOR_RESET
+
+        if jit:
+            target_name = target_name + COLOR_YELLOW + " ⚡ [JIT Active]" + COLOR_RESET
 
         print COLOR_CYAN + COLOR_BOLD + "✨ SageVM Interactive REPL v1.0.0" + COLOR_RESET
         print "Target Substrate: " + target_name
@@ -438,8 +446,8 @@ class SGVMCLI:
                     if riscv:
                         let comp = srvm_compiler.SRVMCompiler()
                         if comp.compile(tmp_sage, tmp_bin, false):
-                            runner_srvm.run_file(tmp_bin, debug, safe, true)
+                            runner_srvm.run_file(tmp_bin, debug, safe, true, jit)
                     else:
                         let comp = sgvm_compiler.SGVMCompiler()
                         if comp.compile(tmp_sage, tmp_bin, false):
-                            runner_sgvm.run_file(tmp_bin, debug, safe, true)
+                            runner_sgvm.run_file(tmp_bin, debug, safe, true, nil, jit)

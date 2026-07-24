@@ -9,7 +9,7 @@ class SRVMRunner:
     proc init(self):
         self.vm = srvm_vm.SRVM()
 
-    proc run_file(self, input_file, debug=false, safe_mode=false, ffi_enabled=true):
+    proc run_file(self, input_file, debug=false, safe_mode=false, ffi_enabled=true, jit_enabled=false):
         if debug:
             print "DEBUG: SRVMRunner.run_file called for " + input_file
         var data = io.readbytes(input_file)
@@ -27,6 +27,7 @@ class SRVMRunner:
         self.vm.trace = debug
         self.vm.state.safe_mode = safe_mode
         self.vm.state.ffi_enabled = ffi_enabled
+        self.vm.state.jit_enabled = jit_enabled
 
         var off = 6 # Magic (4) + Version (2)
 
