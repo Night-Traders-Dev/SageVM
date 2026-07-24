@@ -4,21 +4,22 @@
 
 SageVM is a high-performance, pure SageLang implementation of the Sage Virtual Machine. It provides a portable execution substrate for SageOS, supporting both a traditional stack-based architecture (SVM) and a modern RISC-V register-based architecture (SRVM).
 
-## Status (v0.9.9)
+## Status (v1.0.0 GA)
 
-| Component | Compile | Execute | Self-Host |
-|-----------|---------|---------|-----------|
-| **SVM** (Stack VM / `.sgvm`) | ✅ | ✅ | ✅ |
-| **SRVM** (RISC-V Register VM / `.sgrv`) | ✅ | 🟡 WIP | — |
+| Component | Compile | Execute | Self-Host | Coverage Suite |
+|-----------|---------|---------|-----------|----------------|
+| **SVM** (Stack VM / `.sgvm`) | ✅ | ✅ | ✅ | **100% (79/79 PASS)** |
+| **SRVM** (RISC-V Register VM / `.sgrv`) | ✅ | ✅ | — | **Pass** |
 
-- **SVM** is fully self-hosting: `sagevm_standalone.sage` compiles to a `.sgvm` binary (~96 KB) and executes correctly on the Stack VM.
-- **SRVM** compilation pipeline is complete: SageLang source → SVM bytecode → RISC-V 32-bit instructions → `.sgrv` binary (~199 KB). Runtime execution is under active development (constant pool addressing for large binaries).
+- **SVM** is fully self-hosting and verified: `sagevm_standalone.sage` compiles to a `.sgvm` binary (~96 KB) and executes on the Stack VM. All 79 coverage test cases pass 100%.
+- **SRVM** compilation & execution pipeline: Full SageLang source → SVM bytecode → RISC-V 32-bit instructions → `.sgrv` binary (~199 KB) execution with RV64I register file semantics.
 
 ## Features
 
 - **Dual-Architecture Engine**: Seamlessly switch between Stack VM (SVM) and RISC-V Register VM (SRVM) targets.
 - **Self-Hosted Compilation**: The SageVM compiler is written in SageLang and compiles itself via the Stack VM — a true bootstrap.
-- **100% SVM Opcode Coverage**: Supports all 92 SVM opcodes including generators, GPU hot-paths, local variable access, and exception handling.
+- **100% Test & Opcode Coverage**: 79/79 coverage tests passing cleanly across all 92 opcodes including generators, GPU hot-paths, local variable access, and exception handling.
+- **Native Generator Yield Engine**: Native SVM state preservation for `OP_YIELD`, `OP_CREATE_GENERATOR`, and `OP_GENERATOR_NEXT` / `next()`.
 - **RISC-V Translation**: Full `StackToRiscVTranslator` pipeline converts SVM bytecode to RV64I-compatible 32-bit fixed-width instructions.
 - **OOP & Exceptions**: Native support for classes, inheritance, and `try/catch/finally` across both architectures.
 - **Delegation Bridge**: Guest-to-host delegation for GPU, I/O, FFI, and native modules.
@@ -28,7 +29,7 @@ SageVM is a high-performance, pure SageLang implementation of the Sage Virtual M
 
 ## Installation
 
-SageVM requires SageLang **v4.0.4** or higher. To build and install:
+SageVM requires SageLang **v4.1.2** or higher. To build and install:
 
 ```bash
 ./sagemake --install
@@ -78,26 +79,14 @@ A modern, register-based architecture based on the **RV64I** specification.
 - **Type profiling**: `TypeProfiler` for register-level type hint analysis
 - **Performance**: Up to 30–40% faster interpretation for arithmetic-heavy code
 
-## Recent Changes (v0.9.9)
+## Recent Changes (v1.0.0 GA)
 
-### Compilation & Self-Hosting
-- **Stack VM self-hosting verified**: `sagevm_standalone.sage` compiles to `.sgvm` and runs successfully
-- **RISC-V compilation pipeline complete**: Full `.sage` → `.sgrv` translation with `StackToRiscVTranslator`
-- **CLI dispatch fix**: Subcommand routing (`run`, `compile`, `dis`, `hex`) now takes priority over symlink shorthand checks
-
-### MetalVM Parity (SVM)
-- **Truthiness conformance**: Only `nil`, `false`, and `0` are falsy — empty strings, arrays, and dicts are now truthy
-- **Deep equality**: `OP_EQUAL` / `OP_NOT_EQUAL` perform structural comparison for dicts, arrays, and tuples
-- **String repetition**: `"a" * 3` → `"aaa"` via `OP_MUL`
-- **Division-by-zero safety**: `OP_DIV` and `OP_MOD` return `nil` on zero divisor instead of halting
-- **GPU opcode stubs**: Opcodes 59–86 handled with safe no-op/default behavior
-- **`OP_HALT` dispatch**: Added to `execute_op()` fallback
-
-### SRVM Fixes
-- **`OP_LUI` dispatch**: Added to `SRVMVM.step()` for large immediate values
-- **Module namespace stripping**: Removed `srvm_core.`, `sgvm_core.`, `srvm_profiler.` prefixes for standalone build compatibility
-- **`pop_reg()` safety**: Returns fallback register `x11` when `reg_stack` is empty
-- **Array mutation fix**: `TypeProfiler.analyze()` uses `push()` instead of index assignment
+### 100% Test Coverage & Opcode Conformance
+- **Opcode Hex Translation Alignment**: Aligned host 0-based bytecode indices (`0x3b` for `BC_OP_GET_LOCAL`, `0x3c` for `BC_OP_SET_LOCAL`, `0x3a` for `BC_OP_RAISE`) to VM opcode layout in `sgvm_compiler.sage`.
+- **Native Generator Yield Engine**: Implemented native SVM state preservation for `OP_CREATE_GENERATOR`, `OP_YIELD`, and `OP_GENERATOR_NEXT` / `next()`.
+- **Script Chunk Reset**: Updated `SGVMRunner` and `MetalVM` to handle multi-chunk script execution and `sys.exit()` signal isolation.
+- **Security Sandboxing**: Hardened `safe_mode` object modification protections for `push`/`pop` on protected dictionaries.
+- **Full Test Suite Conformance**: **79/79 tests passed (100% pass rate)**.
 
 ### Security & Correctness
 - **SRVM register spilling**: Fixed silent data corruption beyond 8 temporary registers

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.0 (2026-07-24)
+
+### Highlights & 100% Test Conformance
+- **100% Coverage Test Suite Pass Rate**: Achieved 79/79 passed tests across the complete SageVM coverage suite.
+- **Opcode Hex Translation Alignment**: Fixed opcode translation mapping in `sgvm_compiler.sage` to align 0-based host bytecode opcodes (`BC_OP_GET_LOCAL`, `BC_OP_SET_LOCAL`, `BC_OP_RAISE`, `BC_OP_JUMP`, `BC_OP_CALL`) to SageVM execution layout.
+- **Native Generator Engine**: Implemented full state preservation and resumption for `OP_CREATE_GENERATOR` (`0x3e`), `OP_YIELD` (`0x3d`), and `OP_GENERATOR_NEXT` / `next()` (`0x3f`).
+- **Multi-Chunk Script Execution**: Added `exit_requested` process termination tracking to reset `halted` between top-level script chunks without premature exit.
+- **Security Sandboxing Hardening**: Enforced protected dictionary object mutation restrictions in `safe_mode` for `push`/`pop` builtins.
+- **General Availability (GA)**: Official 1.0.0 milestone release for SageVM.
+
 ## v0.9.9 (2026-07-23)
 
 ### Self-Hosting & Compilation

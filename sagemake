@@ -21,7 +21,7 @@ except ImportError:
     HAS_RICH = False
 
 # Configuration
-VERSION = "0.9.9"
+VERSION = "1.0.0"
 if Path("VERSION").exists():
     VERSION = Path("VERSION").read_text().strip()
 
