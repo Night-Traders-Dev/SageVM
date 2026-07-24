@@ -1,0 +1,4 @@
+math.pi before mutation: 3.14159
+Error: Modification of protected object 'pi' is restricted in safe mode
+mutated math.pi: 3.14159
+math.pi after mutation: 3.14159
