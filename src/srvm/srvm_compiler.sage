@@ -1,7 +1,7 @@
 from sgvm_core import OP_CONSTANT, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_LOAD_FUNCTION, OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT, OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY, OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM, OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_GET_LOCAL, OP_SET_LOCAL
 from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS
 from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
-from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
+from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
 from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT, OBJ_METHOD_BIND, OBJ_GET_PROP, OBJ_SET_PROP, OBJ_NEW_FUNC, OBJ_ARRAY_NEW, OBJ_DICT_NEW, OBJ_TUPLE_NEW, OBJ_GET_INDEX, OBJ_SET_INDEX, SRVMUtils, RVEncoder
 # Sage SVM to SRVM (RISC-V) Translator
 # Translates stack-based bytecode to register-based bytecode
@@ -50,19 +50,19 @@ class StackToRiscVTranslator:
     
     proc pop_reg(self):
         if self.reg_stack == nil or len(self.reg_stack) == 0:
-            return 11
+            return 13
         return pop(self.reg_stack)
 
     proc alloc_reg(self):
         let r = self.next_reg
         self.next_reg = self.next_reg + 1
         if self.next_reg > 27:
-            let spill_reg = 11
+            let spill_reg = 13
             let slot = self.spill_offset
             self.spill_offset = self.spill_offset + 1
             self.emit_32(self.encoder.encode_s(OP_STORE, F3_SD, 2, spill_reg, slot * 8))
             push(self.spill_slots, slot)
-            self.next_reg = 12
+            self.next_reg = 13
             return spill_reg
         return r
 
@@ -72,7 +72,7 @@ class StackToRiscVTranslator:
         
         self.output_bytes = []
         self.reg_stack = []
-        self.next_reg = 11
+        self.next_reg = 13
         self.spill_slots = []
         self.spill_offset = 0
         self.label_map = {}
@@ -265,7 +265,7 @@ class StackToRiscVTranslator:
                 let obj = self.pop_reg()
                 let rd = self.alloc_reg()
                 var obj_reg = obj
-                if obj == 10:
+                if obj == 10 or obj == 11:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, obj, 0))
                     obj_reg = 5
                 if idx != 10:
@@ -278,22 +278,87 @@ class StackToRiscVTranslator:
                 let idx = self.pop_reg()
                 let obj = self.pop_reg()
                 var obj_reg = obj
-                if obj == 10 or obj == 11:
+                if obj == 10 or obj == 11 or obj == 6 or obj == 7:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, obj, 0))
                     obj_reg = 5
-                if val != 11:
-                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, val, 0))
-                if idx != 10:
-                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, idx, 0))
+                if idx != 6:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 6, idx, 0))
+                if val != 7:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 7, val, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 6, 0))
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, 7, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_INDEX, obj_reg))
 
             elif op == OP_ARRAY:
-                let init_val = self.pop_reg()
-                let size = self.pop_reg()
+                let size = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
                 let rd = self.alloc_reg()
-                if init_val != 10:
-                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, init_val, 0))
-                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_ARRAY_NEW, size))
+                var arr_reg = rd
+                if rd == 10 or rd == 11 or rd == 6 or rd == 7:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, rd, 0))
+                    arr_reg = 5
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, size))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, arr_reg, OBJ_ARRAY_NEW, 0))
+                var k = 0
+                while k < size:
+                    let elem = self.pop_reg()
+                    if elem != 7:
+                        self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 7, elem, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, size - 1 - k))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, 7, 0))
+                    self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_INDEX, arr_reg))
+                    k = k + 1
+                if arr_reg != rd:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, arr_reg, 0))
+                push(self.reg_stack, rd)
+
+            elif op == OP_DICT:
+                let entry_count = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                let rd = self.alloc_reg()
+                var dict_reg = rd
+                if rd == 10 or rd == 11 or rd == 6 or rd == 7:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, rd, 0))
+                    dict_reg = 5
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, entry_count))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, dict_reg, OBJ_DICT_NEW, 0))
+                var k = 0
+                while k < entry_count:
+                    let val = self.pop_reg()
+                    let key = self.pop_reg()
+                    if key != 6:
+                        self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 6, key, 0))
+                    if val != 7:
+                        self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 7, val, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 6, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, 7, 0))
+                    self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_INDEX, dict_reg))
+                    k = k + 1
+                if dict_reg != rd:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, dict_reg, 0))
+                push(self.reg_stack, rd)
+
+            elif op == OP_TUPLE:
+                let size = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                let rd = self.alloc_reg()
+                var tuple_reg = rd
+                if rd == 10 or rd == 11 or rd == 6 or rd == 7:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, rd, 0))
+                    tuple_reg = 5
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, size))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, tuple_reg, OBJ_TUPLE_NEW, 0))
+                var k = 0
+                while k < size:
+                    let elem = self.pop_reg()
+                    if elem != 7:
+                        self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 7, elem, 0))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, size - 1 - k))
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, 7, 0))
+                    self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_INDEX, tuple_reg))
+                    k = k + 1
+                if tuple_reg != rd:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, tuple_reg, 0))
                 push(self.reg_stack, rd)
 
             elif op == OP_JUMP:
@@ -385,17 +450,33 @@ class StackToRiscVTranslator:
 
             elif op == OP_NIL:
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 0, 0)) 
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_NIL, 0)) 
                 push(self.reg_stack, rd)
 
             elif op == OP_TRUE:
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 0, 1))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_TRUE, 0))
                 push(self.reg_stack, rd)
 
             elif op == OP_FALSE:
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 0, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_FALSE, 0))
+                push(self.reg_stack, rd)
+
+            elif op == OP_NOT:
+                let rs = self.pop_reg()
+                let rd = self.alloc_reg()
+                if rs != 10:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_NOT, 0))
+                push(self.reg_stack, rd)
+
+            elif op == OP_TRUTHY:
+                let rs = self.pop_reg()
+                let rd = self.alloc_reg()
+                if rs != 10:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_TRUTHY, 0))
                 push(self.reg_stack, rd)
 
             elif op == OP_GET_GLOBAL:
@@ -474,10 +555,18 @@ class StackToRiscVTranslator:
                 i = i + 2
                 let chunk_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                self.emit_load_imm(10, chunk_idx)
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, chunk_idx))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 11, OBJ_NEW_FUNC, 0))
                 self.emit_load_imm(10, name_idx)
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_GLOBAL, 0))
+
+            elif op == OP_LOAD_FUNCTION:
+                let chunk_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                let rd = self.alloc_reg()
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, chunk_idx))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_NEW_FUNC, 0))
+                push(self.reg_stack, rd)
 
             elif op == OP_CALL:
                 let argc = int(svm_bytecode[i])

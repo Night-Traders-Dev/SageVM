@@ -77,6 +77,11 @@ let VMO_ARRAY_LEN = 0x0A
 let VMO_PRINTM   = 0x0B
 let VMO_EXEC_AST = 0x0C
 let VMO_CMP_BINARY = 0x0D   # Generic binary comparison (type in funct7)
+let VMO_NIL        = 0x0E
+let VMO_TRUE       = 0x0F
+let VMO_FALSE      = 0x10
+let VMO_NOT        = 0x11
+let VMO_TRUTHY     = 0x12
 
 # Comparison types for VMO_CMP_BINARY (stored in funct7 field)
 let CMP_EQ  = 0   # Equal (==)

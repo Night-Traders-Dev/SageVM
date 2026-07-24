@@ -1,6 +1,6 @@
 from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS
 from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
-from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
+from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
 from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT, OBJ_METHOD_BIND, OBJ_GET_PROP, OBJ_SET_PROP, OBJ_NEW_FUNC, OBJ_ARRAY_NEW, OBJ_DICT_NEW, OBJ_TUPLE_NEW, OBJ_GET_INDEX, OBJ_SET_INDEX, SRVMUtils
 # Sage RISC-V Virtual Machine (SRVM)
 # Core Interpreter Implementation (RV64I)
@@ -60,6 +60,11 @@ class SRVM:
     proc init(self):
         self.state = SageVMState()
         self.trace = false
+
+    proc is_truthy(self, val):
+        if val == nil or val == false or val == 0 or val == "" or val == 0.0:
+            return false
+        return true
 
     proc safe_get_constant(self, idx):
         if idx >= 0 and idx < len(self.state.constants):
@@ -370,6 +375,26 @@ class SRVM:
                 print str(self.state.x[10]) # Use a0
             elif sub_op == VMO_PRINTM:
                 print str(self.state.x[10])
+            elif sub_op == VMO_CMP_BINARY:
+                let val1 = self.state.x[10]
+                let val2 = self.state.x[11]
+                let cmp_type = instr.funct7
+                if cmp_type == CMP_EQ: self.state.x[10] = (val1 == val2)
+                elif cmp_type == CMP_NEQ: self.state.x[10] = (val1 != val2)
+                elif cmp_type == CMP_LT: self.state.x[10] = (val1 < val2)
+                elif cmp_type == CMP_GT: self.state.x[10] = (val1 > val2)
+                elif cmp_type == CMP_LE: self.state.x[10] = (val1 <= val2)
+                elif cmp_type == CMP_GE: self.state.x[10] = (val1 >= val2)
+            elif sub_op == VMO_NIL:
+                self.state.x[instr.rd] = nil
+            elif sub_op == VMO_TRUE:
+                self.state.x[instr.rd] = true
+            elif sub_op == VMO_FALSE:
+                self.state.x[instr.rd] = false
+            elif sub_op == VMO_NOT:
+                self.state.x[instr.rd] = not self.is_truthy(self.state.x[10])
+            elif sub_op == VMO_TRUTHY:
+                self.state.x[instr.rd] = self.is_truthy(self.state.x[10])
             elif sub_op == VMO_PUSH_ENV:
                 # Security: Prevent environment stack exhaustion (DoS)
                 if len(self.state.call_stack) >= self.state.max_call_depth:
@@ -599,6 +624,16 @@ class SRVM:
                     push(arr, init_val)
                     i = i + 1
                 self.state.x[instr.rd] = arr
+            elif sub_op == OBJ_DICT_NEW:
+                self.state.x[instr.rd] = {}
+            elif sub_op == OBJ_TUPLE_NEW:
+                let size = int(self.state.x[10])
+                var t_arr = []
+                var i = 0
+                while i < size:
+                    push(t_arr, nil)
+                    i = i + 1
+                self.state.x[instr.rd] = t_arr
             elif sub_op == OBJ_GET_INDEX:
                 let obj = self.state.x[instr.rs2]
                 let raw_idx = self.state.x[10]
@@ -606,7 +641,12 @@ class SRVM:
                     self.state.x[instr.rd] = nil
                 elif type(obj) == "dict":
                     self.state.x[instr.rd] = obj[raw_idx]
-                elif type(obj) == "list":
+                elif type(obj) == "list" or type(obj) == "array":
+                    let idx = int(raw_idx)
+                    if idx >= 0 and idx < len(obj):
+                        self.state.x[instr.rd] = obj[idx]
+                    else: self.state.x[instr.rd] = nil
+                elif type(obj) == "string":
                     let idx = int(raw_idx)
                     if idx >= 0 and idx < len(obj):
                         self.state.x[instr.rd] = obj[idx]
@@ -622,7 +662,7 @@ class SRVM:
                     print "Error: Index assignment to protected object is restricted in safe mode"
                 elif type(obj) == "dict":
                     obj[raw_idx] = val
-                elif type(obj) == "list":
+                elif type(obj) == "list" or type(obj) == "array":
                     let idx = int(raw_idx)
                     if idx >= 0 and idx < len(obj):
                         obj[idx] = val

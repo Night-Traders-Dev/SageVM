@@ -44,3 +44,11 @@ test:
 	fi
 	@$(MAKE) all
 	@python3 tests/run_tests.py
+
+test-srvm:
+	@$(MAKE) all
+	@python3 tests/run_tests.py --riscv
+
+test-jit:
+	@$(MAKE) all
+	@python3 tests/run_tests.py --jit
