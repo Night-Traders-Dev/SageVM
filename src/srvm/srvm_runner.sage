@@ -60,6 +60,8 @@ class SRVMRunner:
                     k = k + 1
                 push(self.vm.state.constants, s)
                 off = off + slen
+            else:
+                push(self.vm.state.constants, nil)
             j = j + 1
             
         # Load Chunks

@@ -40,6 +40,7 @@ proc print_help():
     print "  🛠️  " + COLOR_CYAN + "compile" + COLOR_RESET + " <file.sage>     Compile Sage source to binary"
     print "  🔍 " + COLOR_CYAN + "dis" + COLOR_RESET + " <file.sgvm|sgrv> Disassemble binary"
     print "  📦 " + COLOR_CYAN + "hex" + COLOR_RESET + " <file.sgvm|sgrv> Low-level binary hexdump"
+    print "  💻 " + COLOR_CYAN + "repl" + COLOR_RESET + "            Interactive REPL (--riscv or --svm)"
     print "  ℹ️  " + COLOR_CYAN + "version" + COLOR_RESET + "             Show version information"
     print ""
     print "Flags: -h, --help, -v, --version"
@@ -112,6 +113,9 @@ class SGVMCLI:
             return
         elif cmd == "hex":
             self.handle_hex(args)
+            return
+        elif cmd == "repl":
+            self.handle_repl(args, 2)
             return
         
         # Check if called via symlink (e.g. /usr/local/bin/sgvm or ./sgvm)
@@ -371,3 +375,71 @@ class SGVMCLI:
             srvm_hexdump_logic.srvm_disassemble(input_file)
         else:
             sgvm_hexdump_logic.disassemble(input_file)
+
+    proc handle_repl(self, args, start_idx):
+        var riscv = true
+        var debug = false
+        var safe = false
+        var iter_idx = start_idx
+        while iter_idx < len(args):
+            let a = args[iter_idx]
+            if a == "--svm" or a == "--stack": riscv = false
+            elif a == "--riscv": riscv = true
+            elif a == "--debug": debug = true
+            elif a == "--safe": safe = true
+            elif a == "-h" or a == "--help":
+                print COLOR_CYAN + COLOR_BOLD + "💻 SageVM Interactive REPL" + COLOR_RESET
+                print "Usage: " + COLOR_BOLD + "sagevm repl" + COLOR_RESET + " [--riscv | --svm] [--debug] [--safe]"
+                return
+            iter_idx = iter_idx + 1
+
+        var target_name = COLOR_GREEN + "SRVM (RISC-V Register Machine)" + COLOR_RESET
+        var prompt_str = COLOR_CYAN + COLOR_BOLD + "srvm> " + COLOR_RESET
+        if not riscv:
+            target_name = COLOR_CYAN + "SVM (Stack Machine)" + COLOR_RESET
+            prompt_str = COLOR_CYAN + COLOR_BOLD + "svm> " + COLOR_RESET
+
+        print COLOR_CYAN + COLOR_BOLD + "✨ SageVM Interactive REPL v1.0.0" + COLOR_RESET
+        print "Target Substrate: " + target_name
+        print "Type " + COLOR_CYAN + ":quit" + COLOR_RESET + " to exit, " + COLOR_CYAN + ":help" + COLOR_RESET + " for REPL instructions."
+        print ""
+
+        let tmp_sage = "/tmp/_repl_eval.sage"
+        let tmp_bin = "/tmp/_repl_eval.bin"
+        let ut = self.utils
+
+        var runner_srvm = nil
+        var runner_sgvm = nil
+        if riscv:
+            runner_srvm = srvm_runner.SRVMRunner()
+            runner_srvm.vm.trace = debug
+            runner_srvm.vm.state.safe_mode = safe
+        else:
+            runner_sgvm = sgvm_runner.SGVMRunner()
+
+        var running = true
+        while running:
+            let line = input(prompt_str)
+            if line == nil or line == ":quit" or line == ":exit" or line == "exit":
+                print COLOR_YELLOW + "Goodbye!" + COLOR_RESET
+                running = false
+            elif line == ":help":
+                print COLOR_BOLD + "SageVM REPL Commands:" + COLOR_RESET
+                print "  " + COLOR_CYAN + ":quit" + COLOR_RESET + "  Exit the interactive REPL"
+                print "  " + COLOR_CYAN + ":help" + COLOR_RESET + "  Display this help dialog"
+            else:
+                let trimmed = ut.trim(line)
+                if trimmed != "":
+                    var stmt = line
+                    if not startswith(trimmed, "print ") and not startswith(trimmed, "let ") and not startswith(trimmed, "var ") and not startswith(trimmed, "proc ") and not startswith(trimmed, "for ") and not startswith(trimmed, "while ") and not startswith(trimmed, "if ") and not startswith(trimmed, "import ") and not startswith(trimmed, "#"):
+                        stmt = "print (" + line + ")"
+                    
+                    io.writefile(tmp_sage, stmt + "\n")
+                    if riscv:
+                        let comp = srvm_compiler.SRVMCompiler()
+                        if comp.compile(tmp_sage, tmp_bin, false):
+                            runner_srvm.run_file(tmp_bin, debug, safe, true)
+                    else:
+                        let comp = sgvm_compiler.SGVMCompiler()
+                        if comp.compile(tmp_sage, tmp_bin, false):
+                            runner_sgvm.run_file(tmp_bin, debug, safe, true)

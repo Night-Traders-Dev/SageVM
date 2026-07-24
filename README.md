@@ -50,6 +50,7 @@ sagevm run <file.sgvm|.sgrv> [--debug] [--safe] [--no-exec] [--no-ffi] [--riscv]
 sagevm compile <file.sage> [output] [--shebang] [--riscv]
 sagevm dis <file.sgvm|.sgrv> [--sage | --svm] [--riscv]
 sagevm hex <file.sgvm|.sgrv> [--riscv]
+sagevm repl [--riscv | --svm] [--debug] [--safe]
 sagevm version
 ```
 
@@ -57,6 +58,7 @@ sagevm version
 - **compile**: Compile SageLang source to binary. Use `--riscv` for register-based `.sgrv` output.
 - **dis**: Disassemble binary into readable instructions. Auto-detects architecture.
 - **hex**: Low-level binary hexdump. Auto-detects architecture.
+- **repl**: Launch interactive REPL executing input lines directly on SRVM (RISC-V) or SVM (Stack VM) substrates.
 
 ## Architectures
 

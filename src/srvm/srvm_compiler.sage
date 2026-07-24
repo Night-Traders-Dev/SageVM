@@ -312,7 +312,7 @@ class StackToRiscVTranslator:
                 if obj == 10:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, obj, 0))
                     obj_reg = 5
-                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, name_idx))
+                self.emit_load_imm(10, name_idx)
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_GET_PROP, obj_reg))
                 push(self.reg_stack, rd)
 
@@ -327,7 +327,7 @@ class StackToRiscVTranslator:
                     obj_reg = 5
                 if val != 11:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, val, 0))
-                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, name_idx))
+                self.emit_load_imm(10, name_idx)
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_PROP, obj_reg))
 
             elif op == OP_POP:
@@ -719,6 +719,8 @@ class SGRVCompiler:
                     k = k + 1
                 pos = pos + slen
                 push(constants, {"type": 3, "str": s})
+            else:
+                push(constants, nil)
             ci = ci + 1
             
         # Initialize translator with constants
