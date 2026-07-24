@@ -306,27 +306,29 @@ class SGVMCompiler:
                 while j < clen * 2:
                     var op = ut.parse_hex_byte(hex, j)
                     # Mapping host opcodes (0-based) to VM opcodes
-                    if op == 0x31: op = 35 # BC_OP_JUMP
-                    elif op == 0x32: op = 36 # BC_OP_JUMP_IF_FALSE
-                    elif op == 0x34: op = 52 # BC_OP_IMPORT
-                    elif op == 0x26: op = 38 # BC_OP_CALL_METHOD
+                    if op == 0x23: op = 35 # BC_OP_JUMP
+                    elif op == 0x24: op = 36 # BC_OP_JUMP_IF_FALSE
                     elif op == 0x25: op = 37 # BC_OP_CALL
+                    elif op == 0x26: op = 38 # BC_OP_CALL_METHOD
+                    elif op == 0x31: op = 49 # BC_OP_BREAK
+                    elif op == 0x32: op = 50 # BC_OP_CONTINUE
                     elif op == 0x33: op = 51 # BC_OP_LOOP_BACK
+                    elif op == 0x34: op = 52 # BC_OP_IMPORT
                     elif op == 0x35: op = 53 # BC_OP_CLASS
                     elif op == 0x36: op = 54 # BC_OP_METHOD
                     elif op == 0x37: op = 55 # BC_OP_INHERIT
                     elif op == 0x38: op = 56 # BC_OP_SETUP_TRY
                     elif op == 0x39: op = 57 # BC_OP_END_TRY
-                    elif op == 0x44: op = 58 # BC_OP_RAISE
-                    elif op == 0x08: op = 8  # BC_OP_DEFINE_FUNCTION (aligned)
+                    elif op == 0x3a: op = 58 # BC_OP_RAISE
+                    elif op == 0x08: op = 8  # BC_OP_DEFINE_FUNCTION
                     elif op == 0x09: op = 9  # BC_OP_GET_PROPERTY
                     elif op == 0x0a: op = 10 # BC_OP_SET_PROPERTY
                     elif op == 0x0b: op = 11 # BC_OP_GET_INDEX
                     elif op == 0x0c: op = 12 # BC_OP_SET_INDEX
                     elif op == 0x0d: op = 13 # BC_OP_LOAD_FUNCTION
                     elif op == 0x0e: op = 14 # BC_OP_SLICE
-                    elif op == 0x45: op = 88 # BC_OP_GET_LOCAL
-                    elif op == 0x46: op = 89 # BC_OP_SET_LOCAL
+                    elif op == 0x3b: op = 88 # BC_OP_GET_LOCAL
+                    elif op == 0x3c: op = 89 # BC_OP_SET_LOCAL
                     elif op == 0x3d: op = 90 # BC_OP_YIELD
                     elif op == 0x3e: op = 91 # BC_OP_CREATE_GENERATOR
                     elif op == 0x3f: op = 92 # BC_OP_GENERATOR_NEXT

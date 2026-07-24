@@ -83,6 +83,7 @@ class MetalVM:
         self.ip = 0
         self.code = []
         self.halted = false
+        self.exit_requested = false
         self.is_throwing = false
         self.exception_value = nil
         self.trace = false
@@ -102,6 +103,8 @@ class MetalVM:
         self.call_stack = [{"ip": 0, "code": [], "constants": []}]
         # Performance: Cache local_base to avoid dictionary lookups in hot loop
         self.current_local_base = 0
+        self.active_generator = nil
+        self.gen_caller_stack = []
 
     proc safe_get_constant(self, idx):
         if idx >= 0 and idx < len(self.constants): return self.constants[idx]
@@ -166,6 +169,7 @@ class MetalVM:
         # String/Collection builtins
         self.globals["push"] = "__builtin_push"
         self.globals["pop"] = "__builtin_pop"
+        self.globals["next"] = "__builtin_next"
         self.globals["chr"] = "__builtin_chr"
         self.globals["ord"] = "__builtin_ord"
         self.globals["startswith"] = "__builtin_startswith"
@@ -664,7 +668,7 @@ class MetalVM:
             if len(args) == 0 or args[0] == nil: return nil
             return tonumber(args[0])
         elif callee == "__builtin_len":
-            if len(args) == 0 or args[0] == nil: return 0
+            if len(args) == 0 or args[0] == nil: return nil
             return len(args[0])
         elif callee == "__builtin_print":
             print args[0]
@@ -793,6 +797,7 @@ class MetalVM:
                 return -1
             return sys.system(args[0])
         elif callee == "__builtin_sys_exit":
+            self.exit_requested = true
             self.halted = true
             return nil
         elif callee == "__builtin_sys_getenv":
@@ -832,10 +837,48 @@ class MetalVM:
         elif callee == "__builtin_reflect_get_methods": return reflect_get_methods(args[0])
         elif callee == "__builtin_reflect_get_class": return reflect_get_class(args[0])
         elif callee == "__builtin_push":
+            if self.safe_mode and type(args[0]) == "dict":
+                print "Error: Modification of protected object is restricted in safe mode"
+                return nil
             push(args[0], args[1])
             return nil
         elif callee == "__builtin_pop":
+            if self.safe_mode and type(args[0]) == "dict":
+                print "Error: Modification of protected object is restricted in safe mode"
+                return nil
             return pop(args[0])
+        elif callee == "__builtin_next":
+            if len(args) > 0 and type(args[0]) == "dict" and dict_has(args[0], "__type__") and args[0]["__type__"] == "generator":
+                let gen = args[0]
+                if gen["completed"]: return nil
+                let caller_info = {
+                    "ip": self.ip,
+                    "code": self.code,
+                    "stack": self.stack,
+                    "scopes": self.scopes,
+                    "call_stack": self.call_stack,
+                    "local_base": self.current_local_base,
+                    "active_generator": self.active_generator
+                }
+                push(self.gen_caller_stack, caller_info)
+                self.active_generator = gen
+                self.code = self.chunks[gen["__chunk__"]]
+                self.ip = gen["__ip__"]
+                self.stack = gen["__stack__"]
+                self.scopes = gen["__scopes__"]
+                self.call_stack = gen["__call_stack__"]
+                self.current_local_base = 0
+
+                let target_gen = self.active_generator
+                while not self.halted and self.active_generator == target_gen and self.ip < len(self.code):
+                    let g_op = int(self.code[self.ip])
+                    self.ip = self.ip + 1
+                    self.execute_op(g_op)
+                
+                if len(self.stack) > 0:
+                    return pop(self.stack)
+                return nil
+            return nil
         elif callee == "__builtin_chr":
             if len(args) == 0 or args[0] == nil: return ""
             return chr(int(args[0]))
@@ -1199,6 +1242,23 @@ class MetalVM:
                             let arg_name = "__arg" + str(j)
                             self.scopes[len(self.scopes)-1][arg_name] = args[j]
                             j = j + 1
+                    elif ctype == "generator_fn":
+                        let gen_obj = {
+                            "__type__": "generator",
+                            "__chunk__": callee["__chunk__"],
+                            "__ip__": 0,
+                            "__stack__": [],
+                            "__scopes__": [{}],
+                            "__call_stack__": [],
+                            "completed": false
+                        }
+                        j = 0
+                        while j < argc:
+                            push(gen_obj["__stack__"], args[j])
+                            let arg_name = "__arg" + str(j)
+                            gen_obj["__scopes__"][0][arg_name] = args[j]
+                            j = j + 1
+                        push(self.stack, gen_obj)
                     elif ctype == "class":
                         let instance = {"__type__": "instance", "__class__": callee}
                         if dict_has(callee["__methods__"], "init"):
@@ -1394,6 +1454,18 @@ class MetalVM:
                     push(self.stack, frame["__instance__"])
                 else:
                     push(self.stack, val)
+            elif self.active_generator != nil:
+                let gen = self.active_generator
+                gen["completed"] = true
+                let caller = pop(self.gen_caller_stack)
+                self.ip = caller["ip"]
+                self.code = caller["code"]
+                self.stack = caller["stack"]
+                self.scopes = caller["scopes"]
+                self.call_stack = caller["call_stack"]
+                self.current_local_base = caller["local_base"]
+                self.active_generator = caller["active_generator"]
+                push(self.stack, val)
             else:
                 self.halted = true
                 self.return_value = val
@@ -1720,15 +1792,57 @@ class MetalVM:
              let cmd = pop(self.stack)
              gpu.cmd_dispatch(cmd, gx, gy, gz)
         elif op == OP_YIELD:
-            print "Error: OP_YIELD is not yet implemented in SVM"
-            self.halted = true
+            let val = pop(self.stack)
+            if self.active_generator != nil:
+                let gen = self.active_generator
+                gen["__ip__"] = self.ip
+                gen["__stack__"] = self.stack
+                gen["__scopes__"] = self.scopes
+                gen["__call_stack__"] = self.call_stack
+                
+                let caller = pop(self.gen_caller_stack)
+                self.ip = caller["ip"]
+                self.code = caller["code"]
+                self.stack = caller["stack"]
+                self.scopes = caller["scopes"]
+                self.call_stack = caller["call_stack"]
+                self.current_local_base = caller["local_base"]
+                self.active_generator = caller["active_generator"]
+                push(self.stack, val)
+            else:
+                push(self.stack, val)
         elif op == OP_CREATE_GENERATOR:
+            let name_idx = ut.read_be16(self.code, self.ip)
+            let chunk_idx = ut.read_be16(self.code, self.ip + 2)
             self.ip = self.ip + 4
-            print "Error: OP_CREATE_GENERATOR is not yet implemented in SVM"
-            self.halted = true
+            let name = self.constants[name_idx]
+            let gen_fn = {"__type__": "generator_fn", "__chunk__": chunk_idx, "__name__": name}
+            self.scopes[len(self.scopes)-1][name] = gen_fn
         elif op == OP_GENERATOR_NEXT:
-            print "Error: OP_GENERATOR_NEXT is not yet implemented in SVM"
-            self.halted = true
+            let gen = pop(self.stack)
+            if type(gen) == "dict" and dict_has(gen, "__type__") and gen["__type__"] == "generator":
+                if gen["completed"]:
+                    push(self.stack, nil)
+                else:
+                    let caller_info = {
+                        "ip": self.ip,
+                        "code": self.code,
+                        "stack": self.stack,
+                        "scopes": self.scopes,
+                        "call_stack": self.call_stack,
+                        "local_base": self.current_local_base,
+                        "active_generator": self.active_generator
+                    }
+                    push(self.gen_caller_stack, caller_info)
+                    self.active_generator = gen
+                    self.code = self.chunks[gen["__chunk__"]]
+                    self.ip = gen["__ip__"]
+                    self.stack = gen["__stack__"]
+                    self.scopes = gen["__scopes__"]
+                    self.call_stack = gen["__call_stack__"]
+                    self.current_local_base = 0
+            else:
+                push(self.stack, nil)
         else:
             print "Unknown OP: " + str(op)
             self.halted = true

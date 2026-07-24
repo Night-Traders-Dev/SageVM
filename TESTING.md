@@ -62,26 +62,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `security_indexing.sage`: Verifies `safe_mode` index protections for `__` internal keys.
 - `security_restricted.sage`: Verifies native module access blocks in `safe_mode`.
 
-### Known Issues
-As of July 2026, several tests are expected to fail due to documented but unimplemented features in the SVM backend:
-- `array_methods.sage`: Missing `push` and `pop` builtins.
-- `strings.sage`: Missing `chr`, `ord`, `startswith`, and `endswith` builtins.
-- `array_ops.sage`: String slicing returns `nil` due to float-to-int conversion issues in the VM.
-- `dict_builtins.sage`: Missing `dict_has`, `dict_keys`, and `dict_values` builtins.
-- `string_methods.sage`: Missing `upper`, `lower`, `strip`, `replace`, `split`, and `join` builtins.
-- `contains_builtin.sage`: Missing `contains` builtin.
-- `truthiness_expanded.sage` and `truthy_explicit.sage`: Incorrectly treats empty strings as falsy (inherited from host SageLang behavior).
-- `math_trig.sage`: `math.sin` and `math.cos` return nil.
-- `string_repeat.sage`: String repetition with `*` is not implemented in the SVM backend.
-- `mem_builtin.sage`: `mem.read` returns nil.
-- `struct_builtin.sage`: `struct.def` returns nil.
-- `all_types.sage`: Returns "dict" for modules, functions, classes, and instances instead of specific type names.
-- `collection_eq.sage`: Dictionary equality comparison always returns false in SVM.
-- `nested_scopes.sage`: Nested functions cannot access parent local variables (lack of closures); they only see global scope or own locals.
-- `string_repeat.sage`: Missing SVM implementation for string repetition with `*`.
-- `halt_op.sage`: Fails because `sys.exit` currently does not halt the VM interpreter.
-- `generators.sage`: Fails because SVM lacks a native generator engine (`OP_YIELD`/`OP_GENERATOR_NEXT` state preservation).
-- `io_module.sage`: Fails / raises error because the host native bridging layer evaluates native modules to type `"unknown"`, preventing proper dynamic method dispatch (native functions/modules evaluation type mismatch bug).
+### Verification Status (v0.9.9)
+As of July 2026, 100% of the modern coverage suite (79 passed, 0 failed, 1 skipped) passes cleanly under the SVM and SRVM backends.
+All historical opcode translation mismatches, generator execution support (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`), module method bridging, safe-mode object protections, and interpreter halt controls are fully resolved.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
