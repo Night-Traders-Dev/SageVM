@@ -21,3 +21,7 @@
 ## 2026-07-18 - [Accessible Interactive Toggles & Submodule Management]
 **Learning:** Custom interactive components like the Globals panel header in the playground require full keyboard navigation (role="button", tabIndex={0}, and keydown event handlers) and proper ARIA states (aria-pressed/aria-expanded) to ensure compatibility with screen readers. Furthermore, since the documentation resides in a git submodule 'docs/site', changes must be committed in the sub-repository before updating the parent repository's submodule pointer.
 **Action:** Always implement keyboard listeners (Space & Enter) and ARIA states for collapsible panels, and ensure submodule commits are resolved first in parent-submodule setups.
+
+## 2026-07-23 - [Search & Filter Recovery Patterns]
+**Learning:** In interactive doc sites, search/filter systems can easily trap keyboard users in "zero results" states if there isn't a keyboard-accessible, fast recovery action (such as a clear button or reset button) that focuses back or resets state gracefully. Providing a fallback call-to-action button in empty states improves task flow and prevents navigation dead-ends.
+**Action:** Always include a "Reset" or "Clear" CTA in empty search/filter states to ensure smooth recovery.
