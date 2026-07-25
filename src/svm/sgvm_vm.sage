@@ -849,6 +849,9 @@ class MetalVM:
             self.halted = true
             return nil
         elif callee == "__builtin_sys_getenv":
+            if self.safe_mode:
+                print "Error: sys.getenv is restricted in safe mode"
+                return nil
             if len(args) > 0 and type(args[0]) == "string":
                 return sys.getenv(args[0])
             return nil

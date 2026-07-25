@@ -1,0 +1,2 @@
+Error: sys.getenv is restricted in safe mode
+SUCCESS: getenv blocked or returned nil
