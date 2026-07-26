@@ -220,7 +220,8 @@ class MetalVM:
         var stack_len = len(stack)
         let max_stack = self.max_stack_depth
         let constants = self.constants
-        let scopes = self.scopes
+        var scopes = self.scopes
+        var global_scope = scopes[0]
         let globals = self.globals
         let trace = self.trace
         let safe_mode = self.safe_mode
@@ -274,11 +275,11 @@ class MetalVM:
                 # Performance: Bypassing dict_has for direct lookup where possible
                 var found = false
                 if scopes_len == 1:
-                    let val = scopes[0][name]
+                    let val = global_scope[name]
                     if val != nil:
                         push(stack, val)
                         found = true
-                    elif dict_has(scopes[0], name):
+                    elif dict_has(global_scope, name):
                         push(stack, nil)
                         found = true
                 elif scopes_len == 2:
@@ -290,11 +291,11 @@ class MetalVM:
                         push(stack, nil)
                         found = true
                     else:
-                        let val0 = scopes[0][name]
+                        let val0 = global_scope[name]
                         if val0 != nil:
                             push(stack, val0)
                             found = true
-                        elif dict_has(scopes[0], name):
+                        elif dict_has(global_scope, name):
                             push(stack, nil)
                             found = true
                 else:
@@ -369,10 +370,10 @@ class MetalVM:
                 let val = stack[stack_len-1]
                 # Performance: Fast-path for common scope depths bypassing dict_has
                 if scopes_len == 1:
-                    if scopes[0][name] != nil:
-                        scopes[0][name] = val
-                    elif dict_has(scopes[0], name):
-                        scopes[0][name] = val
+                    if global_scope[name] != nil:
+                        global_scope[name] = val
+                    elif dict_has(global_scope, name):
+                        global_scope[name] = val
                     else:
                         globals[name] = val
                 elif scopes_len == 2:
@@ -380,10 +381,10 @@ class MetalVM:
                         scopes[1][name] = val
                     elif dict_has(scopes[1], name):
                         scopes[1][name] = val
-                    elif scopes[0][name] != nil:
-                        scopes[0][name] = val
-                    elif dict_has(scopes[0], name):
-                        scopes[0][name] = val
+                    elif global_scope[name] != nil:
+                        global_scope[name] = val
+                    elif dict_has(global_scope, name):
+                        global_scope[name] = val
                     else:
                         globals[name] = val
                 else:
@@ -640,8 +641,8 @@ class MetalVM:
                             stack[stack_len-1] = obj["__class__"]["__methods__"][name]
                         elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
                             stack[stack_len-1] = obj["__methods__"][name]
-                        elif dict_has(obj, "__type__") and obj["__type__"] == "module" and dict_has(scopes[0], name):
-                            stack[stack_len-1] = scopes[0][name]
+                        elif dict_has(obj, "__type__") and obj["__type__"] == "module" and dict_has(global_scope, name):
+                            stack[stack_len-1] = global_scope[name]
                         else:
                             stack[stack_len-1] = nil
                     else:
@@ -689,6 +690,8 @@ class MetalVM:
                 code_len = len(code_bytes)
                 halted = self.halted
                 local_base = self.current_local_base
+                scopes = self.scopes
+                global_scope = scopes[0]
                 scopes_len = len(scopes)
                 stack_len = len(stack)
 
