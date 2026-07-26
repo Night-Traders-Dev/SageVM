@@ -228,6 +228,7 @@ class MetalVM:
         let code_len = len(code_bytes)
         let const_len = len(constants)
         var scopes_len = len(scopes)
+        var global_scope = scopes[0]
 
         host_thread.lock(g_gil)
         while not halted and ip < code_len:
@@ -274,11 +275,11 @@ class MetalVM:
                 # Performance: Bypassing dict_has for direct lookup where possible
                 var found = false
                 if scopes_len == 1:
-                    let val = scopes[0][name]
+                    let val = global_scope[name]
                     if val != nil:
                         push(stack, val)
                         found = true
-                    elif dict_has(scopes[0], name):
+                    elif dict_has(global_scope, name):
                         push(stack, nil)
                         found = true
                 elif scopes_len == 2:
@@ -290,22 +291,24 @@ class MetalVM:
                         push(stack, nil)
                         found = true
                     else:
-                        let val0 = scopes[0][name]
+                        let val0 = global_scope[name]
                         if val0 != nil:
                             push(stack, val0)
                             found = true
-                        elif dict_has(scopes[0], name):
+                        elif dict_has(global_scope, name):
                             push(stack, nil)
                             found = true
                 else:
                     var si = scopes_len - 1
                     while si >= 0:
-                        let val = scopes[si][name]
+                        var scope_to_check = scopes[si]
+                        if si == 0: scope_to_check = global_scope
+                        let val = scope_to_check[name]
                         if val != nil:
                             push(stack, val)
                             found = true
                             si = -1
-                        elif dict_has(scopes[si], name):
+                        elif dict_has(scope_to_check, name):
                             push(stack, nil)
                             found = true
                             si = -1
@@ -369,10 +372,10 @@ class MetalVM:
                 let val = stack[stack_len-1]
                 # Performance: Fast-path for common scope depths bypassing dict_has
                 if scopes_len == 1:
-                    if scopes[0][name] != nil:
-                        scopes[0][name] = val
-                    elif dict_has(scopes[0], name):
-                        scopes[0][name] = val
+                    if global_scope[name] != nil:
+                        global_scope[name] = val
+                    elif dict_has(global_scope, name):
+                        global_scope[name] = val
                     else:
                         globals[name] = val
                 elif scopes_len == 2:
@@ -380,22 +383,24 @@ class MetalVM:
                         scopes[1][name] = val
                     elif dict_has(scopes[1], name):
                         scopes[1][name] = val
-                    elif scopes[0][name] != nil:
-                        scopes[0][name] = val
-                    elif dict_has(scopes[0], name):
-                        scopes[0][name] = val
+                    elif global_scope[name] != nil:
+                        global_scope[name] = val
+                    elif dict_has(global_scope, name):
+                        global_scope[name] = val
                     else:
                         globals[name] = val
                 else:
                     var si = scopes_len - 1
                     var updated = false
                     while si >= 0:
-                        if scopes[si][name] != nil:
-                            scopes[si][name] = val
+                        var scope_to_check = scopes[si]
+                        if si == 0: scope_to_check = global_scope
+                        if scope_to_check[name] != nil:
+                            scope_to_check[name] = val
                             updated = true
                             si = -1
-                        elif dict_has(scopes[si], name):
-                            scopes[si][name] = val
+                        elif dict_has(scope_to_check, name):
+                            scope_to_check[name] = val
                             updated = true
                             si = -1
                         else:
@@ -691,6 +696,7 @@ class MetalVM:
                 local_base = self.current_local_base
                 scopes_len = len(scopes)
                 stack_len = len(stack)
+                global_scope = scopes[0]
 
         # Final synchronization
         self.ip = ip
