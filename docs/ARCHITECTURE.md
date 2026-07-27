@@ -247,6 +247,9 @@ The following modules are currently bridged:
 - **gpu**: Native SageLang `gpu` module (Vulkan/OpenGL acceleration).
 - **ml_native**: Native SageLang `ml_native` module (Machine Learning acceleration).
 - **ffi**: Foreign Function Interface for calling host C libraries.
+  - Fully integrated high-performance calling using native `sage_ffi_call` and `sage_ffi_call_full` entry points via `dlsym`.
+  - Automatic argument marshaling through `sage_value_to_c` supporting `int`, `double`, `string`, `pointer`, and raw `bytes` types.
+  - Explicit return type enforcement (`int`, `double`, `pointer`) supported in `sage_ffi_call_full`.
 - **mem**: Direct host memory management and raw access (including `alloc`, `free`, `read`, `write`, `size`).
 - **struct**: Binary data structure packing/unpacking (including `def`, `new`, `get`, `set`, `size`).
 - **gc**: (Experimental stub) Native SageLang garbage collector interface.
@@ -312,7 +315,7 @@ SGVM exposes several host-level functions directly in the global scope for perfo
 | `upper(str)` / `lower(str)` | Converts a string to upper or lower case. |
 | `strip(str)` | Removes leading and trailing whitespace from a string. |
 
-*Note: String and collection utilities (push, pop, chr, ord, startswith, endswith, etc.) are currently implemented in the SRVM backend. They are identified gaps in the SVM interpreter (`sgvm_vm.sage`) and are planned for future restoration.*
+*Note: String and collection utilities (push, pop, chr, ord, startswith, endswith, etc.) are fully supported across both SVM (`sgvm_vm.sage`) and SRVM backends.*
 
 ## Multi-threading & GIL
 

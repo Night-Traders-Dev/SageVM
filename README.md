@@ -46,11 +46,11 @@ To build without installing:
 ## Unified CLI (sagevm)
 
 ```
-sagevm run <file.sgvm|.sgrv> [--debug] [--safe] [--no-exec] [--no-ffi] [--riscv]
+sagevm run <file.sgvm|.sgrv> [--debug] [--safe] [--no-exec] [--no-ffi] [--riscv] [--jit]
 sagevm compile <file.sage> [output] [--shebang] [--riscv]
 sagevm dis <file.sgvm|.sgrv> [--sage | --svm] [--riscv]
 sagevm hex <file.sgvm|.sgrv> [--riscv]
-sagevm repl [--riscv | --svm] [--debug] [--safe]
+sagevm repl [--riscv | --svm] [--debug] [--safe] [--jit]
 sagevm version
 ```
 
