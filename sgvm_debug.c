@@ -356,8 +356,110 @@ static SageValue sage_ffi_close(SageValue handle) {
     dlclose(handle.as.clib);
     return sage_nil();
 }
-static SageValue sage_ffi_call(SageValue handle, SageValue name, SageValue args) { return sage_nil(); }
-static SageValue sage_ffi_call_full(SageValue handle, SageValue name, SageValue args, SageValue rt) { return sage_nil(); }
+static SageValue sage_value_to_c(SageValue val, const char* type, void* out_ptr) {
+    if (strcmp(type, "int") == 0 || strcmp(type, "Int") == 0) {
+        if (val.type == SAGE_TAG_NUMBER) {
+            *((int*)out_ptr) = (int)val.as.number;
+            return sage_number(0);
+        }
+        return sage_nil();
+    }
+    if (strcmp(type, "double") == 0 || strcmp(type, "Float") == 0) {
+        if (val.type == SAGE_TAG_NUMBER) {
+            *((double*)out_ptr) = val.as.number;
+            return sage_number(0);
+        }
+        return sage_nil();
+    }
+    if (strcmp(type, "string") == 0 || strcmp(type, "String") == 0) {
+        if (val.type == SAGE_TAG_STRING) {
+            *((const char**)out_ptr) = val.as.string;
+            return sage_number(0);
+        }
+        return sage_nil();
+    }
+    if (strcmp(type, "pointer") == 0 || strcmp(type, "Pointer") == 0 || strcmp(type, "void*") == 0) {
+        if (val.type == SAGE_TAG_POINTER) {
+            *((void**)out_ptr) = val.as.pointer;
+            return sage_number(0);
+        }
+        if (val.type == SAGE_TAG_CLIB) {
+            *((void**)out_ptr) = val.as.clib;
+            return sage_number(0);
+        }
+        return sage_nil();
+    }
+    if (strcmp(type, "bytes") == 0 || strcmp(type, "Bytes") == 0) {
+        if (val.type == SAGE_TAG_BYTES) {
+            *((unsigned char**)out_ptr) = val.as.bytes->data;
+            return sage_number(0);
+        }
+        return sage_nil();
+    }
+    return sage_nil();
+}
+
+static SageValue sage_ffi_call(SageValue handle, SageValue name, SageValue args) {
+    if (handle.type != SAGE_TAG_CLIB) return sage_nil();
+    if (name.type != SAGE_TAG_STRING) return sage_nil();
+    if (args.type != SAGE_TAG_ARRAY) return sage_nil();
+    void* func = dlsym(handle.as.clib, name.as.string);
+    if (!func) return sage_nil();
+    if (args.as.array->count == 0) {
+        void* result = ((void*(*)())func)();
+        return sage_number((double)(long)result);
+    }
+    void* arg_ptrs[64];
+    int arg_count = args.as.array->count;
+    if (arg_count > 64) arg_count = 64;
+    for (int i = 0; i < arg_count; i++) {
+        arg_ptrs[i] = NULL;
+    }
+    void* ret = ((void*(*)(void*,void*,void*,void*,void*,void*,void*,void*,void*,void*))func)(
+        arg_count > 0 ? arg_ptrs[0] : NULL,
+        arg_count > 1 ? arg_ptrs[1] : NULL,
+        arg_count > 2 ? arg_ptrs[2] : NULL,
+        arg_count > 3 ? arg_ptrs[3] : NULL,
+        arg_count > 4 ? arg_ptrs[4] : NULL,
+        arg_count > 5 ? arg_ptrs[5] : NULL,
+        arg_count > 6 ? arg_ptrs[6] : NULL,
+        arg_count > 7 ? arg_ptrs[7] : NULL,
+        arg_count > 8 ? arg_ptrs[8] : NULL,
+        arg_count > 9 ? arg_ptrs[9] : NULL
+    );
+    return sage_number((double)(long)ret);
+}
+
+static SageValue sage_ffi_call_full(SageValue handle, SageValue name, SageValue args, SageValue rt) {
+    if (handle.type != SAGE_TAG_CLIB) return sage_nil();
+    if (name.type != SAGE_TAG_STRING) return sage_nil();
+    if (args.type != SAGE_TAG_ARRAY) return sage_nil();
+    if (rt.type != SAGE_TAG_STRING) return sage_nil();
+    void* func = dlsym(handle.as.clib, name.as.string);
+    if (!func) return sage_nil();
+    int arg_count = args.as.array->count;
+    if (arg_count > 64) arg_count = 64;
+    void* arg_ptrs[64];
+    for (int i = 0; i < arg_count; i++) {
+        arg_ptrs[i] = NULL;
+    }
+    if (strcmp(rt.as.string, "int") == 0 || strcmp(rt.as.string, "Int") == 0) {
+        int (*fn)() = (int(*)())func;
+        int result = fn();
+        return sage_number((double)result);
+    }
+    if (strcmp(rt.as.string, "double") == 0 || strcmp(rt.as.string, "Float") == 0) {
+        double (*fn)() = (double(*)())func;
+        double result = fn();
+        return sage_number(result);
+    }
+    if (strcmp(rt.as.string, "pointer") == 0 || strcmp(rt.as.string, "void*") == 0) {
+        void* (*fn)() = (void*(*)())func;
+        void* result = fn();
+        SageValue v; v.type = SAGE_TAG_POINTER; v.as.pointer = result; return v;
+    }
+    return sage_nil();
+}
 
 static SageValue sage_atomic_new(SageValue val) {
     SageValue* atom = malloc(sizeof(SageValue));
