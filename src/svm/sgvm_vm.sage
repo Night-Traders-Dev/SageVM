@@ -230,6 +230,13 @@ class MetalVM:
         let const_len = len(constants)
         var scopes_len = len(scopes)
 
+        # Performance: Inline cache for global lookup and assignment
+        var global_cache_dict = []
+        var ci = 0
+        while ci < const_len:
+            push(global_cache_dict, nil)
+            ci = ci + 1
+
         host_thread.lock(g_gil)
         while not halted and ip < code_len:
             let op = code_bytes[ip]
@@ -268,36 +275,51 @@ class MetalVM:
                     halted = true
                     break
                 let name = constants[idx]
+
+                # Check inline cache
+                let cached_dict = global_cache_dict[idx]
+                if cached_dict != nil:
+                    push(stack, cached_dict[name])
+                    stack_len = stack_len + 1
+                    continue
+
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     push(stack, nil)
                     stack_len = stack_len + 1
                     continue
                 # Performance: Bypassing dict_has for direct lookup where possible
                 var found = false
+                var resolved_dict = nil
                 if scopes_len == 1:
                     let val = global_scope[name]
                     if val != nil:
                         push(stack, val)
                         found = true
+                        resolved_dict = global_scope
                     elif dict_has(global_scope, name):
                         push(stack, nil)
                         found = true
+                        resolved_dict = global_scope
                 elif scopes_len == 2:
                     let val1 = scopes[1][name]
                     if val1 != nil:
                         push(stack, val1)
                         found = true
+                        resolved_dict = scopes[1]
                     elif dict_has(scopes[1], name):
                         push(stack, nil)
                         found = true
+                        resolved_dict = scopes[1]
                     else:
                         let val0 = global_scope[name]
                         if val0 != nil:
                             push(stack, val0)
                             found = true
+                            resolved_dict = global_scope
                         elif dict_has(global_scope, name):
                             push(stack, nil)
                             found = true
+                            resolved_dict = global_scope
                 else:
                     var si = scopes_len - 1
                     while si >= 0:
@@ -305,16 +327,22 @@ class MetalVM:
                         if val != nil:
                             push(stack, val)
                             found = true
+                            resolved_dict = scopes[si]
                             si = -1
                         elif dict_has(scopes[si], name):
                             push(stack, nil)
                             found = true
+                            resolved_dict = scopes[si]
                             si = -1
                         else:
                             si = si - 1
                 if not found:
                     let val = globals[name]
                     push(stack, val)
+                    resolved_dict = globals
+
+                if resolved_dict != nil:
+                    global_cache_dict[idx] = resolved_dict
                 stack_len = stack_len + 1
             elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
@@ -362,31 +390,45 @@ class MetalVM:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
+                let val = stack[stack_len-1]
+                let cached_dict = global_cache_dict[idx]
+                if cached_dict != nil:
+                    cached_dict[constants[idx]] = val
+                    continue
+
                 let name = constants[idx]
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
                     stack[stack_len-1] = nil
                     continue
-                let val = stack[stack_len-1]
                 # Performance: Fast-path for common scope depths bypassing dict_has
+                var resolved_dict = nil
                 if scopes_len == 1:
                     if global_scope[name] != nil:
                         global_scope[name] = val
+                        resolved_dict = global_scope
                     elif dict_has(global_scope, name):
                         global_scope[name] = val
+                        resolved_dict = global_scope
                     else:
                         globals[name] = val
+                        resolved_dict = globals
                 elif scopes_len == 2:
                     if scopes[1][name] != nil:
                         scopes[1][name] = val
+                        resolved_dict = scopes[1]
                     elif dict_has(scopes[1], name):
                         scopes[1][name] = val
+                        resolved_dict = scopes[1]
                     elif global_scope[name] != nil:
                         global_scope[name] = val
+                        resolved_dict = global_scope
                     elif dict_has(global_scope, name):
                         global_scope[name] = val
+                        resolved_dict = global_scope
                     else:
                         globals[name] = val
+                        resolved_dict = globals
                 else:
                     var si = scopes_len - 1
                     var updated = false
@@ -394,15 +436,21 @@ class MetalVM:
                         if scopes[si][name] != nil:
                             scopes[si][name] = val
                             updated = true
+                            resolved_dict = scopes[si]
                             si = -1
                         elif dict_has(scopes[si], name):
                             scopes[si][name] = val
                             updated = true
+                            resolved_dict = scopes[si]
                             si = -1
                         else:
                             si = si - 1
                     if not updated:
                         globals[name] = val
+                        resolved_dict = globals
+
+                if resolved_dict != nil:
+                    global_cache_dict[idx] = resolved_dict
             elif op == OP_JUMP:
                 if stack_len > max_stack:
                     print "Error: Stack overflow"
@@ -567,6 +615,10 @@ class MetalVM:
                     break
                 push(scopes, {})
                 scopes_len = scopes_len + 1
+                var ci = 0
+                while ci < const_len:
+                    global_cache_dict[ci] = nil
+                    ci = ci + 1
             elif op == OP_POP_ENV:
                 if scopes_len > 1:
                     pop(scopes)
@@ -575,6 +627,10 @@ class MetalVM:
                     print "Error: Environment stack underflow"
                     halted = true
                     break
+                var ci = 0
+                while ci < const_len:
+                    global_cache_dict[ci] = nil
+                    ci = ci + 1
             elif op == OP_GET_INDEX:
                 let idx = stack[stack_len-1]
                 let obj = stack[stack_len-2]
@@ -694,6 +750,11 @@ class MetalVM:
                 global_scope = scopes[0]
                 scopes_len = len(scopes)
                 stack_len = len(stack)
+                # Reset global cache because scopes might have changed inside execute_op (e.g. call/return)
+                var ci = 0
+                while ci < const_len:
+                    global_cache_dict[ci] = nil
+                    ci = ci + 1
 
         # Final synchronization
         self.ip = ip
