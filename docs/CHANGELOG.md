@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.1 (2026-07-27)
+
+### Added
+- **Foreign Function Interface (FFI) Calling with Type Marshaling**:
+  - Implemented `sage_ffi_call` and `sage_ffi_call_full` native functions in `sgvm_debug.c` to support FFI calling via `dlsym`.
+  - Added `sage_value_to_c` to support argument type marshaling for `int`, `double`, `string`, `pointer`, and `bytes` types into C-compatible values.
+  - Added support for explicit return types (`int`, `double`, `pointer`) in `sage_ffi_call_full`.
+  - Enables seamless SageLang -> C FFI calls, critical for integrating with the SageFS kernel driver.
+- **Makefile Integration and Targets**:
+  - Introduced `test-srvm` and `test-jit` targets in the `Makefile` to simplify running the verification suite for RISC-V and JIT configurations.
+  - Enhanced workspace compilation resilience by configuring network-less and GPU-less builds for SageLang core during bootstrap (`SAGE_NO_NET=1 SAGE_NO_GPU=1`).
+
+### Changed
+- **Sandboxing and Capabilities Restriction**:
+  - Blacklisted guest-side `struct` module import in SVM (`src/svm/sgvm_vm.sage`) under `safe_mode`.
+- **Improved Host C Interpreter Precision & Robustness**:
+  - Updated `sage_sub`, `sage_mul`, `sage_div`, and `sage_mod` with descriptive debugging details and standardized error behaviors for operand mismatch.
+
+### Fixed
+- **Hardened Byte Writing**:
+  - Updated `sage_io_writebytes` to support writing both raw `SAGE_TAG_BYTES` and `SAGE_TAG_ARRAY` objects.
+  - Added security verification in `sage_io_writebytes` to default non-number tags in arrays to 0 instead of causing host crashes.
+
 ## v1.0.0 (2026-07-24)
 
 ### Highlights & 100% Test Conformance

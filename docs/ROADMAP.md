@@ -16,7 +16,7 @@ This document outlines the current status, supported features, and outstanding w
 - **GPU Hot-Paths**: Implementation of `BC_OP_GPU_*` opcodes (59–86) for Vulkan/OpenGL acceleration via host delegation; stub handlers for headless environments.
 - **AST Delegation**: Full implementation of `OP_EXEC_AST_STMT` to allow execution of non-lowered code via `sys.exec()`.
 - **Matrix Visualization**: Native interpretation for `OP_MATH_PRINTM`.
-- **Native Bridge Modules**: `ffi`, `mem`, and `struct` native modules exposed to guest VM.
+- **Native Bridge Modules**: `ffi` (with `sage_ffi_call` and `sage_ffi_call_full` native calling and type marshaling), `mem`, and `struct` native modules exposed to guest VM.
 - **Security Sandboxing**: `safe_mode`, `ffi_enabled`, `exec_enabled` flags with `--safe`, `--no-ffi`, `--no-exec` CLI flags.
 - **SVM Builtin Parity**: All 16 string/collection builtins (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`, `contains`, `join`, `split`, `replace`, `upper`, `lower`, `strip`, `dict_has`, `dict_keys`, `dict_values`).
 - **MetalVM Spec Conformance**: Truthiness (only `nil`/`false`/`0` falsy), deep equality, string repetition, division-by-zero → `nil`.
