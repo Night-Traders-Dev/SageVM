@@ -792,16 +792,25 @@ class MetalVM:
                 return nil
             return mem_size(args[0])
         elif callee == "__builtin_ffi_open":
+            if not self.ffi_enabled:
+                print "Error: FFI is disabled"
+                return nil
             if self.safe_mode:
                 print "Error: ffi_open is restricted in safe mode"
                 return nil
             return ffi_open(args[0])
         elif callee == "__builtin_ffi_close":
+            if not self.ffi_enabled:
+                print "Error: FFI is disabled"
+                return nil
             if self.safe_mode:
                 print "Error: ffi_close is restricted in safe mode"
                 return nil
             return ffi_close(args[0])
         elif callee == "__builtin_ffi_call":
+            if not self.ffi_enabled:
+                print "Error: FFI is disabled"
+                return nil
             if self.safe_mode:
                 print "Error: ffi_call is restricted in safe mode"
                 return nil
@@ -891,16 +900,19 @@ class MetalVM:
         elif callee == "__builtin_reflect_get_methods": return reflect_get_methods(args[0])
         elif callee == "__builtin_reflect_get_class": return reflect_get_class(args[0])
         elif callee == "__builtin_push":
-            if self.safe_mode and type(args[0]) == "dict":
+            if len(args) > 0 and self.is_protected(args[0]):
                 print "Error: Modification of protected object is restricted in safe mode"
                 return nil
-            push(args[0], args[1])
+            if len(args) > 1:
+                push(args[0], args[1])
             return nil
         elif callee == "__builtin_pop":
-            if self.safe_mode and type(args[0]) == "dict":
+            if len(args) > 0 and self.is_protected(args[0]):
                 print "Error: Modification of protected object is restricted in safe mode"
                 return nil
-            return pop(args[0])
+            if len(args) > 0:
+                return pop(args[0])
+            return nil
         elif callee == "__builtin_next":
             if len(args) > 0 and type(args[0]) == "dict" and dict_has(args[0], "__type__") and args[0]["__type__"] == "generator":
                 let gen = args[0]

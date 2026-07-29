@@ -1,0 +1,5 @@
+Unprotected dict mutated via indexing: 100
+Unprotected list after push: 4
+Popped value: 4
+Error: Modification of protected object is restricted in safe mode
+Error: Modification of protected object is restricted in safe mode
