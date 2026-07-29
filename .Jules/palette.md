@@ -53,3 +53,7 @@
 ## 2026-07-24 - [Keyboard-Accessible Custom Containers & Controls in Playground]
 **Learning:** Interactive control elements (like range sliders, textareas, and collapsibles) in custom visual wrappers (like the VM Playground) must have explicit ARIA labels and states to be correctly interpreted by assistive technologies. Collapsible containers like the Globals panel need explicit `role="button"`, focus indicators, and custom Enter/Space key triggers to be fully keyboard navigable.
 **Action:** Always pair custom expandable/interactive sections with standard ARIA properties, focus-visible outline indicators, and keyboard event handlers.
+
+## 2026-07-28 - [Accessible Input-Clearing and Submodule Pointer Synchronization]
+**Learning:** Providing an inline clear button (`X` icon) on text inputs with descriptive `aria-label` ensures a smooth and accessible interactive flow. Additionally, modifications inside git submodules must be committed locally within the submodule directory first to ensure the parent repository's commit reference accurately reflects the updated submodule state in pull request reviews.
+**Action:** For clearable inputs, include an explicit `aria-label` and `focus-visible` outline styles, and always commit submodule changes prior to staging the submodule's folder pointer in the parent repository.
