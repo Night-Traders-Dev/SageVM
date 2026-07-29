@@ -1,0 +1,6 @@
+let has_host = dict_has(math, "__host_mod__")
+print "dict_has: " + str(has_host)
+let keys = dict_keys(math)
+print "dict_keys: " + join(keys, ", ")
+let vals = dict_values(math)
+print "dict_values: " + join(vals, ", ")
