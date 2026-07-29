@@ -361,11 +361,15 @@ class MetalVM:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if type(a) == "string" or type(b) == "string":
+                let type_a = type(a)
+                let type_b = type(b)
+                if type_a == "number" and type_b == "number":
+                    stack[stack_len-1] = a + b
+                elif type_a == "string" or type_b == "string":
                     if a == nil: a = ""
                     if b == nil: b = ""
                     stack[stack_len-1] = str(a) + str(b)
-                elif type(a) == "array" and type(b) == "array":
+                elif type_a == "array" and type_b == "array":
                     let res = []
                     var ai = 0
                     while ai < len(a):
@@ -477,12 +481,14 @@ class MetalVM:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if type(a) == "string" and type(b) == "number":
-                    stack[stack_len-1] = str_repeat(a, int(b))
-                elif type(a) == "number" and type(b) == "string":
-                    stack[stack_len-1] = str_repeat(b, int(a))
-                elif type(a) == "number" and type(b) == "number":
+                let type_a = type(a)
+                let type_b = type(b)
+                if type_a == "number" and type_b == "number":
                     stack[stack_len-1] = a * b
+                elif type_a == "string" and type_b == "number":
+                    stack[stack_len-1] = str_repeat(a, int(b))
+                elif type_a == "number" and type_b == "string":
+                    stack[stack_len-1] = str_repeat(b, int(a))
                 else:
                     stack[stack_len-1] = 0
             elif op == OP_DIV:
@@ -1136,11 +1142,15 @@ class MetalVM:
         elif op == OP_ADD:
             var b = pop(self.stack)
             var a = pop(self.stack)
-            if type(a) == "string" or type(b) == "string":
+            let type_a = type(a)
+            let type_b = type(b)
+            if type_a == "number" and type_b == "number":
+                push(self.stack, a + b)
+            elif type_a == "string" or type_b == "string":
                 if a == nil: a = ""
                 if b == nil: b = ""
                 push(self.stack, str(a) + str(b))
-            elif type(a) == "array" and type(b) == "array":
+            elif type_a == "array" and type_b == "array":
                 let res = []
                 var ai = 0
                 while ai < len(a):
@@ -1165,12 +1175,16 @@ class MetalVM:
         elif op == OP_MUL:
             let b = pop(self.stack)
             let a = pop(self.stack)
-            if type(a) == "string" and type(b) == "number":
+            let type_a = type(a)
+            let type_b = type(b)
+            if type_a == "number" and type_b == "number":
+                push(self.stack, a * b)
+            elif type_a == "string" and type_b == "number":
                 push(self.stack, str_repeat(a, int(b)))
-            elif type(a) == "number" and type(b) == "string":
+            elif type_a == "number" and type_b == "string":
                 push(self.stack, str_repeat(b, int(a)))
             else:
-                push(self.stack, a * b)
+                push(self.stack, 0)
         elif op == OP_DIV:
             let b = pop(self.stack)
             let a = pop(self.stack)
