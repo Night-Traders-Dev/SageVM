@@ -42,6 +42,10 @@ The core SVM implementation in `src/svm/sgvm_vm.sage`. It utilizes an operand st
   - **In-Place Stack Modification / Peeking**: Opcode handlers (`OP_SET_GLOBAL`, `OP_GET_INDEX`, `OP_SET_INDEX`, `OP_GET_PROPERTY`, and `OP_SET_PROPERTY`) peek at the top of the stack and modify it in-place instead of performing costly pop/push allocation cycles.
   - **Scopes Depth Caching**: The VM caches `len(scopes)` as a local variable (`scopes_len`) and manually updates it during environment pushes and pops, eliminating the overhead of repeated `len()` calls in the hot loop.
   - **Expanded Hot-Path Dispatch**: Frequency-optimized `if/elif` chain now includes inlined branches for `OP_TRUTHY`, `OP_PRINT`, `OP_NEGATE`, and `OP_ARRAY_LEN`, further reducing delegation to the non-inlined `execute_op` handler.
+  - **Global Scope Caching**: The VM caches `scopes[0]` as a local variable `global_scope` inside `MetalVM.run` to eliminate SageLang-level list indexing and lookup overhead for global variables in hot loops.
+  - **Inline Global Variable Lookup Cache**: Uses an inline lookup cache array (`global_cache_dict`) mapped to constant pool indices to store the resolved scope dictionary on first access, completely bypassing sequential scoping stack traversals and key searches on subsequent hits.
+  - **Bypassed Key Existence Checks**: Bypasses expensive `dict_has` key searches in global fast-paths by directly querying the dictionaries and updating in-place on hit, falling back to checks only on explicit `nil` values.
+  - **Optimized Stack Overflow Boundaries**: Relocates operand stack depth verification from the hot instruction dispatch loop to control flow, call, and exception handler boundaries (`OP_LOOP_BACK`, `OP_CALL`, `OP_CALL_METHOD`, and `OP_SETUP_TRY`), significantly reducing redundant length and comparison operations in linear code execution.
 
 ### 4.2 MetalRV64 (Register-Based)
 The SRVM implementation in `src/srvm/srvm_vm.sage`. It maps guest execution to a virtual RISC-V 64-bit hardware model.
