@@ -57,3 +57,7 @@
 ## 2026-07-28 - [Accessible Input-Clearing and Submodule Pointer Synchronization]
 **Learning:** Providing an inline clear button (`X` icon) on text inputs with descriptive `aria-label` ensures a smooth and accessible interactive flow. Additionally, modifications inside git submodules must be committed locally within the submodule directory first to ensure the parent repository's commit reference accurately reflects the updated submodule state in pull request reviews.
 **Action:** For clearable inputs, include an explicit `aria-label` and `focus-visible` outline styles, and always commit submodule changes prior to staging the submodule's folder pointer in the parent repository.
+
+## 2026-07-29 - [Three.js WebGL Rendering Screenshot Blocks in Headless Playwright]
+**Learning:** Embedded Three.js components or active WebGL canvas elements can block/freeze page screenshot captures in headless Chrome when verifying frontend layouts using Playwright.
+**Action:** Inject a script evaluation to select and remove all `canvas` or active rendering components before initiating visual screenshot assertions.
