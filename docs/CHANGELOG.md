@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.0.2 (2026-07-29)
+
+### Added
+- **Search & Filter Recovery Patterns (Opcode Reference)**:
+  - Added a "Reset" and "Clear Search" call-to-action button in the Opcode Reference (`docs/site/src/sections/Opcodes.tsx`) to prevent navigation dead-ends when search results are empty.
+- **Auto-Scrolling Virtual Console (Playground)**:
+  - Enhanced the virtual console in the VM Playground (`docs/site/src/sections/Playground.tsx`) to automatically scroll to the bottom upon receiving new output, eliminating scroll friction during execution runs.
+
+### Improved
+- **Accessibility and Interaction Polish (Opcodes & Playground)**:
+  - Enhanced custom interactive elements like category filters and search inputs with explicit `aria-label`, `aria-pressed`, and keyboard-navigable card toggles to improve compatibility with assistive technologies.
+  - Implemented complete keyboard accessibility for the collapsible Globals panel in the VM Playground using `role="button"`, `tabIndex={0}`, `aria-expanded`, and Space/Enter `onKeyDown` listeners.
+  - Added descriptive ARIA labels to VM Playground controls, including the execution speed range slider, file actions (copy, download, upload), and custom read-only textareas.
+
 ## v1.0.1 (2026-07-27)
 
 ### Added
