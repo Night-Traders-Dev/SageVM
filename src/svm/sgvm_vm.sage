@@ -1037,11 +1037,38 @@ class MetalVM:
         elif callee == "__builtin_strip":
             return strip(args[0])
         elif callee == "__builtin_dict_has":
-            return dict_has(args[0], args[1])
+            if len(args) < 2: return false
+            let key = args[1]
+            if self.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+                return false
+            return dict_has(args[0], key)
         elif callee == "__builtin_dict_keys":
-            return dict_keys(args[0])
+            if len(args) == 0 or args[0] == nil: return []
+            let keys = dict_keys(args[0])
+            if self.safe_mode:
+                let safe_keys = []
+                var i = 0
+                while i < len(keys):
+                    let key = keys[i]
+                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                        push(safe_keys, key)
+                    i = i + 1
+                return safe_keys
+            return keys
         elif callee == "__builtin_dict_values":
-            return dict_values(args[0])
+            if len(args) == 0 or args[0] == nil: return []
+            let obj = args[0]
+            if self.safe_mode:
+                let safe_vals = []
+                let keys = dict_keys(obj)
+                var i = 0
+                while i < len(keys):
+                    let key = keys[i]
+                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                        push(safe_vals, obj[key])
+                    i = i + 1
+                return safe_vals
+            return dict_values(obj)
         else:
             print "Error: Unknown builtin: " + callee
             return nil
