@@ -464,7 +464,9 @@ class MetalVM:
             elif op == OP_JUMP_IF_FALSE:
                 let target = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if not is_truthy(stack[stack_len-1]): ip = target
+                let cond = stack[stack_len-1]
+                # Performance: Inline truthiness evaluation to bypass is_truthy function call overhead
+                if cond == nil or cond == false or cond == 0 or cond == "": ip = target
             elif op == OP_LOOP_BACK:
                 if stack_len > max_stack:
                     print "Error: Stack overflow"
@@ -603,9 +605,19 @@ class MetalVM:
                 if b_val == nil: b_val = 0
                 stack[stack_len-1] = a >> b_val
             elif op == OP_NOT:
-                stack[stack_len-1] = not is_truthy(stack[stack_len-1])
+                let cond = stack[stack_len-1]
+                # Performance: Inline truthiness evaluation to bypass is_truthy function call overhead
+                if cond == nil or cond == false or cond == 0 or cond == "":
+                    stack[stack_len-1] = true
+                else:
+                    stack[stack_len-1] = false
             elif op == OP_TRUTHY:
-                stack[stack_len-1] = is_truthy(stack[stack_len-1])
+                let cond = stack[stack_len-1]
+                # Performance: Inline truthiness evaluation to bypass is_truthy function call overhead
+                if cond == nil or cond == false or cond == 0 or cond == "":
+                    stack[stack_len-1] = false
+                else:
+                    stack[stack_len-1] = true
             elif op == OP_PRINT:
                 print pop(stack)
                 stack_len = stack_len - 1
