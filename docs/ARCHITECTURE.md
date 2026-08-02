@@ -79,6 +79,11 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
   - `0x0B`: PRINTM
   - `0x0C`: EXEC_AST
   - `0x0D`: CMP_BINARY
+  - `0x0E`: NIL
+  - `0x0F`: TRUE
+  - `0x10`: FALSE
+  - `0x11`: NOT
+  - `0x12`: TRUTHY
 
 - **funct3 = 001 (GPU Operations)**:
   - `0x00`: GPU_POLL_EVENTS

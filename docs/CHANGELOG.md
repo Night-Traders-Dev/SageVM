@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-07-31]
+
+### Added
+- **Custom VMSYS Opcodes Synchronization**:
+  - Documented and synchronized missing Custom VMSYS VM opcodes (`VMO_NIL` (0x0E), `VMO_TRUE` (0x0F), `VMO_FALSE` (0x10), `VMO_NOT` (0x11), and `VMO_TRUTHY` (0x12)) under Section 4.2 of `docs/ARCHITECTURE.md` to match the SRVM core instruction definitions in `src/srvm/srvm_core.sage`.
+- **Playground & Opcode Reference UX/Accessibility Polish**:
+  - Documented accessibility improvements to card elements, input clearing, focus states, and aria attributes within the interactive documentation site (`docs/site`).
+  - Added keyboard navigation support (`role="button"`, focus rings, Enter/Space key triggers) to collapsible Globals panel and reference cards.
+- **Auto-scrolling Virtual Console**:
+  - Added real-time auto-scrolling to the Playground console view on stdout updates.
+
+### Fixed
+- **Headless UI Verification Screenshot Captures**:
+  - Handled Playwright browser rendering locks in headless modes by injecting scripts to clear Three.js WebGL canvas objects before screenshot triggers.
+
 ## v1.0.2 (2026-07-29)
 
 ### Added
