@@ -394,15 +394,16 @@ class MetalVM:
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                let cached_dict = global_cache_dict[idx]
+                if cached_dict != nil:
+                    cached_dict[constants[idx]] = stack[stack_len-1]
+                    continue
+
                 if idx >= const_len:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
                 let val = stack[stack_len-1]
-                let cached_dict = global_cache_dict[idx]
-                if cached_dict != nil:
-                    cached_dict[constants[idx]] = val
-                    continue
 
                 let name = constants[idx]
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
@@ -460,10 +461,6 @@ class MetalVM:
                 if resolved_dict != nil:
                     global_cache_dict[idx] = resolved_dict
             elif op == OP_JUMP:
-                if stack_len > max_stack:
-                    print "Error: Stack overflow"
-                    halted = true
-                    break
                 ip = (code_bytes[ip] << 8) | code_bytes[ip+1]
             elif op == OP_JUMP_IF_FALSE:
                 let target = (code_bytes[ip] << 8) | code_bytes[ip+1]
