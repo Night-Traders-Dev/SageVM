@@ -62,8 +62,12 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `security_indexing.sage`: Verifies `safe_mode` index protections for `__` internal keys.
 - `security_restricted.sage`: Verifies native module access blocks in `safe_mode`.
 
-### Verification Status (v0.9.9)
-As of July 2026, 100% of the modern coverage suite (79 passed, 0 failed, 1 skipped) passes cleanly under the SVM and SRVM backends.
+### Coverage Expansion (August 2026)
+- `exceptions_unwind.sage`: Tests multi-frame exception stack unwinding behavior.
+- `ffi_builtin.sage`: Tests FFI library bridging and documents dynamic FFI library loading behavior where `ffi.open` returns `nil` due to host-level module import constraints.
+
+### Verification Status (August 2026)
+As of August 2026, 100% of the modern coverage suite (87 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
 All historical opcode translation mismatches, generator execution support (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`), module method bridging, safe-mode object protections, and interpreter halt controls are fully resolved.
 
 ## Adding Tests
