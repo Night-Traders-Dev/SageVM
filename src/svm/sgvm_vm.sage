@@ -270,18 +270,18 @@ class MetalVM:
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                # Check inline cache
+                let cached_dict = global_cache_dict[idx]
+                if cached_dict != nil:
+                    push(stack, cached_dict[constants[idx]])
+                    stack_len = stack_len + 1
+                    continue
+
                 if idx >= const_len:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
                 let name = constants[idx]
-
-                # Check inline cache
-                let cached_dict = global_cache_dict[idx]
-                if cached_dict != nil:
-                    push(stack, cached_dict[name])
-                    stack_len = stack_len + 1
-                    continue
 
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     push(stack, nil)
@@ -348,15 +348,19 @@ class MetalVM:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 let val = stack[stack_len-1]
-                while local_base + idx >= stack_len:
-                    if stack_len >= max_stack:
-                        print "Error: Stack overflow"
-                        halted = true
-                        break
-                    push(stack, nil)
-                    stack_len = stack_len + 1
-                if halted: break
-                stack[local_base + idx] = val
+                let target_idx = local_base + idx
+                if target_idx < stack_len:
+                    stack[target_idx] = val
+                else:
+                    while target_idx >= stack_len:
+                        if stack_len >= max_stack:
+                            print "Error: Stack overflow"
+                            halted = true
+                            break
+                        push(stack, nil)
+                        stack_len = stack_len + 1
+                    if halted: break
+                    stack[target_idx] = val
             elif op == OP_ADD:
                 var b = pop(stack)
                 stack_len = stack_len - 1
@@ -1862,13 +1866,17 @@ class MetalVM:
             self.ip = self.ip + 2
             let val = pop(self.stack)
             let base = self.current_local_base
-            while base + idx >= len(self.stack):
-                if len(self.stack) >= self.max_stack_depth:
-                    print "Error: Stack overflow"
-                    self.halted = true
-                    return false
-                push(self.stack, nil)
-            self.stack[base + idx] = val
+            let target_idx = base + idx
+            if target_idx < len(self.stack):
+                self.stack[target_idx] = val
+            else:
+                while target_idx >= len(self.stack):
+                    if len(self.stack) >= self.max_stack_depth:
+                        print "Error: Stack overflow"
+                        self.halted = true
+                        return false
+                    push(self.stack, nil)
+                self.stack[target_idx] = val
             push(self.stack, val)
         elif op == OP_BREAK:
             print "Error: Unexpected loop break opcode"
