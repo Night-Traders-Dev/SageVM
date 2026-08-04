@@ -61,3 +61,7 @@
 ## 2026-07-29 - [Three.js WebGL Rendering Screenshot Blocks in Headless Playwright]
 **Learning:** Embedded Three.js components or active WebGL canvas elements can block/freeze page screenshot captures in headless Chrome when verifying frontend layouts using Playwright.
 **Action:** Inject a script evaluation to select and remove all `canvas` or active rendering components before initiating visual screenshot assertions.
+
+## 2026-08-04 - [ARIA Tablists and Keyboard-Triggered Expandable Cards]
+**Learning:** Semantic ARIA controls (like `role="tablist"` for navigation, and `role="tab"`, `aria-selected`, `aria-controls` for category selector triggers) paired with fully focusable and keyboard-navigable grid cards (`tabIndex={0}`, `role="button"`, `aria-expanded`, custom Enter/Space triggers) dramatically enhance the accessibility score and UX of dynamic documentation sections.
+**Action:** Always design category selector groups using formal `tablist` architecture, and implement custom keyboard triggers for collapsible elements.
