@@ -270,17 +270,17 @@ class MetalVM:
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                if idx >= const_len:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
+
                 # Check inline cache
                 let cached_dict = global_cache_dict[idx]
                 if cached_dict != nil:
                     push(stack, cached_dict[constants[idx]])
                     stack_len = stack_len + 1
                     continue
-
-                if idx >= const_len:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
                 let name = constants[idx]
 
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
@@ -362,17 +362,16 @@ class MetalVM:
                     if halted: break
                     stack[target_idx] = val
             elif op == OP_ADD:
-                var b = pop(stack)
-                stack_len = stack_len - 1
-                var a = stack[stack_len-1]
+                var b = stack[stack_len-1]
+                var a = stack[stack_len-2]
                 let type_a = type(a)
                 let type_b = type(b)
                 if type_a == "number" and type_b == "number":
-                    stack[stack_len-1] = a + b
+                    stack[stack_len-2] = a + b
                 elif type_a == "string" or type_b == "string":
                     if a == nil: a = ""
                     if b == nil: b = ""
-                    stack[stack_len-1] = str(a) + str(b)
+                    stack[stack_len-2] = str(a) + str(b)
                 elif type_a == "array" and type_b == "array":
                     let res = []
                     var ai = 0
@@ -383,14 +382,16 @@ class MetalVM:
                     while ai < len(b):
                         push(res, b[ai])
                         ai = ai + 1
-                    stack[stack_len-1] = res
+                    stack[stack_len-2] = res
                 else:
                     if a == nil: a = 0
                     if b == nil: b = 0
                     if type(a) != "number" or type(b) != "number":
-                        stack[stack_len-1] = 0
+                        stack[stack_len-2] = 0
                     else:
-                        stack[stack_len-1] = a + b
+                        stack[stack_len-2] = a + b
+                pop(stack)
+                stack_len = stack_len - 1
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -398,12 +399,13 @@ class MetalVM:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
-                let val = stack[stack_len-1]
+
                 let cached_dict = global_cache_dict[idx]
                 if cached_dict != nil:
-                    cached_dict[constants[idx]] = val
+                    cached_dict[constants[idx]] = stack[stack_len-1]
                     continue
 
+                let val = stack[stack_len-1]
                 let name = constants[idx]
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
@@ -478,68 +480,77 @@ class MetalVM:
                     break
                 ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
             elif op == OP_LESS:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
+                if type(a) == "number" and type(b) == "number": stack[stack_len-2] = a < b
+                else: stack[stack_len-2] = false
+                pop(stack)
                 stack_len = stack_len - 1
-                let a = stack[stack_len-1]
-                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a < b
-                else: stack[stack_len-1] = false
             elif op == OP_MUL:
-                var b = pop(stack)
-                stack_len = stack_len - 1
-                var a = stack[stack_len-1]
+                let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
                 let type_a = type(a)
                 let type_b = type(b)
                 if type_a == "number" and type_b == "number":
-                    stack[stack_len-1] = a * b
+                    stack[stack_len-2] = a * b
                 elif type_a == "string" and type_b == "number":
-                    stack[stack_len-1] = str_repeat(a, int(b))
+                    stack[stack_len-2] = str_repeat(a, int(b))
                 elif type_a == "number" and type_b == "string":
-                    stack[stack_len-1] = str_repeat(b, int(a))
+                    stack[stack_len-2] = str_repeat(b, int(a))
                 else:
-                    stack[stack_len-1] = 0
+                    stack[stack_len-2] = 0
+                pop(stack)
+                stack_len = stack_len - 1
             elif op == OP_DIV:
-                var b = pop(stack)
-                stack_len = stack_len - 1
-                var a = stack[stack_len-1]
+                let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
                 if type(a) == "number" and type(b) == "number" and b != 0:
-                    stack[stack_len-1] = a / b
+                    stack[stack_len-2] = a / b
                 else:
-                    stack[stack_len-1] = nil
+                    stack[stack_len-2] = nil
+                pop(stack)
+                stack_len = stack_len - 1
             elif op == OP_SUB:
-                var b = pop(stack)
-                stack_len = stack_len - 1
-                var a = stack[stack_len-1]
+                let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
                 if type(a) == "number" and type(b) == "number":
-                    stack[stack_len-1] = a - b
+                    stack[stack_len-2] = a - b
                 else:
-                    stack[stack_len-1] = 0
+                    stack[stack_len-2] = 0
+                pop(stack)
+                stack_len = stack_len - 1
             elif op == OP_EQUAL:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
+                stack[stack_len-2] = self.equal_val(stack[stack_len-2], b)
+                pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = self.equal_val(stack[stack_len-1], b)
             elif op == OP_NOT_EQUAL:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
+                stack[stack_len-2] = not self.equal_val(stack[stack_len-2], b)
+                pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = not self.equal_val(stack[stack_len-1], b)
             elif op == OP_LESS_EQUAL:
-                let b = pop(stack)
-                stack_len = stack_len - 1
-                let a = stack[stack_len-1]
+                let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
                 if self.trace: print "DEBUG OP_LESS_EQUAL a=" + str(a) + " (" + str(type(a)) + ") b=" + str(b) + " (" + str(type(b)) + ")"
-                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a <= b
-                else: stack[stack_len-1] = false
+                if type(a) == "number" and type(b) == "number": stack[stack_len-2] = a <= b
+                else: stack[stack_len-2] = false
+                pop(stack)
+                stack_len = stack_len - 1
             elif op == OP_GREATER:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
+                if type(a) == "number" and type(b) == "number": stack[stack_len-2] = a > b
+                else: stack[stack_len-2] = false
+                pop(stack)
                 stack_len = stack_len - 1
-                let a = stack[stack_len-1]
-                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a > b
-                else: stack[stack_len-1] = false
             elif op == OP_GREATER_EQUAL:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
+                if type(a) == "number" and type(b) == "number": stack[stack_len-2] = a >= b
+                else: stack[stack_len-2] = false
+                pop(stack)
                 stack_len = stack_len - 1
-                let a = stack[stack_len-1]
-                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a >= b
-                else: stack[stack_len-1] = false
             elif op == OP_NIL:
                 push(stack, nil)
                 stack_len = stack_len + 1
