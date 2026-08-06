@@ -1,0 +1,7 @@
+1. Accessing thread without explicit import...
+Thread global dict is dict: true
+Thread mutex: nil
+2. Accessing thread with explicit import...
+Imported thread is dict: true
+Imported thread mutex is function-like: true
+Result of thread.mutex(): nil
