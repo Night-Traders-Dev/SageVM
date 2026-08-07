@@ -1,0 +1,9 @@
+--- Concat with nil ---
+prefix_
+_suffix
+--- Concat with collections ---
+array: <array>
+<dict> is a dict
+--- Concat with empty strings ---
+hello
+world

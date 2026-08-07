@@ -1,0 +1,13 @@
+--- int() edge cases ---
+int(nil): 0
+int(true): 1
+int(false): 0
+int('12.5'): 12
+int('invalid'): 0
+int(''): 0
+--- tonumber() edge cases ---
+tonumber(''): nil
+tonumber(nil) == nil: true
+tonumber('  3.14  '): nil
+tonumber('1e3'): 1000
+tonumber('invalid') == nil: true
