@@ -47,6 +47,11 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `index_oob.sage`: Tests out-of-bounds indexing for arrays and missing keys for dictionaries.
 - `call_error.sage`: Tests calling non-callable objects (bug flagged: doesn't currently raise exception).
 
+### Coverage Expansion (August 2026)
+- `sys_exec_system.sage`: Tests `sys.exec` and `sys.system` execution behavior (bug flagged: `sys.system` incorrectly dispatches to the `sys_exec` builtin handler).
+- `gc_reflect_modules.sage`: Tests predefined `gc` and `reflect` global dictionaries vs explicit imports (bug flagged: `import gc` and `import reflect` shadow and erase the predefined populated dictionaries).
+- `thread_module.sage`: Tests the `thread` module bridging and `thread.mutex` builtin (bug flagged: predefined `thread` dictionary lacks the `mutex` builtin unless `import thread` is explicitly executed).
+
 ### Coverage Expansion (2026-07-20)
 - `string_indexing.sage`: Tests bracket character indexing on strings (including out-of-bounds boundary values returning `nil`).
 - `slice_builtin.sage`: Tests the `slice` builtin function on arrays and strings.

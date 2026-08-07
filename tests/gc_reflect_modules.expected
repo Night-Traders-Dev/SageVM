@@ -1,0 +1,14 @@
+1. Testing predefined global gc dictionary...
+Predefined gc is dict: true
+Predefined gc.collect exists: true
+Predefined gc.stats exists: true
+2. Testing predefined global reflect dictionary...
+Predefined reflect is dict: true
+Predefined reflect.get_class exists: true
+3. Testing gc after explicit import...
+Imported gc is dict: true
+Imported gc.collect exists: false
+Imported gc.stats exists: false
+4. Testing reflect after explicit import...
+Imported reflect is dict: true
+Imported reflect.get_class exists: false
