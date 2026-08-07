@@ -1,0 +1,7 @@
+Start test
+Inside func_a, calling func_b
+Inside func_b, calling func_c
+Inside func_c, about to raise
+Caught in func_a: Error from C
+Completed func_a handler
+End test

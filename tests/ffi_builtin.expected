@@ -1,0 +1,3 @@
+Testing FFI module...
+FFI module available
+ffi.open returned nil
