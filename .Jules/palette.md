@@ -63,5 +63,9 @@
 **Action:** Inject a script evaluation to select and remove all `canvas` or active rendering components before initiating visual screenshot assertions.
 
 ## 2026-08-04 - [ARIA Tablists and Keyboard-Triggered Expandable Cards]
-**Learning:** Semantic ARIA controls (like `role="tablist"` for navigation, and `role="tab"`, `aria-selected`, `aria-controls` for category selector triggers) paired with fully focusable and keyboard-navigable grid cards (`tabIndex={0}`, `role="button"`, `aria-expanded`, custom Enter/Space triggers) dramatically enhance the accessibility score and UX of dynamic documentation sections.
+**Learning:** Semantic ARIA controls (like `role="tablist"` for navigation, and `role="tab"`, `aria-selected`, `aria-controls` for category selector triggers) paired with fully focusable and keyboard-navigable grid cards (`tabIndex={0}`, `role="button"`, `aria-expanded`, custom Enter/Space triggers) dramatically enhance the accessibility score and UX of documentation sections.
 **Action:** Always design category selector groups using formal `tablist` architecture, and implement custom keyboard triggers for collapsible elements.
+
+## 2026-08-08 - [Interactive States and High Contrast Disabled button states]
+**Learning:** Disabled interactive controls or background-running states (like "Running...") should maintain high-contrast styling standards while presenting a clear non-interactive state (such as using brighter text colors, deeper container backgrounds, and `cursor-not-allowed` styles) to comply with readability guidelines.
+**Action:** Always design disabled running states using light and distinct typography that stands out clearly against background panels, and enforce appropriate mouse cursors.
