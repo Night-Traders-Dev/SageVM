@@ -70,9 +70,12 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 ### Coverage Expansion (August 2026)
 - `exceptions_unwind.sage`: Tests multi-frame exception stack unwinding behavior.
 - `ffi_builtin.sage`: Tests FFI library bridging and documents dynamic FFI library loading behavior where `ffi.open` returns `nil` due to host-level module import constraints.
+- `string_concat_edge.sage`: Tests string concatenation with nil, collections, and empty strings.
+- `bitwise_shifts_edge.sage`: Tests shift behaviors with negative values, float inputs, nil, and negative counts.
+- `conversions_edge.sage`: Tests conversion behaviors (`int()`, `tonumber()`, and `str()`) under edge/boundary inputs (including whitespace conformance).
 
 ### Verification Status (August 2026)
-As of August 2026, 100% of the modern coverage suite (87 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
+As of August 2026, 100% of the modern coverage suite (93 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
 All historical opcode translation mismatches, generator execution support (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`), module method bridging, safe-mode object protections, and interpreter halt controls are fully resolved.
 
 ## Adding Tests

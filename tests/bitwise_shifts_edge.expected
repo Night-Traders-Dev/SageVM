@@ -1,0 +1,15 @@
+1. Shift by zero:
+10
+10
+2. Shift negative values:
+1.84467e+19
+9.22337e+18
+3. Shift with nil:
+0
+10
+4. Shift float values:
+20
+5
+5. Shift with negative counts:
+0
+0

@@ -1,0 +1,16 @@
+1. Whitespace conformance in conversions:
+0
+nil
+2. Empty string conversions:
+0
+true
+3. Conversions of other types (boolean, nil, collections):
+1
+0
+0
+true
+true
+true
+4. str() on nested collections and nil:
+<array>
+nil

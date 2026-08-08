@@ -1,0 +1,12 @@
+1. Concatenation with nil:
+hello
+world
+2. Concatenation with empty string:
+hello
+world
+3. Concatenation with non-string types:
+value: 123
+value: true
+value: false
+4. Multiple concatenations:
+abcd
