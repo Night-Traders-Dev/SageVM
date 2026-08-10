@@ -1,0 +1,6 @@
+gpu.poll_events(): true
+gpu.mouse_pos() type: dict
+pos.x: 0
+pos.y: 0
+pos.x is number: true
+pos.y is number: true

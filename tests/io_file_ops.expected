@@ -1,0 +1,8 @@
+writebytes result: true
+readbytes exists: true
+readbytes len: 5
+readbytes first byte: nil
+io.readbytes(nil): true
+io.readbytes(123): true
+io.writebytes(nil, nil): false
+io.writebytes(filepath, nil): false

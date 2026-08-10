@@ -1,0 +1,11 @@
+contains("hello", "e"): true
+contains("hello", "x"): false
+contains([1, 2, 3], 2): false
+contains([1, 2, 3], 4): false
+contains(nil, 1): false
+contains([1, 2, 3], nil): false
+contains(nil, nil): false
+contains("", ""): true
+contains([], 1): false
+contains([1, "hello", false], "hello"): false
+contains([1, "hello", false], true): false

@@ -70,6 +70,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 ### Coverage Expansion (August 2026)
 - `exceptions_unwind.sage`: Tests multi-frame exception stack unwinding behavior.
 - `ffi_builtin.sage`: Tests FFI library bridging and documents dynamic FFI library loading behavior where `ffi.open` returns `nil` due to host-level module import constraints.
+- `gpu_module_ops.sage`: Tests the `gpu.poll_events` and `gpu.mouse_pos` builtins/opcodes, verifying standard types and dictionary coordinates.
+- `io_file_ops.sage`: Tests the standard and edge cases of `io.writebytes` and `io.readbytes` file operations, documenting the byte indexing bug where byte arrays cannot be directly indexed.
+- `builtin_contains_edge.sage`: Tests edge cases of the `contains` builtin on both strings and arrays, documenting the array-conformance search bug where `contains` on arrays erroneously returns `false`.
 
 ### Verification Status (August 2026)
 As of August 2026, 100% of the modern coverage suite (87 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
