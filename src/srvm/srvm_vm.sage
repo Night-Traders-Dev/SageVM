@@ -50,6 +50,7 @@ class SageVMState:
         self.max_array_size = 1000000
         self.safe_mode = false
         self.ffi_enabled = true
+        self.exec_enabled = true
         self.jit_enabled = false
         self.jit_engine = jit_engine.JITEngine()
         

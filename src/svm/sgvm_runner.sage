@@ -7,7 +7,7 @@ class SGVMRunner:
     proc init(self):
         self.utils = SGVMUtils()
 
-    proc run_file(self, input_file, debug, safe_mode=false, ffi_enabled=true, user_args=nil, jit_enabled=false):
+    proc run_file(self, input_file, debug, safe_mode=false, ffi_enabled=true, user_args=nil, jit_enabled=false, exec_enabled=true):
         var data = io.readbytes(input_file)
         if data == nil:
             print "❌ Error: Could not read file: " + input_file
@@ -31,6 +31,7 @@ class SGVMRunner:
         metal_vm.trace = debug
         metal_vm.safe_mode = safe_mode
         metal_vm.ffi_enabled = ffi_enabled
+        metal_vm.exec_enabled = exec_enabled
         metal_vm.jit_enabled = jit_enabled
         metal_vm.user_args = user_args
         metal_vm.setup_builtins()

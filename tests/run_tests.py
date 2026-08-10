@@ -72,6 +72,8 @@ def run_suite():
             run_cmd.append("--jit")
         if f.startswith("security_"):
             run_cmd.append("--safe")
+        if "no_exec" in f:
+            run_cmd.append("--no-exec")
         res = subprocess.run(run_cmd + [bin_path], capture_output=True, text=True)
 
         # Filter out VM debug logs, status messages, and strip ANSI codes
