@@ -210,10 +210,10 @@ class SGVMCLI:
 
         if riscv:
             let runner = srvm_runner.SRVMRunner()
-            runner.run_file(input_file, debug, safe, not no_ffi, jit)
+            runner.run_file(input_file, debug, safe, not no_ffi, jit, not no_exec)
         else:
             let runner = sgvm_runner.SGVMRunner()
-            runner.run_file(input_file, debug, safe, not no_ffi, guest_args, jit)
+            runner.run_file(input_file, debug, safe, not no_ffi, guest_args, jit, not no_exec)
 
     proc handle_compile(self, args, start_idx):
         var input_file = ""

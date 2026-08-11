@@ -443,7 +443,7 @@ class SGVMCompiler:
             svm_file = in_file + ext
             var sage_bin = ".deps/SageLang/core/sage"
             if io_readfile(sage_bin) == nil: sage_bin = "sage"
-            var cmd = sage_bin + " --emit-vm " + in_file + " -o " + svm_file
+            var cmd = sage_bin + " --emit-vm '" + in_file + "' -o '" + svm_file + "'"
             
             let status = sys_exec(cmd)
             if self.debug: print "DEBUG after sys_exec status=" + str(status)

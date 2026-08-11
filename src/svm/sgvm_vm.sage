@@ -955,13 +955,13 @@ class MetalVM:
                 return nil
             return struct_size(args[0])
         elif callee == "__builtin_sys_exec":
-            if self.safe_mode:
-                print "Error: sys.exec is restricted in safe mode"
+            if self.safe_mode or not self.exec_enabled:
+                print "Error: sys.exec is restricted"
                 return nil
             return sys_exec(args[0])
         elif callee == "__builtin_sys_system":
-            if self.safe_mode:
-                print "Error: sys.system is restricted in safe mode"
+            if self.safe_mode or not self.exec_enabled:
+                print "Error: sys.system is restricted"
                 return -1
             return sys.system(args[0])
         elif callee == "__builtin_sys_exit":
