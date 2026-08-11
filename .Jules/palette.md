@@ -69,3 +69,7 @@
 ## 2026-08-08 - [Interactive States and High Contrast Disabled button states]
 **Learning:** Disabled interactive controls or background-running states (like "Running...") should maintain high-contrast styling standards while presenting a clear non-interactive state (such as using brighter text colors, deeper container backgrounds, and `cursor-not-allowed` styles) to comply with readability guidelines.
 **Action:** Always design disabled running states using light and distinct typography that stands out clearly against background panels, and enforce appropriate mouse cursors.
+
+## 2026-08-11 - [Grid-Based Interactive Reference Cards Navigation]
+**Learning:** Documentation references featuring grid-based expand/collapse cards are completely inaccessible to keyboard and screen-reader users if they are not designed with semantic HTML elements or proper interactive attributes. Adding role="button", tabIndex={0}, focus visible rings, and Enter/Space event handlers turns static grid elements into highly intuitive, keyboard-accessible controls.
+**Action:** Always enrich non-button clickable containers with full keyboard focus support, aria-expanded states, and clear keydown handlers for accessible interaction.
