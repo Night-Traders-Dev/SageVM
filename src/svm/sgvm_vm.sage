@@ -365,32 +365,36 @@ class MetalVM:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                let type_a = type(a)
-                let type_b = type(b)
-                if type_a == "number" and type_b == "number":
+                # Performance: fast-path non-allocating check for numerical addition
+                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a + b
-                elif type_a == "string" or type_b == "string":
-                    if a == nil: a = ""
-                    if b == nil: b = ""
-                    stack[stack_len-1] = str(a) + str(b)
-                elif type_a == "array" and type_b == "array":
-                    let res = []
-                    var ai = 0
-                    while ai < len(a):
-                        push(res, a[ai])
-                        ai = ai + 1
-                    ai = 0
-                    while ai < len(b):
-                        push(res, b[ai])
-                        ai = ai + 1
-                    stack[stack_len-1] = res
                 else:
-                    if a == nil: a = 0
-                    if b == nil: b = 0
-                    if type(a) != "number" or type(b) != "number":
-                        stack[stack_len-1] = 0
-                    else:
+                    let type_a = type(a)
+                    let type_b = type(b)
+                    if type_a == "number" and type_b == "number":
                         stack[stack_len-1] = a + b
+                    elif type_a == "string" or type_b == "string":
+                        if a == nil: a = ""
+                        if b == nil: b = ""
+                        stack[stack_len-1] = str(a) + str(b)
+                    elif type_a == "array" and type_b == "array":
+                        let res = []
+                        var ai = 0
+                        while ai < len(a):
+                            push(res, a[ai])
+                            ai = ai + 1
+                        ai = 0
+                        while ai < len(b):
+                            push(res, b[ai])
+                            ai = ai + 1
+                        stack[stack_len-1] = res
+                    else:
+                        if a == nil: a = 0
+                        if b == nil: b = 0
+                        if type(a) != "number" or type(b) != "number":
+                            stack[stack_len-1] = 0
+                        else:
+                            stack[stack_len-1] = a + b
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -478,38 +482,50 @@ class MetalVM:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a < b
-                else: stack[stack_len-1] = false
+                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
+                    stack[stack_len-1] = a < b
+                else:
+                    if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a < b
+                    else: stack[stack_len-1] = false
             elif op == OP_MUL:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                let type_a = type(a)
-                let type_b = type(b)
-                if type_a == "number" and type_b == "number":
+                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a * b
-                elif type_a == "string" and type_b == "number":
-                    stack[stack_len-1] = str_repeat(a, int(b))
-                elif type_a == "number" and type_b == "string":
-                    stack[stack_len-1] = str_repeat(b, int(a))
                 else:
-                    stack[stack_len-1] = 0
+                    let type_a = type(a)
+                    let type_b = type(b)
+                    if type_a == "number" and type_b == "number":
+                        stack[stack_len-1] = a * b
+                    elif type_a == "string" and type_b == "number":
+                        stack[stack_len-1] = str_repeat(a, int(b))
+                    elif type_a == "number" and type_b == "string":
+                        stack[stack_len-1] = str_repeat(b, int(a))
+                    else:
+                        stack[stack_len-1] = 0
             elif op == OP_DIV:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if type(a) == "number" and type(b) == "number" and b != 0:
+                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b and b != 0:
                     stack[stack_len-1] = a / b
                 else:
-                    stack[stack_len-1] = nil
+                    if type(a) == "number" and type(b) == "number" and b != 0:
+                        stack[stack_len-1] = a / b
+                    else:
+                        stack[stack_len-1] = nil
             elif op == OP_SUB:
                 var b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if type(a) == "number" and type(b) == "number":
+                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a - b
                 else:
-                    stack[stack_len-1] = 0
+                    if type(a) == "number" and type(b) == "number":
+                        stack[stack_len-1] = a - b
+                    else:
+                        stack[stack_len-1] = 0
             elif op == OP_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
@@ -523,20 +539,29 @@ class MetalVM:
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
                 if self.trace: print "DEBUG OP_LESS_EQUAL a=" + str(a) + " (" + str(type(a)) + ") b=" + str(b) + " (" + str(type(b)) + ")"
-                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a <= b
-                else: stack[stack_len-1] = false
+                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
+                    stack[stack_len-1] = a <= b
+                else:
+                    if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a <= b
+                    else: stack[stack_len-1] = false
             elif op == OP_GREATER:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a > b
-                else: stack[stack_len-1] = false
+                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
+                    stack[stack_len-1] = a > b
+                else:
+                    if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a > b
+                    else: stack[stack_len-1] = false
             elif op == OP_GREATER_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a >= b
-                else: stack[stack_len-1] = false
+                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
+                    stack[stack_len-1] = a >= b
+                else:
+                    if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a >= b
+                    else: stack[stack_len-1] = false
             elif op == OP_NIL:
                 push(stack, nil)
                 stack_len = stack_len + 1
@@ -558,10 +583,13 @@ class MetalVM:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
-                if type(a) == "number" and type(b) == "number" and b != 0:
+                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b and b != 0:
                     stack[stack_len-1] = a % b
                 else:
-                    stack[stack_len-1] = nil
+                    if type(a) == "number" and type(b) == "number" and b != 0:
+                        stack[stack_len-1] = a % b
+                    else:
+                        stack[stack_len-1] = nil
             elif op == OP_BIT_AND:
                 let b = pop(stack)
                 stack_len = stack_len - 1
