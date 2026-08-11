@@ -38,7 +38,7 @@ This document outlines the current status, supported features, and outstanding w
 - [ ] **SRVM GPU Implementation**: Implement register-based GPU opcodes in `src/srvm/srvm_vm.sage`.
 - [ ] **SRVM Register Opcode Gaps**: Implement remaining register-based extensions (`VMO_EXEC_AST`, `VMO_CMP_BINARY`, `OBJ_SLICE`).
 - [ ] **Disassembler Labels**: Add descriptive labels for local variable, generator, matrix, and GPU opcodes in disassembler output.
-- [ ] **Runner exec_enabled**: Thread `--no-exec` flag through SGVMRunner and SRVMRunner to MetalVM/SRVM.
+- [x] **Runner exec_enabled**: Thread `--no-exec` flag through SGVMRunner and SRVMRunner to MetalVM/SRVM.
 - [ ] **OP_ARRAY_LEN on nil**: Resolve conformance gap where `OP_ARRAY_LEN` returns `0` on `nil` due to host inheritance instead of `nil` / error (see `tests/array_len_edge.sage`).
 - [ ] **Guest sys.exit halting**: Ensure guest-side `sys.exit` completely halts execution flow across all multi-chunk VM runner configurations.
 - [ ] **Safe-mode Exception Printing**: Align safe-mode exception printing and trace output format between SVM and host execution.

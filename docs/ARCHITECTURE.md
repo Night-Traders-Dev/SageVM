@@ -46,6 +46,11 @@ The core SVM implementation in `src/svm/sgvm_vm.sage`. It utilizes an operand st
   - **Inline Global Variable Lookup Cache**: Uses an inline lookup cache array (`global_cache_dict`) mapped to constant pool indices to store the resolved scope dictionary on first access, completely bypassing sequential scoping stack traversals and key searches on subsequent hits.
   - **Bypassed Key Existence Checks**: Bypasses expensive `dict_has` key searches in global fast-paths by directly querying the dictionaries and updating in-place on hit, falling back to checks only on explicit `nil` values.
   - **Optimized Stack Overflow Boundaries**: Relocates operand stack depth verification from the hot instruction dispatch loop to control flow, call, and exception handler boundaries (`OP_LOOP_BACK`, `OP_CALL`, `OP_CALL_METHOD`, and `OP_SETUP_TRY`), significantly reducing redundant length and comparison operations in linear code execution.
+  - **Truthiness Evaluation Inlining**: Avoids function call and stack-frame dispatch overhead by inlining the logic of `is_truthy` directly within `OP_JUMP_IF_FALSE`, `OP_NOT`, and `OP_TRUTHY` opcodes using concise logical evaluation.
+  - **Arithmetic and Comparison Opcode Non-allocating Fast-path**: Inlines a fast-path numeric check (`a != nil and b != nil and tonumber(a) == a and tonumber(b) == b`) inside arithmetic and comparison opcodes in the loop to completely bypass dynamic string heap allocations of SageLang's standard `type()` function (which invokes expensive C-level `strdup` allocations).
+  - **Local Variable Write Safety Loop Bypassing**: Introduces a fast-path branch in `OP_SET_LOCAL` to bypass safety loops (pre-growing stack allocation) when target indices are already within stack boundaries (`target_idx < stack_len`).
+  - **Inline Global Cache Relocation**: Relocates the `global_cache_dict[idx]` inline cache check to the absolute top of `OP_SET_GLOBAL` and `OP_GET_GLOBAL` to completely bypass constant pool bounds checks on cache hits.
+  - **Redundant Control Flow Safety Check Removal**: Bypasses redundant stack bounds checks from unconditional control flow instructions (`OP_JUMP` and `OP_LOOP_BACK`) since jump instructions do not alter the stack height.
 
 ### 4.2 MetalRV64 (Register-Based)
 The SRVM implementation in `src/srvm/srvm_vm.sage`. It maps guest execution to a virtual RISC-V 64-bit hardware model.
@@ -342,6 +347,7 @@ For high-isolation environments, SGVM provides several security features impleme
   - **Builtin Protection**: Both SVM and SRVM enforce strict protection for objects tagged with `__builtin__` in `safe_mode`, ensuring core host-provided utility structures remain immutable.
   - **Sandbox Hardening (struct module)**: Safe mode restrictions are extended to the `struct` module, blocking its guest-side import to mitigate sandbox escape vectors.
 - **Sandbox Hardening (Internal Properties)**: In `safe_mode`, both SVM and SRVM interpreters block property, index, and method access (via `OP_CALL_METHOD`) for all identifiers starting with `__` (except `__arg`), preventing guest code from inspecting internal VM state or leaking host bridge objects.
+- **Dynamic Command Execution Restricting**: Hardens execution capability restrictions by wiring the `--no-exec` CLI flag down to the runner and interpreter VM configurations as `exec_enabled`. When disabled (`exec_enabled = false`), both `__builtin_sys_exec` and `__builtin_sys_system` block system command execution to prevent arbitrary code execution on the host machine.
 - **Internal Execution Limits**: To prevent Denial of Service (DoS) via resource exhaustion, the VM enforces the following internal limits:
   - **Maximum Stack Depth**: 65,536 (Maximum depth of the operand stack).
   - **Maximum Call Depth**: 1,024 (Maximum recursion depth for function calls).
