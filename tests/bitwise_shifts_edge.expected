@@ -1,0 +1,13 @@
+--- Shifts with nil ---
+0
+10
+0
+10
+--- Shifts with float values ---
+20
+20
+5
+5
+--- Shifts with negative shift counts ---
+0
+0
