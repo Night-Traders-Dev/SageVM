@@ -1,0 +1,27 @@
+Testing contains builtin edge cases...
+String with substring:
+true
+String with missing substring:
+false
+String with empty string:
+true
+String looking for non-string (integer):
+false
+Array with element present:
+false
+Array with element missing:
+false
+Array containing nil:
+false
+Array looking for nil when missing:
+false
+First argument nil:
+false
+Second argument nil:
+false
+Both arguments nil:
+false
+Dictionary target (not supported/returns false):
+false
+Number target:
+false

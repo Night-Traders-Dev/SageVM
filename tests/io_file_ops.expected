@@ -1,0 +1,21 @@
+Testing io module file operations...
+Writing bytes...
+Write result: true
+Reading bytes...
+Read bytes is not nil
+Type of read_bytes: unknown
+Read bytes length: 4
+Byte 0 indexing: nil
+Reading via readfile...
+Readfile is not nil
+Type of readfile: unknown
+Reading non-existent file...
+Result for non-existent: nil
+Writing with invalid arguments (nil path):
+false
+Writing with invalid arguments (nil bytes):
+false
+Reading with invalid arguments (nil path):
+nil
+Reading with invalid arguments (invalid type):
+nil

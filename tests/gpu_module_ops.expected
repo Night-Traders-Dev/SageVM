@@ -1,0 +1,10 @@
+Testing gpu module operations...
+gpu exists: true
+gpu.poll_events exists: true
+gpu.mouse_pos exists: true
+Calling poll_events...
+poll_events result: nil
+Calling mouse_pos...
+mouse_pos is a dictionary: true
+mouse_pos x: 0
+mouse_pos y: 0

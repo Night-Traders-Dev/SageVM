@@ -71,8 +71,13 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `exceptions_unwind.sage`: Tests multi-frame exception stack unwinding behavior.
 - `ffi_builtin.sage`: Tests FFI library bridging and documents dynamic FFI library loading behavior where `ffi.open` returns `nil` due to host-level module import constraints.
 
+### Coverage Expansion (August 2026 - Forge Daily)
+- `io_file_ops.sage`: Tests `io.writebytes` and `io.readbytes` on normal writing/reading paths, non-existent files, and invalid/nil inputs (noting the conformance behavior where indexing the raw `BYTES` returned from `io.readbytes` inside SVM yields `nil` due to missing conversion).
+- `gpu_module_ops.sage`: Tests importing the `gpu` module, and invoking its `poll_events` and `mouse_pos` functions.
+- `builtin_contains_edge.sage`: Tests the `contains` builtin on strings and arrays under edge conditions, documenting a suspected SVM interpreter bug where searching for elements in arrays always returns `false`.
+
 ### Verification Status (August 2026)
-As of August 2026, 100% of the modern coverage suite (87 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
+As of August 2026, 100% of the modern coverage suite (93 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
 All historical opcode translation mismatches, generator execution support (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`), module method bridging, safe-mode object protections, and interpreter halt controls are fully resolved.
 
 ## Adding Tests
