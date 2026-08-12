@@ -681,26 +681,28 @@ class MetalVM:
             elif op == OP_GET_INDEX:
                 let idx = stack[stack_len-1]
                 let obj = stack[stack_len-2]
-                if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                let type_idx = type(idx)
+                if safe_mode and type_idx == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     pop(stack)
                     stack[stack_len-2] = nil
                 else:
                     pop(stack)
-                    if type(obj) == "array" or type(obj) == "tuple":
+                    let type_obj = type(obj)
+                    if type_obj == "array" or type_obj == "tuple":
                         let i_idx = int(idx)
                         if i_idx >= 0 and i_idx < len(obj):
                             stack[stack_len-2] = obj[i_idx]
                         else:
                             stack[stack_len-2] = nil
-                    elif type(obj) == "string":
+                    elif type_obj == "string":
                         let i_idx = int(idx)
                         if i_idx >= 0 and i_idx < len(obj):
                             stack[stack_len-2] = obj[i_idx]
                         else:
                             stack[stack_len-2] = nil
-                    elif type(obj) == "dict":
-                        if dict_has(obj, idx): stack[stack_len-2] = obj[idx]
-                        else: stack[stack_len-2] = nil
+                    elif type_obj == "dict":
+                        # Bypass dict_has presence check for dictionaries, leveraging missing keys evaluation to nil
+                        stack[stack_len-2] = obj[idx]
                     else:
                         stack[stack_len-2] = nil
                 stack_len = stack_len - 1
@@ -708,7 +710,8 @@ class MetalVM:
                 let val = stack[stack_len-1]
                 let idx = stack[stack_len-2]
                 let obj = stack[stack_len-3]
-                if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                let type_idx = type(idx)
+                if safe_mode and type_idx == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
                     pop(stack)
                     pop(stack)
@@ -719,11 +722,12 @@ class MetalVM:
                     pop(stack)
                     stack[stack_len-3] = nil
                 else:
-                    if type(obj) == "array" or type(obj) == "tuple":
+                    let type_obj = type(obj)
+                    if type_obj == "array" or type_obj == "tuple":
                         let i_idx = int(idx)
                         if i_idx >= 0 and i_idx < len(obj):
                             obj[i_idx] = val
-                    elif type(obj) == "dict":
+                    elif type_obj == "dict":
                         obj[idx] = val
                     pop(stack)
                     pop(stack)
