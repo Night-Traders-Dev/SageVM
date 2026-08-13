@@ -69,3 +69,7 @@
 ## 2026-08-08 - [Interactive States and High Contrast Disabled button states]
 **Learning:** Disabled interactive controls or background-running states (like "Running...") should maintain high-contrast styling standards while presenting a clear non-interactive state (such as using brighter text colors, deeper container backgrounds, and `cursor-not-allowed` styles) to comply with readability guidelines.
 **Action:** Always design disabled running states using light and distinct typography that stands out clearly against background panels, and enforce appropriate mouse cursors.
+
+## 2026-08-13 - [Interactive Code Playground Console Accessibility and Flow]
+**Learning:** Implementing visual indicators (like success checkmarks and automated auto-scrolling) along with keyboard-accessible triggers (like Copy and Clear buttons with explicit ARIA labels and focus-visible rings) on code output consoles significantly increases interactive clarity and eliminates navigation dead-ends.
+**Action:** Equip console output headers with explicit ARIA-labeled actions for copy/clear, and configure standard auto-scroll hooks on data mutations.
