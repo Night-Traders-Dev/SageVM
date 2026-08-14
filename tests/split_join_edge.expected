@@ -1,0 +1,11 @@
+Split empty string:
+1
+Split string separator not found:
+1
+hello world
+Split nil input:
+[]
+Join empty array:
+
+Join nil input:
+nil
