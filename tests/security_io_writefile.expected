@@ -1,0 +1,3 @@
+Error: Access to module 'io' is restricted in safe mode
+Error: Method writefile not found
+builtin writefile direct result: __builtin_io_writefile

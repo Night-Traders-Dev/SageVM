@@ -986,6 +986,12 @@ class MetalVM:
                 return nil
             if len(args) < 2 or args[0] == nil or args[1] == nil: return false
             return io.writebytes(args[0], args[1])
+        elif callee == "__builtin_io_writefile":
+            if self.safe_mode:
+                print "Error: io.writefile is restricted in safe mode"
+                return nil
+            if len(args) < 2 or args[0] == nil or args[1] == nil: return false
+            return io.writefile(args[0], args[1])
         elif callee == "__builtin_io_readbytes":
             if self.safe_mode:
                 print "Error: io.readbytes is restricted in safe mode"
@@ -1757,7 +1763,7 @@ class MetalVM:
                         iom["readfile"] = "__builtin_io_readfile"
                         iom["readbytes"] = "__builtin_io_readbytes"
                         iom["writebytes"] = "__builtin_io_writebytes"
-                        iom["writefile"] = io.writefile
+                        iom["writefile"] = "__builtin_io_writefile"
                         push(self.stack, iom)
                     elif name == "sys":
                         var sys_args_list = sys.args()
