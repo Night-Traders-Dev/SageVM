@@ -1,0 +1,15 @@
+2D Matrix:
+[
+  [1, 2]
+  [3, 4]
+]
+1D Array:
+[
+  5
+  6
+  7
+]
+Non-array edge case:
+Error: math.printm() expects an array
+Nil edge case:
+Error: math.printm() expects an array
