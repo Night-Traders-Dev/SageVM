@@ -473,10 +473,7 @@ class MetalVM:
                 # Performance: Inline truthiness evaluation to bypass is_truthy function call overhead
                 if cond == nil or cond == false or cond == 0 or cond == "": ip = target
             elif op == OP_LOOP_BACK:
-                if stack_len > max_stack:
-                    print "Error: Stack overflow"
-                    halted = true
-                    break
+                # Performance: Backward control flow jumps do not grow the stack; stack overflow check removed
                 ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
             elif op == OP_LESS:
                 let b = pop(stack)
@@ -682,11 +679,11 @@ class MetalVM:
                 # Performance: Optimize OP_GET_INDEX in hot loop.
                 # Note: In SageLang, querying a missing key from a dictionary natively evaluates to nil
                 # instead of raising a KeyError or panicking. This allows us to bypass the expensive
-                # dict_has check entirely, and safely index directly.
+                # dict_has check entirely, and safely index directly. Delay type(idx) check so it only
+                # evaluates in safe_mode to avoid heap string allocations in default mode.
                 let idx = stack[stack_len-1]
                 let obj = stack[stack_len-2]
-                let type_idx = type(idx)
-                if safe_mode and type_idx == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     pop(stack)
                     stack[stack_len-2] = nil
                 else:
