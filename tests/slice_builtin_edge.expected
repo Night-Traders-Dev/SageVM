@@ -1,0 +1,15 @@
+Normal array slice:
+3
+20
+40
+Out of bounds array slice (end > len):
+3
+Reverse/invalid array slice (start > end):
+0
+Normal string slice:
+Hello
+String slice with start > end:
+
+String slice out of bounds:
+World
+Slice nil input:
