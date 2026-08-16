@@ -529,16 +529,41 @@ class MetalVM:
             elif op == OP_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = self.equal_val(stack[stack_len-1], b)
+                let a = stack[stack_len-1]
+                # Performance: Fast-path primitive & reference equality to bypass self.equal_val and heap type() calls
+                if a == b:
+                    stack[stack_len-1] = true
+                elif a == nil or b == nil or a == true or a == false or b == true or b == false:
+                    stack[stack_len-1] = false
+                elif tonumber(a) == a or tonumber(b) == b:
+                    stack[stack_len-1] = false
+                else:
+                    let type_a = type(a)
+                    if type_a == "dict" or type_a == "array" or type_a == "tuple":
+                        stack[stack_len-1] = self.equal_val(a, b)
+                    else:
+                        stack[stack_len-1] = false
             elif op == OP_NOT_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
-                stack[stack_len-1] = not self.equal_val(stack[stack_len-1], b)
+                let a = stack[stack_len-1]
+                # Performance: Fast-path primitive & reference inequality to bypass self.equal_val and heap type() calls
+                if a == b:
+                    stack[stack_len-1] = false
+                elif a == nil or b == nil or a == true or a == false or b == true or b == false:
+                    stack[stack_len-1] = true
+                elif tonumber(a) == a or tonumber(b) == b:
+                    stack[stack_len-1] = true
+                else:
+                    let type_a = type(a)
+                    if type_a == "dict" or type_a == "array" or type_a == "tuple":
+                        stack[stack_len-1] = not self.equal_val(a, b)
+                    else:
+                        stack[stack_len-1] = true
             elif op == OP_LESS_EQUAL:
                 let b = pop(stack)
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
-                if self.trace: print "DEBUG OP_LESS_EQUAL a=" + str(a) + " (" + str(type(a)) + ") b=" + str(b) + " (" + str(type(b)) + ")"
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a <= b
                 else:
