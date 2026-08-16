@@ -1,0 +1,19 @@
+Initial len:
+0
+Pop empty array:
+nil
+Len after pop empty:
+0
+Len after 3 pushes:
+3
+Pop 1:
+third
+Pop 2:
+second
+Len remaining:
+1
+Push nil:
+Len after push nil:
+2
+Pop nil:
+nil

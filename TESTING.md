@@ -78,6 +78,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `slice_builtin_edge.sage`: Tests `slice` builtin edge cases including boundary values, negative/out-of-bounds start/end indices, reverse slice parameters, and nil input handling.
 - `split_join_edge.sage`: Tests `split` and `join` string builtins with empty collections, missing separators, and nil inputs.
 - `ml_native_module.sage`: Tests `ml_native` module bridging, metadata queries, and configuration functions.
+- `dict_keys_values_edge.sage`: Tests `dict_keys`, `dict_values`, and `dict_has` builtins on empty dictionaries, nil inputs, non-dict objects, and populated dictionaries.
+- `string_replace_strip_edge.sage`: Tests `replace`, `strip`, `upper`, and `lower` string builtins with empty strings, non-matching search targets, multiple replacements, and whitespace variations.
+- `push_pop_edge.sage`: Tests array `push` and `pop` builtins on empty arrays, nil element insertion/removal, sequential push/pop operations, and array length tracking.
 
 ### Verification Status (August 2026)
 As of August 2026, 100% of the modern coverage suite (100 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.

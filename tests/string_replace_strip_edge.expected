@@ -1,0 +1,13 @@
+Replace non-existent:
+hello
+Replace empty target:
+hello
+Replace multiple:
+x-b-x-b
+Strip no spaces:
+hello
+Strip all spaces:
+
+Strip mixed spaces:
+hello world
+Upper/Lower empty:
