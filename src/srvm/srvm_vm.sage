@@ -6,7 +6,6 @@ from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT
 # Core Interpreter Implementation (RV64I)
 
 import srvm_core
-from srvm_core import RVInstruction
 import io
 import math
 import net
@@ -93,9 +92,22 @@ class SRVM:
             return true
         return false
 
+    proc load_chunk(self, chunk):
+        self.state.bytecode = chunk
+        # Cache the bytecode as 32-bit words once: converting BYTE elements with
+        # int() per instruction allocates strings, and the host GC is disabled at
+        # CLI startup, so per-instruction allocation would leak memory unboundedly.
+        let n_words = len(chunk) / 4
+        self.state.words = []
+        var w = 0
+        while w < n_words:
+            let base = w * 4
+            push(self.state.words, int(chunk[base]) | (int(chunk[base+1]) << 8) | (int(chunk[base+2]) << 16) | (int(chunk[base+3]) << 24))
+            w = w + 1
+
     proc run(self, bytecode):
         # Initial chunk (0)
-        self.state.bytecode = bytecode
+        self.load_chunk(bytecode)
         if len(self.state.chunks) == 0:
             push(self.state.chunks, bytecode)
         
@@ -110,49 +122,62 @@ class SRVM:
                 self.state.jit_engine.compile_srvm_chunk(chunk_id, bytecode, self.state.constants)
         
         while self.state.running and self.state.pc < len(self.state.bytecode):
-            # Fetch
+            # Fetch: read one pre-decoded 32-bit word per instruction
             if self.state.pc + 4 > len(self.state.bytecode):
                 break
             
-            let b0 = self.state.bytecode[self.state.pc]
-            let b1 = self.state.bytecode[self.state.pc+1]
-            let b2 = self.state.bytecode[self.state.pc+2]
-            let b3 = self.state.bytecode[self.state.pc+3]
-            let raw_instr = int(b0) | (int(b1) << 8) | (int(b2) << 16) | (int(b3) << 24)
+            let raw_instr = self.state.words[self.state.pc >> 2]
             
-            let instr = RVInstruction(raw_instr)
+            # Decode instruction fields inline instead of allocating an RVInstruction
+            # object per instruction: the host GC is disabled at CLI startup, so a
+            # per-instruction dict allocation would leak memory unboundedly.
+            let op = raw_instr & 0x7F
+            let rd = (raw_instr >> 7) & 0x1F
+            let f3 = (raw_instr >> 12) & 0x07
+            let rs1 = (raw_instr >> 15) & 0x1F
+            let rs2 = (raw_instr >> 20) & 0x1F
+            let f7 = (raw_instr >> 25) & 0x7F
+            let imm_i = self.sign_extend(raw_instr >> 20, 12)
+            let imm_s = self.sign_extend(((raw_instr >> 25) << 5) | ((raw_instr >> 7) & 0x1F), 12)
+            let imm_b = self.sign_extend(((raw_instr >> 31) << 12) | (((raw_instr >> 7) & 0x01) << 11) | (((raw_instr >> 25) & 0x3F) << 5) | (((raw_instr >> 8) & 0x0F) << 1), 13)
+            let imm_u = raw_instr & 0xFFFFF000
+            let imm_j = self.sign_extend(((raw_instr >> 31) << 20) | (((raw_instr >> 12) & 0xFF) << 12) | (((raw_instr >> 20) & 0x01) << 11) | (((raw_instr >> 21) & 0x3FF) << 1), 21)
             
             if self.trace:
-                print "PC: " + str(self.state.pc) + " Op: " + str(instr.opcode) + " rd: " + str(instr.rd)
+                print "PC: " + str(self.state.pc) + " Op: " + str(op) + " rd: " + str(rd)
             
-            self.execute(instr)
+            self.execute(op, rd, rs1, rs2, f3, f7, imm_i, imm_s, imm_b, imm_u, imm_j, raw_instr)
             
             # x0 is hardwired to zero
-            if instr.rd == 0:
+            if rd == 0:
                 self.state.x[0] = 0
 
-    proc execute(self, instr):
-        let op = instr.opcode
-        
+    proc sign_extend(self, val, bits):
+        let sign_bit = 1 << (bits - 1)
+        if (val & sign_bit) != 0:
+            return val - (1 << bits)
+        return val
+
+    proc execute(self, op, rd, rs1, rs2, f3, f7, imm_i, imm_s, imm_b, imm_u, imm_j, raw):
         if op == OP_LUI:
-            self.state.x[instr.rd] = instr.imm_u
+            self.state.x[rd] = imm_u
             self.state.pc = self.state.pc + 4
         elif op == OP_AUIPC:
-            self.state.x[instr.rd] = self.state.pc + instr.imm_u
+            self.state.x[rd] = self.state.pc + imm_u
             self.state.pc = self.state.pc + 4
         elif op == OP_JAL:
-            self.state.x[instr.rd] = self.state.pc + 4
-            self.state.pc = self.state.pc + instr.imm_j
+            self.state.x[rd] = self.state.pc + 4
+            self.state.pc = self.state.pc + imm_j
         elif op == OP_JALR:
-            let target = (self.state.x[instr.rs1] + instr.imm_i) & ~1
+            let target = (self.state.x[rs1] + imm_i) & ~1
             let rd_val = self.state.pc + 4
             
             # Special case for return: JALR x0, 0(x1)
-            if instr.rd == 0 and instr.rs1 == 1 and instr.imm_i == 0:
+            if rd == 0 and rs1 == 1 and imm_i == 0:
                 if len(self.state.call_stack) > 0:
                     let frame = pop(self.state.call_stack)
                     self.state.current_chunk_idx = frame[0]
-                    self.state.bytecode = self.state.chunks[self.state.current_chunk_idx]
+                    self.load_chunk(self.state.chunks[self.state.current_chunk_idx])
                     self.state.pc = frame[1]
                     self.state.x[1] = frame[2]
                     return # Skip standard PC update
@@ -160,51 +185,51 @@ class SRVM:
                     self.state.running = false
                     return
 
-            self.state.x[instr.rd] = rd_val
+            self.state.x[rd] = rd_val
             self.state.pc = target
         elif op == OP_BRANCH:
-            self.handle_branch(instr)
+            self.handle_branch(rs1, rs2, f3, imm_b)
         elif op == OP_IMM:
-            self.handle_imm(instr)
+            self.handle_imm(rd, rs1, f3, f7, imm_i)
         elif op == OP_REG:
-            self.handle_reg(instr)
+            self.handle_reg(rd, rs1, rs2, f3, f7)
         elif op == OP_LUI:
-            self.state.x[instr.rd] = instr.imm_u
+            self.state.x[rd] = imm_u
             self.state.pc = self.state.pc + 4
         elif op == OP_LDC:
-            self.handle_ldc(instr)
+            self.handle_ldc(rd, raw)
         elif op == OP_LOAD:
-            self.handle_load(instr)
+            self.handle_load(rd, rs1, imm_i)
         elif op == OP_STORE:
-            self.handle_store(instr)
+            self.handle_store(rs1, rs2, imm_s)
         elif op == OP_VMSYS:
-            self.handle_vmsys(instr)
+            self.handle_vmsys(rd, rs1, rs2, f3, f7, imm_i)
         else:
             if self.trace:
                 print "Unknown opcode: " + str(op)
             self.state.running = false
 
-    proc handle_ldc(self, instr):
-        let idx = (instr.raw >> 12) & 0xFFFFF
-        self.state.x[instr.rd] = self.safe_get_constant(idx)
+    proc handle_ldc(self, rd, raw):
+        let idx = (raw >> 12) & 0xFFFFF
+        self.state.x[rd] = self.safe_get_constant(idx)
         self.state.pc = self.state.pc + 4
 
-    proc handle_load(self, instr):
-        let addr = self.state.x[instr.rs1] + instr.imm_i
+    proc handle_load(self, rd, rs1, imm_i):
+        let addr = self.state.x[rs1] + imm_i
         if addr >= len(self.state.stack) and addr < self.state.max_stack_size:
             while len(self.state.stack) <= addr:
                 push(self.state.stack, 0)
         if addr >= 0 and addr < len(self.state.stack):
-            self.state.x[instr.rd] = self.state.stack[addr]
+            self.state.x[rd] = self.state.stack[addr]
         else:
             if self.trace:
                 print "Load access violation at " + str(addr)
             self.state.running = false
         self.state.pc = self.state.pc + 4
 
-    proc handle_store(self, instr):
-        let addr = self.state.x[instr.rs1] + instr.imm_s
-        let val = self.state.x[instr.rs2]
+    proc handle_store(self, rs1, rs2, imm_s):
+        let addr = self.state.x[rs1] + imm_s
+        let val = self.state.x[rs2]
         if addr >= len(self.state.stack) and addr < self.state.max_stack_size:
             while len(self.state.stack) <= addr:
                 push(self.state.stack, 0)
@@ -216,105 +241,106 @@ class SRVM:
             self.state.running = false
         self.state.pc = self.state.pc + 4
 
-    proc handle_branch(self, instr):
-        let rs1_val = self.state.x[instr.rs1]
-        let rs2_val = self.state.x[instr.rs2]
+    proc handle_branch(self, rs1, rs2, f3, imm_b):
+        let rs1_val = self.state.x[rs1]
+        let rs2_val = self.state.x[rs2]
         var take = false
-        let f3 = instr.funct3
-        if f3 == F3_BEQ: take = (rs1_val == rs2_val)
-        elif f3 == F3_BNE: take = (rs1_val != rs2_val)
+        if f3 == F3_BEQ:
+            # x0 is hardwired to zero; condition registers hold SageLang booleans
+            # (strict equality would make false == 0 false and never branch).
+            if rs2 == 0: take = not self.is_truthy(rs1_val)
+            else: take = (rs1_val == rs2_val)
+        elif f3 == F3_BNE:
+            if rs2 == 0: take = self.is_truthy(rs1_val)
+            else: take = (rs1_val != rs2_val)
         elif f3 == F3_BLT: take = (rs1_val < rs2_val)
         elif f3 == F3_BGE: take = (rs1_val >= rs2_val)
         elif f3 == F3_BLTU: take = (rs1_val < rs2_val) # TODO: unsigned comparison
         elif f3 == F3_BGEU: take = (rs1_val >= rs2_val) # TODO: unsigned comparison
         
         if take:
-            self.state.pc = self.state.pc + instr.imm_b
+            self.state.pc = self.state.pc + imm_b
         else:
             self.state.pc = self.state.pc + 4
 
-    proc handle_imm(self, instr):
-        let rs1_val = self.state.x[instr.rs1]
-        let imm = instr.imm_i
-        let f3 = instr.funct3
+    proc handle_imm(self, rd, rs1, f3, f7, imm_i):
+        let rs1_val = self.state.x[rs1]
+        let imm = imm_i
         if f3 == F3_ADDI:
-            if imm == 0: self.state.x[instr.rd] = rs1_val
-            else: self.state.x[instr.rd] = rs1_val + imm
+            if imm == 0: self.state.x[rd] = rs1_val
+            else: self.state.x[rd] = rs1_val + imm
         elif f3 == F3_SLTI:
-            if rs1_val < imm: self.state.x[instr.rd] = 1
-            else: self.state.x[instr.rd] = 0
+            if rs1_val < imm: self.state.x[rd] = 1
+            else: self.state.x[rd] = 0
         elif f3 == F3_SLTIU:
-            if rs1_val < imm: self.state.x[instr.rd] = 1
-            else: self.state.x[instr.rd] = 0
-        elif f3 == F3_XORI: self.state.x[instr.rd] = rs1_val ^ imm
-        elif f3 == F3_ORI: self.state.x[instr.rd] = rs1_val | imm
-        elif f3 == F3_ANDI: self.state.x[instr.rd] = rs1_val & imm
-        elif f3 == F3_SLLI: self.state.x[instr.rd] = rs1_val << (imm & 0x3F)
+            if rs1_val < imm: self.state.x[rd] = 1
+            else: self.state.x[rd] = 0
+        elif f3 == F3_XORI: self.state.x[rd] = rs1_val ^ imm
+        elif f3 == F3_ORI: self.state.x[rd] = rs1_val | imm
+        elif f3 == F3_ANDI: self.state.x[rd] = rs1_val & imm
+        elif f3 == F3_SLLI: self.state.x[rd] = rs1_val << (imm & 0x3F)
         elif f3 == F3_SRLI:
             let shamt = imm & 0x3F
-            if instr.funct7 == 0x20:
+            if f7 == 0x20:
                 # SRAI: arithmetic right shift (sign-extending)
-                self.state.x[instr.rd] = rs1_val >> shamt
+                self.state.x[rd] = rs1_val >> shamt
             else:
                 # SRLI: logical right shift (zero-fill)
                 # For non-negative values, >> works as logical shift
                 # For negative values, mask to 64-bit unsigned first
                 if rs1_val < 0:
                     let unsigned_val = rs1_val + (1 << 64)
-                    self.state.x[instr.rd] = unsigned_val >> shamt
+                    self.state.x[rd] = unsigned_val >> shamt
                 else:
-                    self.state.x[instr.rd] = rs1_val >> shamt
+                    self.state.x[rd] = rs1_val >> shamt
         self.state.pc = self.state.pc + 4
 
-    proc handle_reg(self, instr):
-        let rs1_val = self.state.x[instr.rs1]
-        let rs2_val = self.state.x[instr.rs2]
-        let f3 = instr.funct3
-        let f7 = instr.funct7
+    proc handle_reg(self, rd, rs1, rs2, f3, f7):
+        let rs1_val = self.state.x[rs1]
+        let rs2_val = self.state.x[rs2]
 
         if f7 == 0x01: # M-extension
             if f3 == F3_ADD: # MUL
-                self.state.x[instr.rd] = rs1_val * rs2_val
+                self.state.x[rd] = rs1_val * rs2_val
             elif f3 == F3_XOR: # DIV
-                if rs2_val != 0: self.state.x[instr.rd] = rs1_val / rs2_val
-                else: self.state.x[instr.rd] = 0
+                if rs2_val != 0: self.state.x[rd] = rs1_val / rs2_val
+                else: self.state.x[rd] = 0
             elif f3 == F3_OR: # REM
-                if rs2_val != 0: self.state.x[instr.rd] = rs1_val % rs2_val
-                else: self.state.x[instr.rd] = 0
+                if rs2_val != 0: self.state.x[rd] = rs1_val % rs2_val
+                else: self.state.x[rd] = 0
             self.state.pc = self.state.pc + 4
             return
 
         if f3 == F3_ADD:
             if f7 == 0x00: 
-                self.state.x[instr.rd] = rs1_val + rs2_val
-            elif f7 == 0x20: self.state.x[instr.rd] = rs1_val - rs2_val
-        elif f3 == F3_SLL: self.state.x[instr.rd] = rs1_val << (rs2_val & 0x3F)
+                self.state.x[rd] = rs1_val + rs2_val
+            elif f7 == 0x20: self.state.x[rd] = rs1_val - rs2_val
+        elif f3 == F3_SLL: self.state.x[rd] = rs1_val << (rs2_val & 0x3F)
         elif f3 == F3_SLT:
-            if rs1_val < rs2_val: self.state.x[instr.rd] = 1
-            else: self.state.x[instr.rd] = 0
+            if rs1_val < rs2_val: self.state.x[rd] = 1
+            else: self.state.x[rd] = 0
         elif f3 == F3_SLTU:
-            if rs1_val < rs2_val: self.state.x[instr.rd] = 1
-            else: self.state.x[instr.rd] = 0
-        elif f3 == F3_XOR: self.state.x[instr.rd] = rs1_val ^ rs2_val
+            if rs1_val < rs2_val: self.state.x[rd] = 1
+            else: self.state.x[rd] = 0
+        elif f3 == F3_XOR: self.state.x[rd] = rs1_val ^ rs2_val
         elif f3 == F3_SRL:
             let shamt = rs2_val & 0x3F
             if f7 == 0x20:
                 # SRA: arithmetic right shift
-                self.state.x[instr.rd] = rs1_val >> shamt
+                self.state.x[rd] = rs1_val >> shamt
             else:
                 # SRL: logical right shift
                 if rs1_val < 0:
                     let unsigned_val = rs1_val + (1 << 64)
-                    self.state.x[instr.rd] = unsigned_val >> shamt
+                    self.state.x[rd] = unsigned_val >> shamt
                 else:
-                    self.state.x[instr.rd] = rs1_val >> shamt
-        elif f3 == F3_OR: self.state.x[instr.rd] = rs1_val | rs2_val
-        elif f3 == F3_AND: self.state.x[instr.rd] = rs1_val & rs2_val
+                    self.state.x[rd] = rs1_val >> shamt
+        elif f3 == F3_OR: self.state.x[rd] = rs1_val | rs2_val
+        elif f3 == F3_AND: self.state.x[rd] = rs1_val & rs2_val
         self.state.pc = self.state.pc + 4
 
-    proc handle_vmsys(self, instr):
-        let f3 = instr.funct3
-        let sub_op = instr.rs1
+    proc handle_vmsys(self, rd, rs1, rs2, f3, f7, imm_i):
+        let sub_op = rs1
         
         if f3 == F3_VM_OPS:
             if sub_op == VMO_HALT:
@@ -327,10 +353,10 @@ class SRVM:
                 # Security: Explicitly block sensitive modules in safe mode
                 if self.state.safe_mode and (name == "io" or name == "net" or name == "sys" or name == "thread" or name == "gpu" or name == "ml_native" or name == "mem" or name == "ffi" or name == "struct"):
                     print "Error: Access to module '" + name + "' is restricted in safe mode"
-                    self.state.x[instr.rd] = nil
+                    self.state.x[rd] = nil
                 elif name == "ffi" and not self.state.ffi_enabled:
                     print "Error: FFI is disabled"
-                    self.state.x[instr.rd] = nil
+                    self.state.x[rd] = nil
                 else:
                     try:
                         if name == "math":
@@ -341,37 +367,37 @@ class SRVM:
                             m["sin"] = math.sin
                             m["cos"] = math.cos
                             m["printm"] = "__builtin_math_printm"
-                            self.state.x[instr.rd] = m
-                        elif name == "io": self.state.x[instr.rd] = io
+                            self.state.x[rd] = m
+                        elif name == "io": self.state.x[rd] = io
                         elif name == "sys":
                             let s = {"args": sys.args()}
                             s["__type__"] = "module"
                             s["exec"] = "__builtin_sys_exec"
                             s["exit"] = sys.exit
-                            self.state.x[instr.rd] = s
-                        elif name == "net": self.state.x[instr.rd] = net
+                            self.state.x[rd] = s
+                        elif name == "net": self.state.x[rd] = net
                         elif name == "gpu":
                             let g = {}
                             g["__type__"] = "module"
                             g["poll_events"] = gpu.poll_events
                             g["get_time"] = gpu.get_time
                             g["mouse_pos"] = gpu.mouse_pos
-                            self.state.x[instr.rd] = g
-                        elif name == "ml_native": self.state.x[instr.rd] = ml_native
-                        elif name == "thread": self.state.x[instr.rd] = host_thread
+                            self.state.x[rd] = g
+                        elif name == "ml_native": self.state.x[rd] = ml_native
+                        elif name == "thread": self.state.x[rd] = host_thread
                         elif name == "mem":
                             let m = {"__host_mod__": "mem", "alloc": "__builtin_mem_alloc", "free": "__builtin_mem_free", "read": "__builtin_mem_read", "write": "__builtin_mem_write", "size": "__builtin_mem_size"}
-                            self.state.x[instr.rd] = m
+                            self.state.x[rd] = m
                         elif name == "ffi":
                             let f = {"__host_mod__": "ffi", "open": "__builtin_ffi_open", "close": "__builtin_ffi_close", "call": "__builtin_ffi_call"}
-                            self.state.x[instr.rd] = f
+                            self.state.x[rd] = f
                         elif name == "struct":
                             let s = {"__host_mod__": "struct", "def": "__builtin_struct_def", "new": "__builtin_struct_new", "get": "__builtin_struct_get", "set": "__builtin_struct_set", "size": "__builtin_struct_size"}
-                            self.state.x[instr.rd] = s
+                            self.state.x[rd] = s
                         else:
-                            self.state.x[instr.rd] = {"__type__": "module", "__name__": name}
+                            self.state.x[rd] = {"__type__": "module", "__name__": name}
                     catch e:
-                        self.state.x[instr.rd] = {"__type__": "module", "__name__": name}
+                        self.state.x[rd] = {"__type__": "module", "__name__": name}
             elif sub_op == VMO_PRINT:
                 print str(self.state.x[10]) # Use a0
             elif sub_op == VMO_PRINTM:
@@ -379,7 +405,7 @@ class SRVM:
             elif sub_op == VMO_CMP_BINARY:
                 let val1 = self.state.x[10]
                 let val2 = self.state.x[11]
-                let cmp_type = instr.funct7
+                let cmp_type = f7
                 if cmp_type == CMP_EQ: self.state.x[10] = (val1 == val2)
                 elif cmp_type == CMP_NEQ: self.state.x[10] = (val1 != val2)
                 elif cmp_type == CMP_LT: self.state.x[10] = (val1 < val2)
@@ -387,15 +413,15 @@ class SRVM:
                 elif cmp_type == CMP_LE: self.state.x[10] = (val1 <= val2)
                 elif cmp_type == CMP_GE: self.state.x[10] = (val1 >= val2)
             elif sub_op == VMO_NIL:
-                self.state.x[instr.rd] = nil
+                self.state.x[rd] = nil
             elif sub_op == VMO_TRUE:
-                self.state.x[instr.rd] = true
+                self.state.x[rd] = true
             elif sub_op == VMO_FALSE:
-                self.state.x[instr.rd] = false
+                self.state.x[rd] = false
             elif sub_op == VMO_NOT:
-                self.state.x[instr.rd] = not self.is_truthy(self.state.x[10])
+                self.state.x[rd] = not self.is_truthy(self.state.x[10])
             elif sub_op == VMO_TRUTHY:
-                self.state.x[instr.rd] = self.is_truthy(self.state.x[10])
+                self.state.x[rd] = self.is_truthy(self.state.x[10])
             elif sub_op == VMO_PUSH_ENV:
                 # Security: Prevent environment stack exhaustion (DoS)
                 if len(self.state.call_stack) >= self.state.max_call_depth:
@@ -414,7 +440,7 @@ class SRVM:
                     self.state.running = false
                     return
 
-                let func_obj = self.state.x[instr.rs2] 
+                let func_obj = self.state.x[rs2] 
                 var target_chunk = -1
                 if type(func_obj) == "number": target_chunk = int(func_obj)
                 elif type(func_obj) == "dict" and dict_has(func_obj, "chunk_idx"): target_chunk = int(func_obj["chunk_idx"])
@@ -528,15 +554,15 @@ class SRVM:
                     if not self.state.running: return
                     push(self.state.call_stack, [self.state.current_chunk_idx, self.state.pc + 4, self.state.x[1]])
                     self.state.current_chunk_idx = target_chunk
-                    self.state.bytecode = chunk
+                    self.load_chunk(chunk)
                     self.state.pc = 0
                     self.state.x[1] = 0
                     return
             elif sub_op == VMO_ARRAY_LEN:
-                let obj = self.state.x[instr.rs2]
-                if type(obj) == "list": self.state.x[instr.rd] = len(obj)
-                elif type(obj) == "dict": self.state.x[instr.rd] = len(obj)
-                else: self.state.x[instr.rd] = 0
+                let obj = self.state.x[rs2]
+                if type(obj) == "list": self.state.x[rd] = len(obj)
+                elif type(obj) == "dict": self.state.x[rd] = len(obj)
+                else: self.state.x[rd] = 0
             elif sub_op == VMO_SETUP_TRY:
                 # Security: Prevent nested handlers from exhausting VM memory (DoS)
                 if len(self.state.try_stack) >= self.state.max_try_depth:
@@ -544,7 +570,7 @@ class SRVM:
                     self.state.running = false
                     return
 
-                let catch_offset = instr.imm_i
+                let catch_offset = imm_i
                 push(self.state.try_stack, [self.state.pc + catch_offset, len(self.state.call_stack)])
             elif sub_op == VMO_END_TRY:
                 if len(self.state.try_stack) > 0:
@@ -570,13 +596,13 @@ class SRVM:
                 let name = self.safe_get_constant(idx)
                 if not self.state.running: return
                 if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                    self.state.x[instr.rd] = nil
+                    self.state.x[rd] = nil
                 elif dict_has(self.state.heap, name):
-                    self.state.x[instr.rd] = self.state.heap[name]
+                    self.state.x[rd] = self.state.heap[name]
                 elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print":
-                    self.state.x[instr.rd] = {"__builtin__": name}
+                    self.state.x[rd] = {"__builtin__": name}
                 else:
-                    self.state.x[instr.rd] = nil
+                    self.state.x[rd] = nil
             elif sub_op == OBJ_SET_GLOBAL:
                 let idx = int(self.state.x[10]) # a0
                 let val = self.state.x[11] # a1
@@ -587,16 +613,16 @@ class SRVM:
                 else:
                     self.state.heap[name] = val
             elif sub_op == OBJ_GET_PROP:
-                let obj = self.state.x[instr.rs2]
+                let obj = self.state.x[rs2]
                 let name_idx = int(self.state.x[10])
                 let name = self.safe_get_constant(name_idx)
                 if not self.state.running: return
                 if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                    self.state.x[instr.rd] = nil
-                elif type(obj) == "dict": self.state.x[instr.rd] = obj[name]
-                else: self.state.x[instr.rd] = nil
+                    self.state.x[rd] = nil
+                elif type(obj) == "dict": self.state.x[rd] = obj[name]
+                else: self.state.x[rd] = nil
             elif sub_op == OBJ_SET_PROP:
-                let obj = self.state.x[instr.rs2]
+                let obj = self.state.x[rs2]
                 let name_idx = int(self.state.x[10])
                 let val = self.state.x[11]
                 let name = self.safe_get_constant(name_idx)
@@ -609,7 +635,7 @@ class SRVM:
                     obj[name] = val
             elif sub_op == OBJ_NEW_FUNC:
                 let chunk_idx = int(self.state.x[10])
-                self.state.x[instr.rd] = {"type": "function", "chunk_idx": chunk_idx}
+                self.state.x[rd] = {"type": "function", "chunk_idx": chunk_idx}
             elif sub_op == OBJ_ARRAY_NEW:
                 let size = int(self.state.x[10])
                 # Security: Prevent memory exhaustion via large array allocation (DoS)
@@ -624,9 +650,9 @@ class SRVM:
                 while i < size:
                     push(arr, init_val)
                     i = i + 1
-                self.state.x[instr.rd] = arr
+                self.state.x[rd] = arr
             elif sub_op == OBJ_DICT_NEW:
-                self.state.x[instr.rd] = {}
+                self.state.x[rd] = {}
             elif sub_op == OBJ_TUPLE_NEW:
                 let size = int(self.state.x[10])
                 var t_arr = []
@@ -634,27 +660,27 @@ class SRVM:
                 while i < size:
                     push(t_arr, nil)
                     i = i + 1
-                self.state.x[instr.rd] = t_arr
+                self.state.x[rd] = t_arr
             elif sub_op == OBJ_GET_INDEX:
-                let obj = self.state.x[instr.rs2]
+                let obj = self.state.x[rs2]
                 let raw_idx = self.state.x[10]
                 if self.state.safe_mode and type(raw_idx) == "string" and startswith(raw_idx, "__") and not startswith(raw_idx, "__arg"):
-                    self.state.x[instr.rd] = nil
+                    self.state.x[rd] = nil
                 elif type(obj) == "dict":
-                    self.state.x[instr.rd] = obj[raw_idx]
+                    self.state.x[rd] = obj[raw_idx]
                 elif type(obj) == "list" or type(obj) == "array":
                     let idx = int(raw_idx)
                     if idx >= 0 and idx < len(obj):
-                        self.state.x[instr.rd] = obj[idx]
-                    else: self.state.x[instr.rd] = nil
+                        self.state.x[rd] = obj[idx]
+                    else: self.state.x[rd] = nil
                 elif type(obj) == "string":
                     let idx = int(raw_idx)
                     if idx >= 0 and idx < len(obj):
-                        self.state.x[instr.rd] = obj[idx]
-                    else: self.state.x[instr.rd] = nil
-                else: self.state.x[instr.rd] = nil
+                        self.state.x[rd] = obj[idx]
+                    else: self.state.x[rd] = nil
+                else: self.state.x[rd] = nil
             elif sub_op == OBJ_SET_INDEX:
-                let obj = self.state.x[instr.rs2]
+                let obj = self.state.x[rs2]
                 let raw_idx = self.state.x[10]
                 let val = self.state.x[11]
                 if self.state.safe_mode and type(raw_idx) == "string" and startswith(raw_idx, "__") and not startswith(raw_idx, "__arg"):
@@ -668,12 +694,11 @@ class SRVM:
                     if idx >= 0 and idx < len(obj):
                         obj[idx] = val
         elif f3 == F3_GPU_OPS:
-            self.handle_gpu(instr)
+            self.handle_gpu(rs1)
         
         self.state.pc = self.state.pc + 4
 
-    proc handle_gpu(self, instr):
-        let sub_op = instr.rs1
+    proc handle_gpu(self, sub_op):
         # TODO: Implement mapping for 28 GPU opcodes
         if self.trace:
             print "GPU Op: " + str(sub_op)
