@@ -78,6 +78,8 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `slice_builtin_edge.sage`: Tests `slice` builtin edge cases including boundary values, negative/out-of-bounds start/end indices, reverse slice parameters, and nil input handling.
 - `split_join_edge.sage`: Tests `split` and `join` string builtins with empty collections, missing separators, and nil inputs.
 - `ml_native_module.sage`: Tests `ml_native` module bridging, metadata queries, and configuration functions.
+- `net_module_ops.sage`: Tests importing and querying the `net` module structure and properties.
+- `math_printm_op.sage`: Tests `OP_MATH_PRINTM` (`math.printm`) on 2D matrices, 1D arrays, and edge cases (non-array / nil parameters).
 
 ### Verification Status (August 2026)
 As of August 2026, 100% of the modern coverage suite (100 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
