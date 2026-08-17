@@ -715,6 +715,7 @@ class MetalVM:
                     pop(stack)
                     let type_obj = type(obj)
                     if type_obj == "dict":
+                        # Performance: direct key lookup bypassing dict_has and type overhead
                         stack[stack_len-2] = obj[idx]
                     elif type_obj == "array" or type_obj == "tuple":
                         let i_idx = int(idx)
@@ -746,12 +747,13 @@ class MetalVM:
                     pop(stack)
                     stack[stack_len-3] = nil
                 else:
-                    if type(obj) == "array" or type(obj) == "tuple":
+                    let type_obj = type(obj)
+                    if type_obj == "dict":
+                        obj[idx] = val
+                    elif type_obj == "array" or type_obj == "tuple":
                         let i_idx = int(idx)
                         if i_idx >= 0 and i_idx < len(obj):
                             obj[i_idx] = val
-                    elif type(obj) == "dict":
-                        obj[idx] = val
                     pop(stack)
                     pop(stack)
                     stack[stack_len-3] = val
@@ -765,8 +767,12 @@ class MetalVM:
                     if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                         stack[stack_len-1] = nil
                     elif type(obj) == "dict":
-                        if dict_has(obj, name):
-                            stack[stack_len-1] = obj[name]
+                        # Performance: direct key lookup fast-path bypassing dict_has
+                        let val = obj[name]
+                        if val != nil:
+                            stack[stack_len-1] = val
+                        elif dict_has(obj, name):
+                            stack[stack_len-1] = nil
                         elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
                             stack[stack_len-1] = obj["__class__"]["__methods__"][name]
                         elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
