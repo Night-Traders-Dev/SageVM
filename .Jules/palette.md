@@ -73,3 +73,7 @@
 ## 2026-08-11 - [Grid-Based Interactive Reference Cards Navigation]
 **Learning:** Documentation references featuring grid-based expand/collapse cards are completely inaccessible to keyboard and screen-reader users if they are not designed with semantic HTML elements or proper interactive attributes. Adding role="button", tabIndex={0}, focus visible rings, and Enter/Space event handlers turns static grid elements into highly intuitive, keyboard-accessible controls.
 **Action:** Always enrich non-button clickable containers with full keyboard focus support, aria-expanded states, and clear keydown handlers for accessible interaction.
+
+## 2026-08-13 - [Interactive Code Playground Console Accessibility and Flow]
+**Learning:** Implementing visual indicators (like success checkmarks and automated auto-scrolling) along with keyboard-accessible triggers (like Copy and Clear buttons with explicit ARIA labels and focus-visible rings) on code output consoles significantly increases interactive clarity and eliminates navigation dead-ends.
+**Action:** Equip console output headers with explicit ARIA-labeled actions for copy/clear, and configure standard auto-scroll hooks on data mutations.
