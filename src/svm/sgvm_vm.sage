@@ -708,7 +708,8 @@ class MetalVM:
                 # evaluates in safe_mode to avoid heap string allocations in default mode.
                 let idx = stack[stack_len-1]
                 let obj = stack[stack_len-2]
-                if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                let type_idx = type(idx)
+                if safe_mode and type_idx == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     pop(stack)
                     stack[stack_len-2] = nil
                 else:
@@ -736,7 +737,8 @@ class MetalVM:
                 let val = stack[stack_len-1]
                 let idx = stack[stack_len-2]
                 let obj = stack[stack_len-3]
-                if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                let type_idx = type(idx)
+                if safe_mode and type_idx == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
                     pop(stack)
                     pop(stack)
