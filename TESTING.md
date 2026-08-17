@@ -80,6 +80,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `ml_native_module.sage`: Tests `ml_native` module bridging, metadata queries, and configuration functions.
 - `net_module_ops.sage`: Tests importing and querying the `net` module structure and properties.
 - `math_printm_op.sage`: Tests `OP_MATH_PRINTM` (`math.printm`) on 2D matrices, 1D arrays, and edge cases (non-array / nil parameters).
+- `dict_keys_values_edge.sage`: Tests `dict_keys`, `dict_values`, and `dict_has` builtins on empty dictionaries, nil inputs, non-dict objects, and populated dictionaries.
+- `string_replace_strip_edge.sage`: Tests `replace`, `strip`, `upper`, and `lower` string builtins with empty strings, non-matching search targets, multiple replacements, and whitespace variations.
+- `push_pop_edge.sage`: Tests array `push` and `pop` builtins on empty arrays, nil element insertion/removal, sequential push/pop operations, and array length tracking.
 
 ### Verification Status (August 2026)
 As of August 2026, 100% of the modern coverage suite (100 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
