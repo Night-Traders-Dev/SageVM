@@ -88,7 +88,7 @@ class StackToRiscVTranslator:
                 j = j + 4
             elif op == OP_CALL_METHOD:
                 j = j + 3
-            elif op == OP_CONSTANT or op == OP_GET_GLOBAL or op == OP_SET_GLOBAL or op == OP_DEFINE_GLOBAL or op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_GET_PROPERTY or op == OP_SET_PROPERTY or op == OP_METHOD or op == OP_ARRAY or op == OP_TUPLE or op == OP_DICT or op == OP_LOOP_BACK or op == OP_IMPORT or op == OP_SETUP_TRY or op == OP_LOAD_FUNCTION or op == OP_CLASS or op == OP_GET_LOCAL or op == OP_SET_LOCAL:
+            elif op == OP_CONSTANT or op == OP_GET_GLOBAL or op == OP_SET_GLOBAL or op == OP_DEFINE_GLOBAL or op == OP_JUMP or op == OP_JUMP_IF_FALSE or op == OP_GET_PROPERTY or op == OP_SET_PROPERTY or op == OP_METHOD or op == OP_ARRAY or op == OP_TUPLE or op == OP_DICT or op == OP_LOOP_BACK or op == OP_IMPORT or op == OP_SETUP_TRY or op == OP_LOAD_FUNCTION or op == OP_CLASS or op == OP_GET_LOCAL or op == OP_SET_LOCAL or op == OP_EXEC_AST_STMT:
                 if op == OP_SETUP_TRY:
                     let target = (int(svm_bytecode[j]) << 8) | int(svm_bytecode[j+1])
                     catch_labels[str(target)] = true
@@ -622,8 +622,8 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 29, OBJ_METHOD_BIND, 18))
                 
                 # Branch if x28 == 0 (class call) to class_call block.
-                # Offset is (argc + 3) * 4 bytes.
-                self.emit_32(self.encoder.encode_b(OP_BRANCH, F3_BEQ, 28, 0, (argc + 3) * 4))
+                # Offset is (argc + 4) * 4 bytes.
+                self.emit_32(self.encoder.encode_b(OP_BRANCH, F3_BEQ, 28, 0, (argc + 4) * 4))
                 
                 # Instance call block:
                 # Move obj (x18) to x10
@@ -633,9 +633,11 @@ class StackToRiscVTranslator:
                 while k < argc:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11 + k, 19 + k, 0))
                     k = k + 1
+                # Do call: VMO_CALL(x29)
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_CALL, 29))
                 # JUMP over class_call block.
-                # Offset is (argc + 1) * 4 bytes.
-                self.emit_32(self.encoder.encode_j(OP_JAL, 0, (argc + 1) * 4))
+                # Offset is (argc + 2) * 4 bytes.
+                self.emit_32(self.encoder.encode_j(OP_JAL, 0, (argc + 2) * 4))
                 
                 # Class call block:
                 # Move args (x19..) to x10..
@@ -657,6 +659,12 @@ class StackToRiscVTranslator:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_PRINT, 0))
                 
+            elif op == OP_EXEC_AST_STMT:
+                let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                self.emit_load_imm(10, idx)
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_EXEC_AST, 0))
+
             elif op == OP_HALT:
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_HALT, 0))
 
