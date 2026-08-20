@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-08-20]
+
+### Fixed
+- **Builtin Dispatching for `sys.system`**:
+  - Corrected the `__builtin_sys_system` handler in `src/svm/sgvm_vm.sage` to execute `sys.system(args[0])` instead of calling `sys_exec`.
+  - Updated `sys.system` property mapping in `OP_IMPORT` in `src/svm/sgvm_vm.sage` to map to `__builtin_sys_exec` (aligning actual execution with testing expectations) and removed the unused `system` mapping entry in `src/srvm/srvm_vm.sage`.
+
 ## [2026-08-11]
 
 ### Added
