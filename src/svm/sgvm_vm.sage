@@ -775,14 +775,32 @@ class MetalVM:
                             stack[stack_len-1] = val
                         elif dict_has(obj, name):
                             stack[stack_len-1] = nil
-                        elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
-                            stack[stack_len-1] = obj["__class__"]["__methods__"][name]
-                        elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
-                            stack[stack_len-1] = obj["__methods__"][name]
-                        elif dict_has(obj, "__type__") and obj["__type__"] == "module" and dict_has(global_scope, name):
-                            stack[stack_len-1] = global_scope[name]
                         else:
-                            stack[stack_len-1] = nil
+                            # Performance: Bypass dict_has function calls for class, method, and module property lookups
+                            var found_prop = false
+                            let cls = obj["__class__"]
+                            if cls != nil:
+                                let cls_methods = cls["__methods__"]
+                                if cls_methods != nil:
+                                    let m = cls_methods[name]
+                                    if m != nil:
+                                        stack[stack_len-1] = m
+                                        found_prop = true
+                            if not found_prop:
+                                let methods = obj["__methods__"]
+                                if methods != nil:
+                                    let m = methods[name]
+                                    if m != nil:
+                                        stack[stack_len-1] = m
+                                        found_prop = true
+                            if not found_prop:
+                                if obj["__type__"] == "module":
+                                    let gval = global_scope[name]
+                                    if gval != nil:
+                                        stack[stack_len-1] = gval
+                                        found_prop = true
+                            if not found_prop:
+                                stack[stack_len-1] = nil
                     else:
                         stack[stack_len-1] = obj[name]
                 else:
@@ -1462,17 +1480,19 @@ class MetalVM:
             self.ip = self.ip + 1
             let args = []
             var j = 0
-            while j < argc:
-                push(args, nil)
-                j = j + 1
-            j = 0
-            while j < argc:
-                args[argc - 1 - j] = pop(self.stack)
-                j = j + 1
+            # Performance: Bypass argument collection loops when argc == 0
+            if argc > 0:
+                while j < argc:
+                    push(args, nil)
+                    j = j + 1
+                j = 0
+                while j < argc:
+                    args[argc - 1 - j] = pop(self.stack)
+                    j = j + 1
             let callee = pop(self.stack)
             if type(callee) == "dict":
-                if dict_has(callee, "__type__"):
-                    let ctype = callee["__type__"]
+                let ctype = callee["__type__"]
+                if ctype != nil:
                     if ctype == "function":
                         # Security: Prevent infinite recursion from exhausting host resources (DoS)
                         if len(self.call_stack) >= self.max_call_depth:
@@ -1516,8 +1536,11 @@ class MetalVM:
                         push(self.stack, gen_obj)
                     elif ctype == "class":
                         let instance = {"__type__": "instance", "__class__": callee}
-                        if dict_has(callee["__methods__"], "init"):
-                            let init_func = callee["__methods__"]["init"]
+                        let callee_methods = callee["__methods__"]
+                        var init_func = nil
+                        if callee_methods != nil:
+                            init_func = callee_methods["init"]
+                        if init_func != nil:
                             # Security: Prevent infinite recursion from exhausting host resources (DoS)
                             if len(self.call_stack) >= self.max_call_depth:
                                 print "Error: Call depth limit exceeded"
@@ -1573,32 +1596,44 @@ class MetalVM:
                 print "Error: Stack overflow"
                 self.halted = true
                 return false
-            let name_idx = ut.read_be16(self.code, self.ip)
+            # Performance: Inline BE16 integer reading for method name index
+            let name_idx = (self.code[self.ip] << 8) | self.code[self.ip + 1]
             let argc = int(self.code[self.ip + 2])
             self.ip = self.ip + 3
             let name = self.constants[name_idx]
             let args = []
             var j = 0
-            while j < argc:
-                push(args, nil)
-                j = j + 1
-            j = 0
-            while j < argc:
-                args[argc - 1 - j] = pop(self.stack)
-                j = j + 1
+            # Performance: Bypass argument collection loops when argc == 0
+            if argc > 0:
+                while j < argc:
+                    push(args, nil)
+                    j = j + 1
+                j = 0
+                while j < argc:
+                    args[argc - 1 - j] = pop(self.stack)
+                    j = j + 1
             let obj = pop(self.stack)
 
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                 push(self.stack, nil)
                 return true
 
+            # Performance: Bypass dict_has function calls for method and class lookups via direct subscripting
             var is_class_call = false
             var method = nil
-            if dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
-                method = obj["__methods__"][name]
-                is_class_call = true
-            elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
-                method = obj["__class__"]["__methods__"][name]
+            if type(obj) == "dict":
+                let methods = obj["__methods__"]
+                if methods != nil:
+                    let m = methods[name]
+                    if m != nil:
+                        method = m
+                        is_class_call = true
+                if method == nil:
+                    let cls = obj["__class__"]
+                    if cls != nil:
+                        let cls_methods = cls["__methods__"]
+                        if cls_methods != nil:
+                            method = cls_methods[name]
             
             if method != nil:
                 # Security: Prevent infinite recursion from exhausting host resources (DoS)
