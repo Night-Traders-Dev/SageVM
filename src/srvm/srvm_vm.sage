@@ -373,6 +373,7 @@ class SRVM:
                             let s = {"args": sys.args()}
                             s["__type__"] = "module"
                             s["exec"] = "__builtin_sys_exec"
+                            s["system"] = "__builtin_sys_system"
                             s["exit"] = sys.exit
                             self.state.x[rd] = s
                         elif name == "net": self.state.x[rd] = net
