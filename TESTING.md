@@ -83,6 +83,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `dict_keys_values_edge.sage`: Tests `dict_keys`, `dict_values`, and `dict_has` builtins on empty dictionaries, nil inputs, non-dict objects, and populated dictionaries.
 - `string_replace_strip_edge.sage`: Tests `replace`, `strip`, `upper`, and `lower` string builtins with empty strings, non-matching search targets, multiple replacements, and whitespace variations.
 - `push_pop_edge.sage`: Tests array `push` and `pop` builtins on empty arrays, nil element insertion/removal, sequential push/pop operations, and array length tracking.
+- `type_builtin_edge.sage`: Tests `type()` builtin function across primitive values, collections, functions, host modules, and builtin string handlers (documenting SVM type gaps for tuples, functions/modules, and builtins).
+- `mem_module_ops.sage`: Tests bridged `mem` module functions (`mem.alloc`, `mem.free`, `mem.size`, `mem.read`, `mem.write`) on normal execution, zero/negative sizes, and nil parameters.
+- `struct_module_ops.sage`: Tests `struct` module functions (`struct.def`, `struct.new`, `struct.get`, `struct.set`, `struct.size`) under invalid format parameters, nil inputs, and host bridge constraints.
 
 ### Verification Status (August 2026)
 As of August 2026, 100% of the modern coverage suite (100 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.

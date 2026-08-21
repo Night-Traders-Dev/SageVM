@@ -1,0 +1,13 @@
+Testing type() builtin function...
+type(123): number
+type(3.14): number
+type("hello"): string
+type(true): bool
+type(false): bool
+type(nil): nil
+type([]): array
+type({}): dict
+type((1, 2)): array
+type(sample): dict
+type(math): dict
+type(type): string

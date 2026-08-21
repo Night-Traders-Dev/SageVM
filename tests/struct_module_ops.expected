@@ -1,0 +1,9 @@
+Testing struct module edge cases...
+Struct def valid: false
+Struct def invalid: nil
+Struct def nil: nil
+Struct def failed (host bridge behavior)
+Struct new nil: nil
+Struct size nil: nil
+Struct get nil: nil
+Struct set nil: nil
