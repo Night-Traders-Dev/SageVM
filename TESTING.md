@@ -83,9 +83,12 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `dict_keys_values_edge.sage`: Tests `dict_keys`, `dict_values`, and `dict_has` builtins on empty dictionaries, nil inputs, non-dict objects, and populated dictionaries.
 - `string_replace_strip_edge.sage`: Tests `replace`, `strip`, `upper`, and `lower` string builtins with empty strings, non-matching search targets, multiple replacements, and whitespace variations.
 - `push_pop_edge.sage`: Tests array `push` and `pop` builtins on empty arrays, nil element insertion/removal, sequential push/pop operations, and array length tracking.
+- `string_starts_ends_edge.sage`: Tests `startswith` and `endswith` string builtins with empty prefixes/suffixes, case sensitivity, length overflows, and nil arguments.
+- `builtin_tuple_edge.sage`: Tests `OP_TUPLE` and tuple operations including empty tuples, single-element tuples, out-of-bounds indexing, array-vs-tuple equality, and containment checks.
+- `builtin_type_edge.sage`: Tests `type()` builtin behavior across primitive types, collections, functions, and modules, documenting SVM type classification behavior.
 
 ### Verification Status (August 2026)
-As of August 2026, 100% of the modern coverage suite (100 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
+As of August 2026, 100% of the modern coverage suite (109 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
 All historical opcode translation mismatches, generator execution support (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`), module method bridging, safe-mode object protections, and interpreter halt controls are fully resolved.
 
 ## Adding Tests
