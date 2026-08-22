@@ -2,5 +2,5 @@ sys.exec restricted:
 Error: sys.exec is restricted
 res1: nil
 sys.system restricted:
-Error: sys.exec is restricted
-res2: nil
+Error: sys.system is restricted
+res2: -1

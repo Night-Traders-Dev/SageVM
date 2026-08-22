@@ -998,7 +998,7 @@ class MetalVM:
             if self.safe_mode or not self.exec_enabled:
                 print "Error: sys.system is restricted"
                 return -1
-            return sys.system(args[0])
+            return sys_exec(args[0])
         elif callee == "__builtin_sys_exit":
             self.exit_requested = true
             self.halted = true
@@ -1802,7 +1802,7 @@ class MetalVM:
                         let s = {"args": sys_args_list}
                         s["__type__"] = "module"
                         s["exec"] = "__builtin_sys_exec"
-                        s["system"] = "__builtin_sys_exec"
+                        s["system"] = "__builtin_sys_system"
                         s["exit"] = "__builtin_sys_exit"
                         s["getenv"] = "__builtin_sys_getenv"
                         push(self.stack, s)
