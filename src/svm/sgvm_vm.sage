@@ -246,26 +246,33 @@ class MetalVM:
             ip = ip + 1
 
             # Hot-path dispatch: inline most frequent opcodes to avoid function call overhead
+            # Performance: Bypass push/pop C function calls via stack slot re-use
             if op == OP_GET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                var val = nil
                 if local_base + idx < stack_len:
-                    push(stack, stack[local_base + idx])
+                    val = stack[local_base + idx]
+                if stack_len < len(stack):
+                    stack[stack_len] = val
                 else:
-                    push(stack, nil)
+                    push(stack, val)
                 stack_len = stack_len + 1
             elif op == OP_CONSTANT:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 if idx < const_len:
-                    push(stack, constants[idx])
+                    let val = constants[idx]
+                    if stack_len < len(stack):
+                        stack[stack_len] = val
+                    else:
+                        push(stack, val)
                     stack_len = stack_len + 1
                 else:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
             elif op == OP_POP:
-                pop(stack)
                 stack_len = stack_len - 1
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
@@ -273,7 +280,11 @@ class MetalVM:
                 # Check inline cache
                 let cached_dict = global_cache_dict[idx]
                 if cached_dict != nil:
-                    push(stack, cached_dict[constants[idx]])
+                    let val = cached_dict[constants[idx]]
+                    if stack_len < len(stack):
+                        stack[stack_len] = val
+                    else:
+                        push(stack, val)
                     stack_len = stack_len + 1
                     continue
 
@@ -284,65 +295,64 @@ class MetalVM:
                 let name = constants[idx]
 
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                    push(stack, nil)
+                    if stack_len < len(stack):
+                        stack[stack_len] = nil
+                    else:
+                        push(stack, nil)
                     stack_len = stack_len + 1
                     continue
                 # Performance: Bypassing dict_has for direct lookup where possible
                 var found = false
                 var resolved_dict = nil
+                var val = nil
                 if scopes_len == 1:
-                    let val = global_scope[name]
+                    val = global_scope[name]
                     if val != nil:
-                        push(stack, val)
                         found = true
                         resolved_dict = global_scope
                     elif dict_has(global_scope, name):
-                        push(stack, nil)
                         found = true
                         resolved_dict = global_scope
                 elif scopes_len == 2:
-                    let val1 = scopes[1][name]
-                    if val1 != nil:
-                        push(stack, val1)
+                    val = scopes[1][name]
+                    if val != nil:
                         found = true
                         resolved_dict = scopes[1]
                     elif dict_has(scopes[1], name):
-                        push(stack, nil)
                         found = true
                         resolved_dict = scopes[1]
                     else:
-                        let val0 = global_scope[name]
-                        if val0 != nil:
-                            push(stack, val0)
+                        val = global_scope[name]
+                        if val != nil:
                             found = true
                             resolved_dict = global_scope
                         elif dict_has(global_scope, name):
-                            push(stack, nil)
                             found = true
                             resolved_dict = global_scope
                 else:
                     var si = scopes_len - 1
                     while si >= 0:
-                        let val = scopes[si][name]
+                        val = scopes[si][name]
                         if val != nil:
-                            push(stack, val)
                             found = true
                             resolved_dict = scopes[si]
                             si = -1
                         elif dict_has(scopes[si], name):
-                            push(stack, nil)
                             found = true
                             resolved_dict = scopes[si]
                             si = -1
                         else:
                             si = si - 1
                 if not found:
-                    let val = globals[name]
-                    push(stack, val)
+                    val = globals[name]
                     resolved_dict = globals
 
                 if resolved_dict != nil:
                     global_cache_dict[idx] = resolved_dict
+                if stack_len < len(stack):
+                    stack[stack_len] = val
+                else:
+                    push(stack, val)
                 stack_len = stack_len + 1
             elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
@@ -357,12 +367,15 @@ class MetalVM:
                             print "Error: Stack overflow"
                             halted = true
                             break
-                        push(stack, nil)
+                        if stack_len < len(stack):
+                            stack[stack_len] = nil
+                        else:
+                            push(stack, nil)
                         stack_len = stack_len + 1
                     if halted: break
                     stack[target_idx] = val
             elif op == OP_ADD:
-                var b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
                 # Performance: fast-path non-allocating check for numerical addition
@@ -375,8 +388,9 @@ class MetalVM:
                         stack[stack_len-1] = a + b
                     elif type_a == "string" or type_b == "string":
                         if a == nil: a = ""
-                        if b == nil: b = ""
-                        stack[stack_len-1] = str(a) + str(b)
+                        var b_str = b
+                        if b_str == nil: b_str = ""
+                        stack[stack_len-1] = str(a) + str(b_str)
                     elif type_a == "array" and type_b == "array":
                         let res = []
                         var ai = 0
@@ -390,11 +404,12 @@ class MetalVM:
                         stack[stack_len-1] = res
                     else:
                         if a == nil: a = 0
-                        if b == nil: b = 0
-                        if type(a) != "number" or type(b) != "number":
+                        var b_val = b
+                        if b_val == nil: b_val = 0
+                        if type(a) != "number" or type(b_val) != "number":
                             stack[stack_len-1] = 0
                         else:
-                            stack[stack_len-1] = a + b
+                            stack[stack_len-1] = a + b_val
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -476,7 +491,7 @@ class MetalVM:
                 # Performance: Backward control flow jumps do not grow the stack; stack overflow check removed
                 ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
             elif op == OP_LESS:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
@@ -485,7 +500,7 @@ class MetalVM:
                     if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a < b
                     else: stack[stack_len-1] = false
             elif op == OP_MUL:
-                var b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
@@ -502,7 +517,7 @@ class MetalVM:
                     else:
                         stack[stack_len-1] = 0
             elif op == OP_DIV:
-                var b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b and b != 0:
@@ -513,7 +528,7 @@ class MetalVM:
                     else:
                         stack[stack_len-1] = nil
             elif op == OP_SUB:
-                var b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
@@ -524,7 +539,7 @@ class MetalVM:
                     else:
                         stack[stack_len-1] = 0
             elif op == OP_EQUAL:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
                 # Performance: Fast-path primitive & reference equality to bypass self.equal_val and heap type() calls
@@ -541,7 +556,7 @@ class MetalVM:
                     else:
                         stack[stack_len-1] = false
             elif op == OP_NOT_EQUAL:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
                 # Performance: Fast-path primitive & reference inequality to bypass self.equal_val and heap type() calls
@@ -558,7 +573,7 @@ class MetalVM:
                     else:
                         stack[stack_len-1] = true
             elif op == OP_LESS_EQUAL:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
@@ -567,7 +582,7 @@ class MetalVM:
                     if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a <= b
                     else: stack[stack_len-1] = false
             elif op == OP_GREATER:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
@@ -576,7 +591,7 @@ class MetalVM:
                     if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a > b
                     else: stack[stack_len-1] = false
             elif op == OP_GREATER_EQUAL:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 let a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
@@ -585,24 +600,36 @@ class MetalVM:
                     if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a >= b
                     else: stack[stack_len-1] = false
             elif op == OP_NIL:
-                push(stack, nil)
+                if stack_len < len(stack):
+                    stack[stack_len] = nil
+                else:
+                    push(stack, nil)
                 stack_len = stack_len + 1
             elif op == OP_TRUE:
-                push(stack, true)
+                if stack_len < len(stack):
+                    stack[stack_len] = true
+                else:
+                    push(stack, true)
                 stack_len = stack_len + 1
             elif op == OP_FALSE:
-                push(stack, false)
+                if stack_len < len(stack):
+                    stack[stack_len] = false
+                else:
+                    push(stack, false)
                 stack_len = stack_len + 1
             elif op == OP_DUP:
                 let distance = code_bytes[ip]
                 ip = ip + 1
+                var val = nil
                 if distance < stack_len:
-                    push(stack, stack[stack_len-1-distance])
+                    val = stack[stack_len-1-distance]
+                if stack_len < len(stack):
+                    stack[stack_len] = val
                 else:
-                    push(stack, nil)
+                    push(stack, val)
                 stack_len = stack_len + 1
             elif op == OP_MOD:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b and b != 0:
@@ -613,7 +640,7 @@ class MetalVM:
                     else:
                         stack[stack_len-1] = nil
             elif op == OP_BIT_AND:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
                 var b_val = b
@@ -621,7 +648,7 @@ class MetalVM:
                 if b_val == nil: b_val = 0
                 stack[stack_len-1] = a & b_val
             elif op == OP_BIT_OR:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
                 var b_val = b
@@ -629,7 +656,7 @@ class MetalVM:
                 if b_val == nil: b_val = 0
                 stack[stack_len-1] = a | b_val
             elif op == OP_BIT_XOR:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
                 var b_val = b
@@ -640,7 +667,7 @@ class MetalVM:
                 if stack[stack_len-1] == nil: stack[stack_len-1] = 0
                 else: stack[stack_len-1] = ~stack[stack_len-1]
             elif op == OP_SHIFT_LEFT:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
                 var b_val = b
@@ -648,7 +675,7 @@ class MetalVM:
                 if b_val == nil: b_val = 0
                 stack[stack_len-1] = a << b_val
             elif op == OP_SHIFT_RIGHT:
-                let b = pop(stack)
+                let b = stack[stack_len-1]
                 stack_len = stack_len - 1
                 var a = stack[stack_len-1]
                 var b_val = b
@@ -670,7 +697,7 @@ class MetalVM:
                 else:
                     stack[stack_len-1] = true
             elif op == OP_PRINT:
-                print pop(stack)
+                print stack[stack_len-1]
                 stack_len = stack_len - 1
             elif op == OP_NEGATE:
                 if stack[stack_len-1] == nil: stack[stack_len-1] = 0
@@ -814,6 +841,9 @@ class MetalVM:
                     halted = true
                     break
             else:
+                # Synchronize stack list length before fallback
+                while len(stack) > stack_len:
+                    pop(stack)
                 # Synchronize local state back to self before calling non-inlined execute_op
                 self.ip = ip
                 self.halted = halted
@@ -839,6 +869,8 @@ class MetalVM:
                     ci = ci + 1
 
         # Final synchronization
+        while len(stack) > stack_len:
+            pop(stack)
         self.ip = ip
         self.halted = halted
         self.current_local_base = local_base
