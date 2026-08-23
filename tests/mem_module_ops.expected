@@ -1,0 +1,11 @@
+Testing mem module edge cases...
+Mem alloc 0: false
+Mem alloc negative: nil
+Mem alloc nil: nil
+Allocated 16 bytes
+Mem size valid: 16
+Mem read OOB/nil format: nil
+Mem write nil data: nil
+Freed
+Mem free nil: nil
+Mem size nil: nil
