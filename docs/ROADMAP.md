@@ -21,12 +21,12 @@ This document outlines the current status, supported features, and outstanding w
 - **SVM Builtin Parity**: All 16 string/collection builtins (`push`, `pop`, `chr`, `ord`, `startswith`, `endswith`, `contains`, `join`, `split`, `replace`, `upper`, `lower`, `strip`, `dict_has`, `dict_keys`, `dict_values`).
 - **MetalVM Spec Conformance**: Truthiness (only `nil`/`false`/`0` falsy), deep equality, string repetition, division-by-zero → `nil`.
 - **Local Variable Opcodes**: `OP_GET_LOCAL` (88) and `OP_SET_LOCAL` (89) implemented in SVM interpreter.
-- **SRVM Sandboxing**: `safe_mode` and `no_ffi` enforcement for the RISC-V backend.
+- **SRVM Sandboxing**: `safe_mode`, `no_ffi`, and `exec_enabled` enforcement for the RISC-V backend, including `sys.exec`/`sys.system`/AST-execution restriction handlers.
 - **JIT/AOT Foundation**: Initial components (Memory Manager, RISC-V Emitter, Type Profiler) and OSR hooks implemented in `src/jit/` and `src/srvm/`.
 
 - **SVM Generator Engine**: Full native VM implementation for `OP_CREATE_GENERATOR` (91), `OP_YIELD` (90), `OP_GENERATOR_NEXT` (92), and `next()` builtin.
 - **Opcode Hex Translation Alignment**: Host 0-based bytecode opcodes aligned with SageVM execution layout across compiler and runner.
-- **100% Coverage Pass Rate**: 79/79 coverage tests passing under Stack VM and RISC-V VM targets.
+- **100% Coverage Pass Rate**: 113/113 coverage tests passing under Stack VM and RISC-V VM targets.
 
 ## 🟡 In Progress
 
@@ -36,7 +36,7 @@ This document outlines the current status, supported features, and outstanding w
 
 - [ ] **Regex & JSON Native Modules**: Restore `re` and `json` guest module bridging in `src/svm/sgvm_vm.sage`.
 - [ ] **SRVM GPU Implementation**: Implement register-based GPU opcodes in `src/srvm/srvm_vm.sage`.
-- [ ] **SRVM Register Opcode Gaps**: Implement remaining register-based extensions (`VMO_EXEC_AST`, `VMO_CMP_BINARY`, `OBJ_SLICE`).
+- [ ] **SRVM Register Opcode Gaps**: Implement remaining register-based extensions (`VMO_CMP_BINARY`, `OBJ_SLICE`).
 - [ ] **Disassembler Labels**: Add descriptive labels for local variable, generator, matrix, and GPU opcodes in disassembler output.
 - [x] **Runner exec_enabled**: Thread `--no-exec` flag through SGVMRunner and SRVMRunner to MetalVM/SRVM.
 - [ ] **OP_ARRAY_LEN on nil**: Resolve conformance gap where `OP_ARRAY_LEN` returns `0` on `nil` due to host inheritance instead of `nil` / error (see `tests/array_len_edge.sage`).

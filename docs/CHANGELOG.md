@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-08-23
+
+### Fixed
+- **`sys.system` builtin dispatching (SVM)**: `OP_IMPORT` maps `sys.system` to `__builtin_sys_system` (previously misrouted through `__builtin_sys_exec`); the handler executes via `sys_exec(args[0])`, and restricted runs report `Error: sys.system is restricted` with a `-1` return value.
+- **SRVM instance-call emission**: `OP_CALL_METHOD` translation now emits the missing `VMO_CALL` for the instance path with corrected branch offsets (`argc + 4` / `argc + 2`).
+- **Stale test expectations**: `bitwise_shifts_edge` expectations updated to match current SageLang host behavior for negative shift counts.
+
+### Security
+- **SRVM execution hardening**: `sys.exec`/`sys.system` map to functional builtins (`sys_exec`, `sys_system`) enforcing `safe_mode`/`exec_enabled`; added missing `VMO_EXEC_AST`, `OBJ_METHOD_BIND` handlers and `OP_EXEC_AST_STMT` compiler translation.
+
+### Performance
+- **Stack slot re-use (SVM hot loop)**: Logical stack-length management replaces host `push()`/`pop()` dispatch (~5.4% speedup on 1M-iteration loops).
+- **Index & property fast paths**: `type(idx)` evaluation deferred to safe mode; protection checks short-circuited; numeric index fast path (>56% less system/GC overhead on index-heavy loops).
+- **Call dispatch streamlining**: Direct dict subscripting replaces `dict_has` pre-checks; zero-arg calls skip argument-array allocation; BE16 decoding inlined in `OP_CALL_METHOD` (~13.6% faster OOP benchmarks).
+
+### Tests
+- **Coverage suite expanded to 113 tests**: Added edge-case coverage for string builtins (`string_starts_ends_edge`), tuple operations (`builtin_tuple_edge`, `tuple_ops_edge`), `type()` classification (`builtin_type_edge`, `type_builtin_edge`), and `mem`/`struct` module operations.
+
+### Build
+- **sagemake**: Submodule synchronization recurses into nested submodules.
+
 ## [2026-08-20]
 
 ### Fixed

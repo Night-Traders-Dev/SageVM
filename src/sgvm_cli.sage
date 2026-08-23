@@ -30,7 +30,7 @@ if env_no_color == nil and env_term != "dumb":
     COLOR_CYAN   = "\x1b[36m"
 
 proc print_help():
-    print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.0.0" + COLOR_RESET + " - The Sage Virtual Machine"
+    print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.1.0" + COLOR_RESET + " - The Sage Virtual Machine"
     print "Usage: " + COLOR_BOLD + "sagevm" + COLOR_RESET + " <command> [options]"
     print ""
     print "Documentation: " + COLOR_CYAN + "https://night-traders-dev.github.io/SageVM-Docs/" + COLOR_RESET
@@ -96,7 +96,7 @@ class SGVMCLI:
         
         # Handle standard version and help flags before any dispatch
         if cmd == "-v" or cmd == "--version" or cmd == "version":
-            print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.0.0" + COLOR_RESET
+            print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.1.0" + COLOR_RESET
             return
         if cmd == "-h" or cmd == "--help" or cmd == "help":
             print_help()
@@ -166,7 +166,7 @@ class SGVMCLI:
             elif a == "--riscv": riscv = true
             elif a == "--jit": jit = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.0.0" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.1.0" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print COLOR_CYAN + COLOR_BOLD + "🚀 SageVM Runner" + COLOR_RESET
@@ -229,7 +229,7 @@ class SGVMCLI:
             elif a == "--riscv": riscv = true
             elif a == "--debug": debug = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.0.0" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.1.0" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print COLOR_CYAN + COLOR_BOLD + "🛠️  SageVM Compiler" + COLOR_RESET
@@ -304,7 +304,7 @@ class SGVMCLI:
             elif a == "--sage": mode = "sage"
             elif a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.0.0" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.1.0" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print COLOR_CYAN + COLOR_BOLD + "🔍 SageVM Disassembler" + COLOR_RESET
@@ -349,7 +349,7 @@ class SGVMCLI:
             let a = args[i]
             if a == "--riscv": riscv = true
             elif a == "-v" or a == "--version":
-                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.0.0" + COLOR_RESET
+                print COLOR_CYAN + COLOR_BOLD + "✨ SageVM v1.1.0" + COLOR_RESET
                 return
             elif a == "-h" or a == "--help":
                 print COLOR_CYAN + COLOR_BOLD + "📦 SageVM Hexdump Utility" + COLOR_RESET
@@ -407,7 +407,7 @@ class SGVMCLI:
         if jit:
             target_name = target_name + COLOR_YELLOW + " ⚡ [JIT Active]" + COLOR_RESET
 
-        print COLOR_CYAN + COLOR_BOLD + "✨ SageVM Interactive REPL v1.0.0" + COLOR_RESET
+        print COLOR_CYAN + COLOR_BOLD + "✨ SageVM Interactive REPL v1.1.0" + COLOR_RESET
         print "Target Substrate: " + target_name
         print "Type " + COLOR_CYAN + ":quit" + COLOR_RESET + " to exit, " + COLOR_CYAN + ":help" + COLOR_RESET + " for REPL instructions."
         print ""
