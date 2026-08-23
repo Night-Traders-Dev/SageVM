@@ -89,9 +89,10 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `type_builtin_edge.sage`: Tests `type()` builtin function across primitive values, collections, functions, host modules, and builtin string handlers (documenting SVM type gaps for tuples, functions/modules, and builtins).
 - `mem_module_ops.sage`: Tests bridged `mem` module functions (`mem.alloc`, `mem.free`, `mem.size`, `mem.read`, `mem.write`) on normal execution, zero/negative sizes, and nil parameters.
 - `struct_module_ops.sage`: Tests `struct` module functions (`struct.def`, `struct.new`, `struct.get`, `struct.set`, `struct.size`) under invalid format parameters, nil inputs, and host bridge constraints.
+- `tuple_ops_edge.sage`: Tests `OP_TUPLE` and tuple operations including empty tuples, single-element tuples, out-of-bounds indexing, array-vs-tuple equality, and containment checks.
 
 ### Verification Status (August 2026)
-As of August 2026, 100% of the modern coverage suite (109 passed, 0 failed, 1 skipped) passes cleanly under the SVM backend.
+As of August 2026, the modern coverage suite passes cleanly under the SVM backend.
 All historical opcode translation mismatches, generator execution support (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`), module method bridging, safe-mode object protections, and interpreter halt controls are fully resolved.
 
 ## Adding Tests
