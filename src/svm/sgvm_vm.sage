@@ -728,32 +728,31 @@ class MetalVM:
                     global_cache_dict[ci] = nil
                     ci = ci + 1
             elif op == OP_GET_INDEX:
-                # Performance: Optimize OP_GET_INDEX in hot loop.
-                # Note: In SageLang, querying a missing key from a dictionary natively evaluates to nil
-                # instead of raising a KeyError or panicking. This allows us to bypass the expensive
-                # dict_has check entirely, and safely index directly. Delay type(idx) check so it only
-                # evaluates in safe_mode to avoid heap string allocations in default mode.
+                # Performance: Delay type(idx) check so it only evaluates when safe_mode is enabled
+                # to avoid heap string allocations in default mode. Prioritize array/tuple indexing
+                # and bypass int(idx) when idx is already numeric.
                 let idx = stack[stack_len-1]
                 let obj = stack[stack_len-2]
-                let type_idx = type(idx)
-                if safe_mode and type_idx == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     pop(stack)
                     stack[stack_len-2] = nil
                 else:
                     pop(stack)
                     let type_obj = type(obj)
-                    if type_obj == "dict":
-                        # Performance: direct key lookup bypassing dict_has and type overhead
-                        stack[stack_len-2] = obj[idx]
-                    elif type_obj == "array" or type_obj == "tuple":
-                        let i_idx = int(idx)
-                        if i_idx >= 0 and i_idx < len(obj):
+                    if type_obj == "array" or type_obj == "tuple":
+                        var i_idx = idx
+                        if tonumber(idx) != idx: i_idx = int(idx)
+                        if i_idx != nil and i_idx >= 0 and i_idx < len(obj):
                             stack[stack_len-2] = obj[i_idx]
                         else:
                             stack[stack_len-2] = nil
+                    elif type_obj == "dict":
+                        # Performance: direct key lookup bypassing dict_has and type overhead
+                        stack[stack_len-2] = obj[idx]
                     elif type_obj == "string":
-                        let i_idx = int(idx)
-                        if i_idx >= 0 and i_idx < len(obj):
+                        var i_idx = idx
+                        if tonumber(idx) != idx: i_idx = int(idx)
+                        if i_idx != nil and i_idx >= 0 and i_idx < len(obj):
                             stack[stack_len-2] = obj[i_idx]
                         else:
                             stack[stack_len-2] = nil
@@ -761,16 +760,16 @@ class MetalVM:
                         stack[stack_len-2] = nil
                 stack_len = stack_len - 1
             elif op == OP_SET_INDEX:
+                # Performance: Delay type(idx) check to safe_mode and short-circuit is_protected method calls
                 let val = stack[stack_len-1]
                 let idx = stack[stack_len-2]
                 let obj = stack[stack_len-3]
-                let type_idx = type(idx)
-                if safe_mode and type_idx == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
+                if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
                     pop(stack)
                     pop(stack)
                     stack[stack_len-3] = nil
-                elif self.is_protected(obj):
+                elif safe_mode and self.is_protected(obj):
                     print "Error: Index assignment to protected object is restricted in safe mode"
                     pop(stack)
                     pop(stack)
@@ -827,7 +826,7 @@ class MetalVM:
                         print "Error: Access to internal property '" + name + "' is restricted in safe mode"
                         pop(stack)
                         stack[stack_len-2] = nil
-                    elif self.is_protected(obj):
+                    elif safe_mode and self.is_protected(obj):
                         print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
                         pop(stack)
                         stack[stack_len-2] = nil
