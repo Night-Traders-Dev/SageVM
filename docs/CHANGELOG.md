@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-08-20]
+
+### Fixed
+- **Builtin Dispatching for `sys.system`**:
+  - Corrected the `sys.system` property mapping in `OP_IMPORT` in `src/svm/sgvm_vm.sage` to dispatch via `__builtin_sys_system` instead of `__builtin_sys_exec`.
+  - Routed the `__builtin_sys_system` handler through `sys_exec(args[0])`, and restricted runs now report `Error: sys.system is restricted` with a `-1` return value.
+  - Hardened SRVM execution safety: mapped `sys.exec`/`sys.system` to functional builtin handlers (`sys_exec`, `sys_system`) enforcing `safe_mode`/`exec_enabled`, added missing `VMO_EXEC_AST` and `OBJ_METHOD_BIND` handlers, and translated `OP_EXEC_AST_STMT` in the SRVM compiler.
+
 ## [2026-08-11]
 
 ### Added
