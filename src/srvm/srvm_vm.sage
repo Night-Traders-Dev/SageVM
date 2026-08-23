@@ -372,7 +372,8 @@ class SRVM:
                         elif name == "sys":
                             let s = {"args": sys.args()}
                             s["__type__"] = "module"
-                            s["exec"] = "__builtin_sys_exec"
+                            s["exec"] = {"__builtin__": "sys_exec"}
+                            s["system"] = {"__builtin__": "sys_system"}
                             s["exit"] = sys.exit
                             self.state.x[rd] = s
                         elif name == "net": self.state.x[rd] = net
@@ -418,6 +419,16 @@ class SRVM:
                 self.state.x[rd] = true
             elif sub_op == VMO_FALSE:
                 self.state.x[rd] = false
+            elif sub_op == VMO_EXEC_AST:
+                if self.state.safe_mode or not self.state.exec_enabled:
+                    print "Error: Code execution is restricted"
+                else:
+                    let idx = int(self.state.x[10])
+                    let ast_code = self.safe_get_constant(idx)
+                    if type(ast_code) == "string":
+                        sys.exec(ast_code)
+                    else:
+                        print "Error: VMO_EXEC_AST requires a string constant"
             elif sub_op == VMO_NOT:
                 self.state.x[rd] = not self.is_truthy(self.state.x[10])
             elif sub_op == VMO_TRUTHY:
@@ -546,6 +557,18 @@ class SRVM:
                     elif b_name == "print":
                         print str(self.state.x[10])
                         self.state.x[10] = nil
+                    elif b_name == "sys_exec":
+                        if self.state.safe_mode or not self.state.exec_enabled:
+                            print "Error: sys.exec is restricted"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = sys.exec(self.state.x[10])
+                    elif b_name == "sys_system":
+                        if self.state.safe_mode or not self.state.exec_enabled:
+                            print "Error: sys.system is restricted"
+                            self.state.x[10] = -1
+                        else:
+                            self.state.x[10] = sys.system(self.state.x[10])
                     self.state.pc = self.state.pc + 4
                     return
                 
@@ -633,6 +656,30 @@ class SRVM:
                     print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
                 elif type(obj) == "dict":
                     obj[name] = val
+            elif sub_op == OBJ_METHOD_BIND:
+                let obj = self.state.x[rs2]
+                let name_idx = int(self.state.x[10])
+                let name = self.safe_get_constant(name_idx)
+                if not self.state.running: return
+                if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                    self.state.x[rd] = nil
+                    self.state.x[28] = 0
+                elif type(obj) == "dict":
+                    if dict_has(obj, name):
+                        self.state.x[rd] = obj[name]
+                        self.state.x[28] = 1
+                    elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
+                        self.state.x[rd] = obj["__methods__"][name]
+                        self.state.x[28] = 1
+                    elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
+                        self.state.x[rd] = obj["__class__"]["__methods__"][name]
+                        self.state.x[28] = 1
+                    else:
+                        self.state.x[rd] = nil
+                        self.state.x[28] = 0
+                else:
+                    self.state.x[rd] = nil
+                    self.state.x[28] = 0
             elif sub_op == OBJ_NEW_FUNC:
                 let chunk_idx = int(self.state.x[10])
                 self.state.x[rd] = {"type": "function", "chunk_idx": chunk_idx}
