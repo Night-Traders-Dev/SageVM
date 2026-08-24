@@ -1,0 +1,6 @@
+Testing GC builtins...
+GC disabled
+gc_collect called while disabled
+GC enabled
+gc_stats type: dict
+Repeated gc_collect complete
