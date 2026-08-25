@@ -375,6 +375,7 @@ class SRVM:
                             s["exec"] = {"__builtin__": "sys_exec"}
                             s["system"] = {"__builtin__": "sys_system"}
                             s["exit"] = sys.exit
+                            s["getenv"] = {"__builtin__": "sys_getenv"}
                             self.state.x[rd] = s
                         elif name == "net": self.state.x[rd] = net
                         elif name == "gpu":
@@ -569,6 +570,16 @@ class SRVM:
                             self.state.x[10] = -1
                         else:
                             self.state.x[10] = sys.system(self.state.x[10])
+                    elif b_name == "sys_getenv":
+                        if self.state.safe_mode:
+                            print "Error: sys.getenv is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            let arg0 = self.state.x[10]
+                            if type(arg0) == "string":
+                                self.state.x[10] = sys.getenv(arg0)
+                            else:
+                                self.state.x[10] = nil
                     self.state.pc = self.state.pc + 4
                     return
                 
@@ -622,6 +633,8 @@ class SRVM:
                     self.state.x[rd] = nil
                 elif dict_has(self.state.heap, name):
                     self.state.x[rd] = self.state.heap[name]
+                elif name == "__builtin_sys_getenv" or name == "sys_getenv":
+                    self.state.x[rd] = {"__builtin__": "sys_getenv"}
                 elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print":
                     self.state.x[rd] = {"__builtin__": name}
                 else:
