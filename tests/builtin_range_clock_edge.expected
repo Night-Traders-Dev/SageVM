@@ -1,0 +1,9 @@
+--- range single-arg and edge cases ---
+[]
+[0, 1, 2, 3, 4]
+[]
+nil
+nil
+--- clock builtin sanity check ---
+number
+true

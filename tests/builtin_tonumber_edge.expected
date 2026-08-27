@@ -1,0 +1,17 @@
+--- tonumber builtin edge cases ---
+123
+-45.67
+0
+nil
+nil
+nil
+42
+--- str and int builtins ---
+100
+true
+nil
+<array>
+55
+99
+0
+0
