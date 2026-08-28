@@ -77,3 +77,7 @@
 ## 2026-08-13 - [Interactive Code Playground Console Accessibility and Flow]
 **Learning:** Implementing visual indicators (like success checkmarks and automated auto-scrolling) along with keyboard-accessible triggers (like Copy and Clear buttons with explicit ARIA labels and focus-visible rings) on code output consoles significantly increases interactive clarity and eliminates navigation dead-ends.
 **Action:** Equip console output headers with explicit ARIA-labeled actions for copy/clear, and configure standard auto-scroll hooks on data mutations.
+
+## 2026-08-23 - [Submodule Commit Synchronization & Canvas Region ARIA Landmarks]
+**Learning:** Interactive HTML5 canvas containers require explicit ARIA landmarks (`role="region"` and descriptive `aria-label`) to ensure screen-reader users understand section boundaries. Furthermore, changes made in git submodules (e.g. `docs/site`) must be committed locally inside the submodule prior to staging the submodule pointer in the parent repository to ensure pull request diffs expose modified code cleanly.
+**Action:** Always wrap interactive canvas sections in ARIA region landmarks with clear labels, and commit submodule updates locally before updating parent submodule pointer references.
