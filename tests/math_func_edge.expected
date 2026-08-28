@@ -1,0 +1,11 @@
+--- Math module constants ---
+math.pi > 3.14: true
+math.e > 2.71: true
+--- Math module native functions ---
+math.abs(-10): nil
+math.sqrt(16): nil
+math.sin(0): nil
+math.cos(0): nil
+--- Math module functions with nil/invalid args ---
+math.abs(nil): nil
+math.sqrt(nil): nil

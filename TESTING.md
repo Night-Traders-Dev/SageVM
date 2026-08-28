@@ -90,6 +90,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `mem_module_ops.sage`: Tests bridged `mem` module functions (`mem.alloc`, `mem.free`, `mem.size`, `mem.read`, `mem.write`) on normal execution, zero/negative sizes, and nil parameters.
 - `struct_module_ops.sage`: Tests `struct` module functions (`struct.def`, `struct.new`, `struct.get`, `struct.set`, `struct.size`) under invalid format parameters, nil inputs, and host bridge constraints.
 - `tuple_ops_edge.sage`: Tests `OP_TUPLE` and tuple operations including empty tuples, single-element tuples, out-of-bounds indexing, array-vs-tuple equality, and containment checks.
+- `slice_operator_edge.sage`: Tests slice syntax (`OP_SLICE`) edge cases including omitted start/end bounds (`[:3]`, `[2:]`, `[:]`), out-of-bounds indices, and start > end index bounds.
+- `bitwise_ops_edge.sage`: Tests bitwise opcodes (`OP_BIT_AND`, `OP_BIT_OR`, `OP_BIT_XOR`, `OP_BIT_NOT`) with float values, negative numbers, boundary zero values, and nil operands.
+- `math_func_edge.sage`: Tests native `math` module bridged functions (`math.abs`, `math.sqrt`, `math.sin`, `math.cos`) and constants (`math.pi`, `math.e`) under normal execution, boundary values, and nil arguments, documenting the native math function bridge gap returning `nil` under SVM.
 
 ### Verification Status (August 2026)
 As of August 2026, the modern coverage suite passes cleanly under the SVM backend.

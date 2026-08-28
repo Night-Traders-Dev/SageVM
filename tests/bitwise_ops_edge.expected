@@ -1,0 +1,14 @@
+--- Bitwise operations with floats ---
+5.5 & 3.2: 1
+5.5 | 3.2: 7
+5.5 ^ 3.2: 6
+~5.5: -6
+--- Bitwise operations with negative values ---
+~-1: 0
+~0: -1
+-5 & 3: 3
+--- Bitwise operations with nil ---
+10 & nil: 0
+nil | 5: 5
+nil ^ 10: 10
+~nil: 0

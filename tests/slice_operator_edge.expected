@@ -1,0 +1,14 @@
+--- Omitted start slice [:3] ---
+3
+10
+30
+--- Omitted end slice [2:] ---
+3
+30
+50
+--- Full array slice [:] ---
+5
+--- Out of bounds slice [0:10] ---
+5
+--- Start greater than end slice [4:2] ---
+0
