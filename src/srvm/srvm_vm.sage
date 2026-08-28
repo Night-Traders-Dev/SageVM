@@ -374,6 +374,7 @@ class SRVM:
                             s["__type__"] = "module"
                             s["exec"] = {"__builtin__": "sys_exec"}
                             s["system"] = {"__builtin__": "sys_system"}
+                            s["getenv"] = {"__builtin__": "sys_getenv"}
                             s["exit"] = sys.exit
                             self.state.x[rd] = s
                         elif name == "net": self.state.x[rd] = net
@@ -569,6 +570,14 @@ class SRVM:
                             self.state.x[10] = -1
                         else:
                             self.state.x[10] = sys.system(self.state.x[10])
+                    elif b_name == "sys_getenv":
+                        if self.state.safe_mode:
+                            print "Error: sys.getenv is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif type(self.state.x[10]) == "string":
+                            self.state.x[10] = sys.getenv(self.state.x[10])
+                        else:
+                            self.state.x[10] = nil
                     self.state.pc = self.state.pc + 4
                     return
                 
