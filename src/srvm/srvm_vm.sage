@@ -374,6 +374,7 @@ class SRVM:
                             s["__type__"] = "module"
                             s["exec"] = {"__builtin__": "sys_exec"}
                             s["system"] = {"__builtin__": "sys_system"}
+                            s["getenv"] = {"__builtin__": "sys_getenv"}
                             s["exit"] = sys.exit
                             self.state.x[rd] = s
                         elif name == "net": self.state.x[rd] = net
@@ -569,6 +570,16 @@ class SRVM:
                             self.state.x[10] = -1
                         else:
                             self.state.x[10] = sys.system(self.state.x[10])
+                    elif b_name == "sys_getenv" or b_name == "__builtin_sys_getenv":
+                        if self.state.safe_mode:
+                            print "Error: sys.getenv is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            let g_arg = self.state.x[10]
+                            if g_arg != nil and type(g_arg) == "string":
+                                self.state.x[10] = sys.getenv(g_arg)
+                            else:
+                                self.state.x[10] = nil
                     self.state.pc = self.state.pc + 4
                     return
                 
@@ -622,7 +633,7 @@ class SRVM:
                     self.state.x[rd] = nil
                 elif dict_has(self.state.heap, name):
                     self.state.x[rd] = self.state.heap[name]
-                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print":
+                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system":
                     self.state.x[rd] = {"__builtin__": name}
                 else:
                     self.state.x[rd] = nil
