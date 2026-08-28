@@ -92,6 +92,8 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `tuple_ops_edge.sage`: Tests `OP_TUPLE` and tuple operations including empty tuples, single-element tuples, out-of-bounds indexing, array-vs-tuple equality, and containment checks.
 - `builtin_gc_edge.sage`: Tests `gc_collect()`, `gc_stats()`, `gc_enable()`, and `gc_disable()` under normal execution, repeated collections, state toggling, and boundary conditions.
 - `builtin_reflect_edge.sage`: Tests `reflect_get_methods()` and `reflect_get_class()` across primitive values, collections, class instances, and edge cases.
+- `builtin_sys_exit_edge.sage`: Tests `sys.exit()` execution halting under SVM interpreter, ensuring statements following `sys.exit(0)` are terminated and not executed.
+- `bitwise_shift_ops_edge.sage`: Tests `OP_SHIFT_LEFT` (`<<`) and `OP_SHIFT_RIGHT` (`>>`) across standard integers, zero shift amounts, large shift values, nil operands, and float parameters.
 
 ### Verification Status (August 2026)
 As of August 2026, the modern coverage suite passes cleanly under the SVM backend.
