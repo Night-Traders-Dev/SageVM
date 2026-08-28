@@ -90,6 +90,8 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `mem_module_ops.sage`: Tests bridged `mem` module functions (`mem.alloc`, `mem.free`, `mem.size`, `mem.read`, `mem.write`) on normal execution, zero/negative sizes, and nil parameters.
 - `struct_module_ops.sage`: Tests `struct` module functions (`struct.def`, `struct.new`, `struct.get`, `struct.set`, `struct.size`) under invalid format parameters, nil inputs, and host bridge constraints.
 - `tuple_ops_edge.sage`: Tests `OP_TUPLE` and tuple operations including empty tuples, single-element tuples, out-of-bounds indexing, array-vs-tuple equality, and containment checks.
+- `builtin_gc_edge.sage`: Tests `gc_collect()`, `gc_stats()`, `gc_enable()`, and `gc_disable()` under normal execution, repeated collections, state toggling, and boundary conditions.
+- `builtin_reflect_edge.sage`: Tests `reflect_get_methods()` and `reflect_get_class()` across primitive values, collections, class instances, and edge cases.
 
 ### Verification Status (August 2026)
 As of August 2026, the modern coverage suite passes cleanly under the SVM backend.

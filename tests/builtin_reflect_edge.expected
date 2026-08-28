@@ -1,0 +1,11 @@
+Testing reflect builtins...
+cat methods type: array
+cat class type: nil
+int methods: <array>
+int class: nil
+string methods: <array>
+string class: nil
+nil methods: <array>
+nil class: nil
+array methods: <array>
+dict methods: <array>
