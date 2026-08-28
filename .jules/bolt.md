@@ -1,5 +1,9 @@
 # Bolt's Performance Journal
 
+## 2026-08-23 - Inlining OP_ARRAY, OP_TUPLE, and OP_DICT in Hot Loop & Single-Pass Stack Indexing
+**Learning:** In the SVM interpreter (`MetalVM.run`), `OP_ARRAY`, `OP_TUPLE`, and `OP_DICT` opcodes were not inlined in the dispatch loop, forcing a fallback to `execute_op` on every collection literal creation. In `execute_op`, collection creation performed a two-pass algorithm: pre-populating dummy `nil` elements in a loop, then popping items off the VM stack in reverse order. Inlining `OP_ARRAY`, `OP_TUPLE`, and `OP_DICT` into `MetalVM.run` and using direct single-pass stack slicing (`stack[base + j]`) without `pop()` function calls reduced allocation benchmark runtime by ~43-47% (dropping 1M iteration execution times from ~19.1s down to ~10.1s).
+**Action:** Inline collection literal creation opcodes into interpreter hot loops and construct collections via direct forward stack slot indexing (`stack[base + j]`) rather than two-pass pre-allocation and reverse popping.
+
 ## 2026-08-20 - Lazy Evaluation of Type Descriptors & Method Short-Circuiting in Index Hot Paths
 **Learning:** In the SVM interpreter (`MetalVM.run`), `OP_GET_INDEX` and `OP_SET_INDEX` were unconditionally evaluating `let type_idx = type(idx)` and calling `self.is_protected(obj)` on every index operation, even when running in standard (non-safe) mode. Since `type()` allocates heap C-strings (`strdup`) and `is_protected` dispatches method calls on `self`, this caused heavy GC and function dispatch overhead. Delaying `type(idx)` evaluation inside `if safe_mode` and short-circuiting `is_protected` with `safe_mode` checks reduced system/GC overhead by over 56% (from 0.112s to 0.049s) on index-intensive loops.
 **Action:** Always wrap safety checks that invoke dynamic type queries or method dispatches inside `if safe_mode` guards so default execution mode avoids unneeded heap allocations and call dispatches.

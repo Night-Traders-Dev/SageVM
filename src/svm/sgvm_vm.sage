@@ -857,6 +857,51 @@ class MetalVM:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
+            elif op == OP_ARRAY:
+                # Performance: Inline collection construction in hot loop and bypass pop() calls via single-pass stack indexing
+                let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                let arr = []
+                var j = 0
+                let base = stack_len - count
+                while j < count:
+                    push(arr, stack[base + j])
+                    j = j + 1
+                if base < len(stack):
+                    stack[base] = arr
+                else:
+                    push(stack, arr)
+                stack_len = base + 1
+            elif op == OP_TUPLE:
+                # Performance: Inline tuple construction in hot loop and bypass pop() calls via single-pass stack indexing
+                let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                let t = []
+                var j = 0
+                let base = stack_len - count
+                while j < count:
+                    push(t, stack[base + j])
+                    j = j + 1
+                if base < len(stack):
+                    stack[base] = t
+                else:
+                    push(stack, t)
+                stack_len = base + 1
+            elif op == OP_DICT:
+                # Performance: Inline dictionary construction in hot loop and bypass pop() calls via single-pass stack indexing
+                let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                let d = {}
+                var j = 0
+                let base = stack_len - 2 * count
+                while j < count:
+                    d[stack[base + j * 2]] = stack[base + j * 2 + 1]
+                    j = j + 1
+                if base < len(stack):
+                    stack[base] = d
+                else:
+                    push(stack, d)
+                stack_len = base + 1
             else:
                 # Synchronize stack list length before fallback
                 while len(stack) > stack_len:
@@ -1450,37 +1495,39 @@ class MetalVM:
             self.ip = self.ip + 2
             let arr = []
             var j = 0
+            let st_len = len(self.stack)
+            let base = st_len - count
             while j < count:
-                push(arr, nil)
+                push(arr, self.stack[base + j])
                 j = j + 1
-            j = 0
-            while j < count:
-                arr[count - 1 - j] = pop(self.stack)
-                j = j + 1
+            while len(self.stack) > base:
+                pop(self.stack)
             push(self.stack, arr)
         elif op == OP_TUPLE:
             let count = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let t = []
             var j = 0
+            let st_len = len(self.stack)
+            let base = st_len - count
             while j < count:
-                push(t, nil)
+                push(t, self.stack[base + j])
                 j = j + 1
-            j = 0
-            while j < count:
-                t[count - 1 - j] = pop(self.stack)
-                j = j + 1
+            while len(self.stack) > base:
+                pop(self.stack)
             push(self.stack, t)
         elif op == OP_DICT:
             let count = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let d = {}
             var j = 0
+            let st_len = len(self.stack)
+            let base = st_len - 2 * count
             while j < count:
-                let val = pop(self.stack)
-                let key = pop(self.stack)
-                d[key] = val
+                d[self.stack[base + j * 2]] = self.stack[base + j * 2 + 1]
                 j = j + 1
+            while len(self.stack) > base:
+                pop(self.stack)
             push(self.stack, d)
         elif op == OP_SLICE:
             let end_idx = pop(self.stack)
