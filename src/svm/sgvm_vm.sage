@@ -2032,16 +2032,16 @@ class MetalVM:
             else:
                 print "Error: OP_EXEC_AST_STMT requires a string constant"
         elif op == OP_GET_LOCAL:
-            # Performance: Inline BE16 and use cached local_base
-            let idx = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
+            # Performance: Inline BE16 and use cached local_base without redundant int() calls
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let base = self.current_local_base
             if base + idx < len(self.stack):
                 push(self.stack, self.stack[base + idx])
             else: push(self.stack, nil)
         elif op == OP_SET_LOCAL:
-            # Performance: Inline BE16 and use cached local_base
-            let idx = (int(self.code[self.ip]) << 8) | int(self.code[self.ip+1])
+            # Performance: Inline BE16 and use cached local_base without redundant int() calls
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let val = pop(self.stack)
             let base = self.current_local_base
