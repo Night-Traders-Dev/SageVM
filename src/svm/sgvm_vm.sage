@@ -1951,8 +1951,12 @@ class MetalVM:
                         if mod_bytes != nil:
                             let mod_src = io.readfile(mod_path)
                             if mod_src != nil:
-                                self.call_builtin("__builtin_sys_exec", [mod_src])
-                                push(self.stack, {"__type__": "module", "__name__": name})
+                                if self.safe_mode or not self.exec_enabled:
+                                    print "Error: Dynamic module execution is restricted"
+                                    push(self.stack, nil)
+                                else:
+                                    self.call_builtin("__builtin_sys_exec", [mod_src])
+                                    push(self.stack, {"__type__": "module", "__name__": name})
                             else:
                                 push(self.stack, {"__type__": "module", "__name__": name})
                         else:
