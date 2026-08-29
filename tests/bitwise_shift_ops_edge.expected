@@ -1,0 +1,21 @@
+--- Normal shifts ---
+40
+2
+0
+0
+--- Zero shift counts ---
+15
+15
+--- Shift by 30 ---
+1073741824
+1
+--- Nil operands ---
+0
+10
+0
+10
+--- Float operands ---
+20
+20
+5
+5
