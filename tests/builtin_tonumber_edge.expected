@@ -1,0 +1,16 @@
+--- tonumber built-in ---
+123
+45.67
+nil
+nil
+nil
+42
+--- str built-in ---
+100
+nil
+true
+<array>
+--- int built-in ---
+12
+56
+0

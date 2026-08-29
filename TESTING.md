@@ -94,6 +94,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `builtin_reflect_edge.sage`: Tests `reflect_get_methods()` and `reflect_get_class()` across primitive values, collections, class instances, and edge cases.
 - `builtin_sys_exit_edge.sage`: Tests `sys.exit()` execution halting under SVM interpreter, ensuring statements following `sys.exit(0)` are terminated and not executed.
 - `bitwise_shift_ops_edge.sage`: Tests `OP_SHIFT_LEFT` (`<<`) and `OP_SHIFT_RIGHT` (`>>`) across standard integers, zero shift amounts, large shift values, nil operands, and float parameters.
+- `builtin_chr_ord_edge.sage`: Tests `chr()` and `ord()` builtins across ASCII boundary values, empty strings, nil, and invalid inputs.
+- `builtin_range_clock_edge.sage`: Tests `range()` with zero, positive, negative ints, invalid types, nil, and validates `clock()` output sanity.
+- `builtin_tonumber_edge.sage`: Tests `tonumber()`, `str()`, and `int()` across numeric, string, collection, and nil types.
 
 ### Verification Status (August 2026)
 As of August 2026, the modern coverage suite passes cleanly under the SVM backend.
