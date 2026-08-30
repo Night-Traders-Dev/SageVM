@@ -397,9 +397,17 @@ class SRVM:
                             let s = {"__host_mod__": "struct", "def": "__builtin_struct_def", "new": "__builtin_struct_new", "get": "__builtin_struct_get", "set": "__builtin_struct_set", "size": "__builtin_struct_size"}
                             self.state.x[rd] = s
                         else:
-                            self.state.x[rd] = {"__type__": "module", "__name__": name}
+                            if self.state.safe_mode or not self.state.exec_enabled:
+                                print "Error: Dynamic module execution is restricted"
+                                self.state.x[rd] = nil
+                            else:
+                                self.state.x[rd] = {"__type__": "module", "__name__": name}
                     catch e:
-                        self.state.x[rd] = {"__type__": "module", "__name__": name}
+                        if self.state.safe_mode or not self.state.exec_enabled:
+                            print "Error: Dynamic module execution is restricted"
+                            self.state.x[rd] = nil
+                        else:
+                            self.state.x[rd] = {"__type__": "module", "__name__": name}
             elif sub_op == VMO_PRINT:
                 print str(self.state.x[10]) # Use a0
             elif sub_op == VMO_PRINTM:
