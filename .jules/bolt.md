@@ -1,5 +1,9 @@
 # Bolt's Performance Journal
 
+## 2026-08-29 - O(1) Epoch-Based Global Scope Inline Cache Invalidation
+**Learning:** In the SVM interpreter (`MetalVM.run` in `src/svm/sgvm_vm.sage`), invalidating the global scope inline cache during environment scope changes (`OP_PUSH_ENV`, `OP_POP_ENV`) and fallback Boundaries (`execute_op`) originally executed an O(N) loop resetting every constant pool slot (`while ci < const_len: global_cache_dict[ci] = nil`). Replacing this sequential loop with an O(1) integer epoch counter (`global_cache_epoch`) and a parallel epoch validity array (`global_cache_epoch_array`) eliminates O(N) array clearing loops across every block enter/exit and fallback opcode dispatch.
+**Action:** Use integer epoch counters with parallel validity arrays for cache invalidation in virtual machine interpreters rather than looping over cache structures element-by-element.
+
 ## 2026-08-23 - Inlining OP_ARRAY, OP_TUPLE, and OP_DICT in Hot Loop & Single-Pass Stack Indexing
 **Learning:** In the SVM interpreter (`MetalVM.run`), `OP_ARRAY`, `OP_TUPLE`, and `OP_DICT` opcodes were not inlined in the dispatch loop, forcing a fallback to `execute_op` on every collection literal creation. In `execute_op`, collection creation performed a two-pass algorithm: pre-populating dummy `nil` elements in a loop, then popping items off the VM stack in reverse order. Inlining `OP_ARRAY`, `OP_TUPLE`, and `OP_DICT` into `MetalVM.run` and using direct single-pass stack slicing (`stack[base + j]`) without `pop()` function calls reduced allocation benchmark runtime by ~43-47% (dropping 1M iteration execution times from ~19.1s down to ~10.1s).
 **Action:** Inline collection literal creation opcodes into interpreter hot loops and construct collections via direct forward stack slot indexing (`stack[base + j]`) rather than two-pass pre-allocation and reverse popping.

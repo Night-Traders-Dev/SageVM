@@ -230,11 +230,14 @@ class MetalVM:
         let const_len = len(constants)
         var scopes_len = len(scopes)
 
-        # Performance: Inline cache for global lookup and assignment
+        # Performance: Inline cache with O(1) epoch invalidation for global lookup and assignment
         var global_cache_dict = []
+        var global_cache_epoch_array = []
+        var global_cache_epoch = 1
         var ci = 0
         while ci < const_len:
             push(global_cache_dict, nil)
+            push(global_cache_epoch_array, 0)
             ci = ci + 1
 
         host_thread.lock(g_gil)
@@ -277,10 +280,9 @@ class MetalVM:
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                # Check inline cache
-                let cached_dict = global_cache_dict[idx]
-                if cached_dict != nil:
-                    let val = cached_dict[constants[idx]]
+                # Check inline cache with O(1) epoch check
+                if global_cache_epoch_array[idx] == global_cache_epoch:
+                    let val = global_cache_dict[idx][constants[idx]]
                     if stack_len < len(stack):
                         stack[stack_len] = val
                     else:
@@ -349,6 +351,7 @@ class MetalVM:
 
                 if resolved_dict != nil:
                     global_cache_dict[idx] = resolved_dict
+                    global_cache_epoch_array[idx] = global_cache_epoch
                 if stack_len < len(stack):
                     stack[stack_len] = val
                 else:
@@ -413,9 +416,8 @@ class MetalVM:
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                let cached_dict = global_cache_dict[idx]
-                if cached_dict != nil:
-                    cached_dict[constants[idx]] = stack[stack_len-1]
+                if global_cache_epoch_array[idx] == global_cache_epoch:
+                    global_cache_dict[idx][constants[idx]] = stack[stack_len-1]
                     continue
 
                 if idx >= const_len:
@@ -479,6 +481,7 @@ class MetalVM:
 
                 if resolved_dict != nil:
                     global_cache_dict[idx] = resolved_dict
+                    global_cache_epoch_array[idx] = global_cache_epoch
             elif op == OP_JUMP:
                 ip = (code_bytes[ip] << 8) | code_bytes[ip+1]
             elif op == OP_JUMP_IF_FALSE:
@@ -711,10 +714,8 @@ class MetalVM:
                     break
                 push(scopes, {})
                 scopes_len = scopes_len + 1
-                var ci = 0
-                while ci < const_len:
-                    global_cache_dict[ci] = nil
-                    ci = ci + 1
+                # Performance: O(1) epoch increment invalidates cache instantly without O(N) loop
+                global_cache_epoch = global_cache_epoch + 1
             elif op == OP_POP_ENV:
                 if scopes_len > 1:
                     pop(scopes)
@@ -723,10 +724,8 @@ class MetalVM:
                     print "Error: Environment stack underflow"
                     halted = true
                     break
-                var ci = 0
-                while ci < const_len:
-                    global_cache_dict[ci] = nil
-                    ci = ci + 1
+                # Performance: O(1) epoch increment invalidates cache instantly without O(N) loop
+                global_cache_epoch = global_cache_epoch + 1
             elif op == OP_GET_INDEX:
                 # Performance: Delay type(idx) check so it only evaluates when safe_mode is enabled
                 # to avoid heap string allocations in default mode. Prioritize array/tuple indexing
@@ -924,11 +923,8 @@ class MetalVM:
                 global_scope = scopes[0]
                 scopes_len = len(scopes)
                 stack_len = len(stack)
-                # Reset global cache because scopes might have changed inside execute_op (e.g. call/return)
-                var ci = 0
-                while ci < const_len:
-                    global_cache_dict[ci] = nil
-                    ci = ci + 1
+                # Performance: O(1) epoch increment invalidates cache instantly without O(N) loop
+                global_cache_epoch = global_cache_epoch + 1
 
         # Final synchronization
         while len(stack) > stack_len:
