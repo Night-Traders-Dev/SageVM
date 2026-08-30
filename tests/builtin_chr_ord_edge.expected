@@ -1,0 +1,14 @@
+--- chr basic and edge cases ---
+A
+a
+0
+true
+
+
+--- ord basic and edge cases ---
+65
+97
+48
+0
+0
+0

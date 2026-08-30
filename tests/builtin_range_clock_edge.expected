@@ -1,0 +1,12 @@
+--- range basic ---
+5
+0
+4
+--- range zero / negative ---
+0
+0
+--- range invalid / nil ---
+nil
+nil
+--- clock test ---
+number
