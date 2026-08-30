@@ -1934,29 +1934,29 @@ class MetalVM:
                     elif name == "struct": push(self.stack, self.globals["struct"])
                     else:
                         # Dynamic loading of user .sage modules
-                        var mod_path = name + ".sage"
-                        if io.readbytes(mod_path) == nil:
-                            if io.readbytes("src/" + name + ".sage") != nil:
-                                mod_path = "src/" + name + ".sage"
-                            elif io.readbytes("src/svm/" + name + ".sage") != nil:
-                                mod_path = "src/svm/" + name + ".sage"
-                            elif io.readbytes("src/srvm/" + name + ".sage") != nil:
-                                mod_path = "src/srvm/" + name + ".sage"
-                        
-                        let mod_bytes = io.readbytes(mod_path)
-                        if mod_bytes != nil:
-                            let mod_src = io.readfile(mod_path)
-                            if mod_src != nil:
-                                if self.safe_mode or not self.exec_enabled:
-                                    print "Error: Dynamic module execution is restricted"
-                                    push(self.stack, nil)
-                                else:
+                        if self.safe_mode or not self.exec_enabled:
+                            print "Error: Dynamic module execution is restricted"
+                            push(self.stack, nil)
+                        else:
+                            var mod_path = name + ".sage"
+                            if io.readbytes(mod_path) == nil:
+                                if io.readbytes("src/" + name + ".sage") != nil:
+                                    mod_path = "src/" + name + ".sage"
+                                elif io.readbytes("src/svm/" + name + ".sage") != nil:
+                                    mod_path = "src/svm/" + name + ".sage"
+                                elif io.readbytes("src/srvm/" + name + ".sage") != nil:
+                                    mod_path = "src/srvm/" + name + ".sage"
+
+                            let mod_bytes = io.readbytes(mod_path)
+                            if mod_bytes != nil:
+                                let mod_src = io.readfile(mod_path)
+                                if mod_src != nil:
                                     self.call_builtin("__builtin_sys_exec", [mod_src])
+                                    push(self.stack, {"__type__": "module", "__name__": name})
+                                else:
                                     push(self.stack, {"__type__": "module", "__name__": name})
                             else:
                                 push(self.stack, {"__type__": "module", "__name__": name})
-                        else:
-                            push(self.stack, {"__type__": "module", "__name__": name})
                 catch e:
                     push(self.stack, {"__type__": "module", "__name__": name})
         elif op == OP_SETUP_TRY:
