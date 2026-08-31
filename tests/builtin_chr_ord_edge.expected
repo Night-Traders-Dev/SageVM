@@ -1,14 +1,17 @@
---- chr basic and edge cases ---
+--- Standard ASCII ---
 A
 a
 0
-true
-
-
---- ord basic and edge cases ---
 65
 97
 48
+--- Boundary Values ---
+0
+127
+--- Edge Cases: Empty strings and nil ---
+true
 0
 0
+--- Edge Cases: Non-string and Non-number Inputs ---
 0
+A

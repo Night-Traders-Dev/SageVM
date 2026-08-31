@@ -1,19 +1,24 @@
-# Test tonumber(), str(), int() builtins edge cases
-print "--- tonumber built-in ---"
+# Test tonumber(), str(), and int() builtins across types and edge cases.
+
+print "--- tonumber() conversions ---"
 print tonumber("123")
 print tonumber("45.67")
-print tonumber("invalid")
-print tonumber(nil)
-print tonumber(true)
+print tonumber("-89")
 print tonumber(42)
+print tonumber(nil) == nil
+print tonumber("invalid_str") == nil
+print tonumber([1, 2]) == nil
 
-print "--- str built-in ---"
+print "--- str() conversions ---"
 print str(100)
-print str(nil)
+print str(3.14)
 print str(true)
-print str([1, 2])
+print str(false)
+print str(nil)
 
-print "--- int built-in ---"
-print int(12.34)
-print int("56")
+print "--- int() conversions ---"
+print int(123.89)
+print int("-45.2")
 print int(nil)
+print int("non_numeric")
+print int(true)
