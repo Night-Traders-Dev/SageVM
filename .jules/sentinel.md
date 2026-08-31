@@ -82,3 +82,8 @@
 **Vulnerability:** The SVM interpreter supported a `--no-exec` CLI flag, but this was never propagated down to the SGVMRunner or the MetalVM instance. Furthermore, even if it had been set, the direct call builtins `__builtin_sys_exec` and `__builtin_sys_system` did not validate `exec_enabled`, allowing guest code to execute arbitrary system commands on the host despite the restriction flag.
 **Learning:** Security restriction flags must be completely wired from the entrypoint (CLI) down to the runtime interpreter state. Additionally, any builtins capable of executing host commands must enforce these restriction flags at execution time.
 **Prevention:** Ensure all security control flags are fully integrated into interpreter configuration workflows, and validate permissions at the boundary of all sensitive builtins.
+
+## 2026-08-18 - Sandbox Information Leak via Direct Builtin sys.getenv Calls in SRVM
+**Vulnerability:** In the RISC-V VM (`srvm_vm.sage`), direct calls to `sys.getenv` or `__builtin_sys_getenv` passed string target names directly to `VMO_CALL`. The call dispatcher previously only handled dictionary-wrapped builtins (`{"__builtin__": ...}`), causing direct string calls to bypass security checks in `b_name == "sys_getenv"` and leak sensitive host environment variables in `safe_mode`.
+**Learning:** Multi-backend virtual machines can have architectural subtle differences in type representations for function dispatch. When dispatch logic does not handle string function names or `__builtin_` prefix variations uniformly across backends, sandbox enforcement checks are bypassed.
+**Prevention:** Ensure function call dispatchers normalize target names and enforce security checks across both dictionary and string representation types uniformly.

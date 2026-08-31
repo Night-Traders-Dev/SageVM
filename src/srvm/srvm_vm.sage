@@ -464,8 +464,12 @@ class SRVM:
                 var target_chunk = -1
                 if type(func_obj) == "number": target_chunk = int(func_obj)
                 elif type(func_obj) == "dict" and dict_has(func_obj, "chunk_idx"): target_chunk = int(func_obj["chunk_idx"])
-                elif type(func_obj) == "dict" and dict_has(func_obj, "__builtin__"):
-                    let b_name = func_obj["__builtin__"]
+                elif type(func_obj) == "string" or (type(func_obj) == "dict" and dict_has(func_obj, "__builtin__")):
+                    var b_name = func_obj
+                    if type(func_obj) == "dict":
+                        b_name = func_obj["__builtin__"]
+                    if type(b_name) == "string" and startswith(b_name, "__builtin_"):
+                        b_name = slice(b_name, 10, len(b_name))
                     if b_name == "str":
                         self.state.x[10] = str(self.state.x[10]) # Result in a0
                     elif b_name == "int":
@@ -641,7 +645,7 @@ class SRVM:
                     self.state.x[rd] = nil
                 elif dict_has(self.state.heap, name):
                     self.state.x[rd] = self.state.heap[name]
-                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system":
+                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or (type(name) == "string" and startswith(name, "__builtin_")):
                     self.state.x[rd] = {"__builtin__": name}
                 else:
                     self.state.x[rd] = nil
