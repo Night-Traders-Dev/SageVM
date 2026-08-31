@@ -1,12 +1,13 @@
---- range basic ---
+--- Range Standard Positive ---
 5
 0
 4
---- range zero / negative ---
+--- Range Zero and Negative ---
 0
 0
---- range invalid / nil ---
+--- Range Invalid / Nil Inputs ---
 nil
 nil
---- clock test ---
-number
+nil
+--- Clock Builtin Sanity ---
+true

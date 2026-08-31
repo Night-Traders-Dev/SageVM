@@ -97,6 +97,7 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `builtin_chr_ord_edge.sage`: Tests `chr()` and `ord()` builtins across ASCII boundary values, empty strings, nil, and invalid inputs.
 - `builtin_range_clock_edge.sage`: Tests `range()` with zero, positive, negative ints, invalid types, nil, and validates `clock()` output sanity.
 - `builtin_tonumber_edge.sage`: Tests `tonumber()`, `str()`, and `int()` across numeric, string, collection, and nil types.
+- `bitwise_shifts_edge.sage`: Tests `OP_SHIFT_LEFT` (`<<`) and `OP_SHIFT_RIGHT` (`>>`) across standard integers, zero shift amounts, float parameters, nil operands, and negative shift count behavior.
 
 ### Verification Status (August 2026)
 As of August 2026, the modern coverage suite passes cleanly under the SVM backend.

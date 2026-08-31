@@ -1,16 +1,20 @@
---- tonumber built-in ---
+--- tonumber() conversions ---
 123
 45.67
-nil
-nil
-nil
+-89
 42
---- str built-in ---
-100
-nil
 true
-<array>
---- int built-in ---
-12
-56
+true
+true
+--- str() conversions ---
+100
+3.14
+true
+false
+nil
+--- int() conversions ---
+123
+-45
 0
+0
+1

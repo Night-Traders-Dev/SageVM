@@ -33,6 +33,8 @@ def run_suite():
     print("==================================================")
 
     for f in sorted(test_files):
+        if not use_riscv and f == "test_srvm.sage":
+            continue
         test_path = os.path.join(test_dir, f)
         expected_path = os.path.join(test_dir, f.replace(".sage", ".expected"))
         bin_path = os.path.join(test_dir, f.replace(".sage", ext))
