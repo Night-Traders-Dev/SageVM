@@ -1535,8 +1535,11 @@ class MetalVM:
             let chunk_idx = ut.read_be16(self.code, self.ip + 2)
             self.ip = self.ip + 4
             let name = self.constants[name_idx]
-            let func_obj = {"__type__": "function", "__chunk__": chunk_idx, "__name__": name}
-            self.scopes[len(self.scopes)-1][name] = func_obj
+            if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                print "Error: Definition of internal function '" + name + "' is restricted in safe mode"
+            else:
+                let func_obj = {"__type__": "function", "__chunk__": chunk_idx, "__name__": name}
+                self.scopes[len(self.scopes)-1][name] = func_obj
         elif op == OP_LOAD_FUNCTION:
             let chunk_idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
@@ -1840,9 +1843,13 @@ class MetalVM:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.constants[idx]
-            let cls = {"__type__": "class", "__name__": name, "__methods__": {}}
-            self.scopes[len(self.scopes)-1][name] = cls
-            push(self.stack, cls)
+            if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                print "Error: Definition of internal class '" + name + "' is restricted in safe mode"
+                push(self.stack, nil)
+            else:
+                let cls = {"__type__": "class", "__name__": name, "__methods__": {}}
+                self.scopes[len(self.scopes)-1][name] = cls
+                push(self.stack, cls)
         elif op == OP_METHOD:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
@@ -2188,8 +2195,11 @@ class MetalVM:
             let chunk_idx = ut.read_be16(self.code, self.ip + 2)
             self.ip = self.ip + 4
             let name = self.constants[name_idx]
-            let gen_fn = {"__type__": "generator_fn", "__chunk__": chunk_idx, "__name__": name}
-            self.scopes[len(self.scopes)-1][name] = gen_fn
+            if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                print "Error: Definition of internal generator '" + name + "' is restricted in safe mode"
+            else:
+                let gen_fn = {"__type__": "generator_fn", "__chunk__": chunk_idx, "__name__": name}
+                self.scopes[len(self.scopes)-1][name] = gen_fn
         elif op == OP_GENERATOR_NEXT:
             let gen = pop(self.stack)
             if type(gen) == "dict" and dict_has(gen, "__type__") and gen["__type__"] == "generator":
