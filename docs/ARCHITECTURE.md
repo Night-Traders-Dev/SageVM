@@ -310,7 +310,7 @@ SGVM exposes several host-level functions directly in the global scope for perfo
 | `slice(obj, start, end)` | Creates a slice object or performs a slice on a string/array. |
 | `gc_collect()` | Manually triggers garbage collection. |
 | `gc_stats()` | Returns a dictionary with GC statistics. |
-| `gc_enable()` / `gc_disable()` | Enables or disables the host garbage collector. |
+| `gc_enable()` / `gc_disable()` | Enables or disables the host garbage collector (restricted in safe_mode). |
 | `reflect_get_methods(obj)` | Returns a list of method names available on an object (SVM-only). |
 | `reflect_get_class(obj)` | Returns the class object for a given instance (SVM-only). |
 | `push(arr, val)` | Pushes a value onto an array. |
@@ -346,6 +346,7 @@ For high-isolation environments, SGVM provides several security features impleme
   - **Mutation Protection**: Guest code is prevented from mutating host modules or module wrappers via `is_protected(obj)` checks in property and index assignments.
   - **Builtin Protection**: Both SVM and SRVM enforce strict protection for objects tagged with `__builtin__` in `safe_mode`, ensuring core host-provided utility structures remain immutable.
   - **Sandbox Hardening (struct module)**: Safe mode restrictions are extended to the `struct` module, blocking its guest-side import to mitigate sandbox escape vectors.
+  - **Garbage Collector Control Hardening**: Both SVM and SRVM restrict invocation of `gc_enable()` and `gc_disable()` (and `__builtin_gc_enable` / `__builtin_gc_disable`) when running in `safe_mode` to prevent untrusted guest scripts from altering host garbage collection state and causing resource exhaustion or DoS.
 - **Sandbox Hardening (Internal Properties)**: In `safe_mode`, both SVM and SRVM interpreters block property, index, and method access (via `OP_CALL_METHOD`) for all identifiers starting with `__` (except `__arg`), preventing guest code from inspecting internal VM state or leaking host bridge objects.
 - **Dynamic Command Execution Restricting**: Hardens execution capability restrictions by wiring the `--no-exec` CLI flag down to the runner and interpreter VM configurations as `exec_enabled`. When disabled (`exec_enabled = false`), both `__builtin_sys_exec` and `__builtin_sys_system` block system command execution to prevent arbitrary code execution on the host machine.
 - **Internal Execution Limits**: To prevent Denial of Service (DoS) via resource exhaustion, the VM enforces the following internal limits:
