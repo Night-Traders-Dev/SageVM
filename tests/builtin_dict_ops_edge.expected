@@ -1,0 +1,17 @@
+--- dict_has ---
+dict_has(d, 'a'): true
+dict_has(d, 'c'): false
+dict_has({}, 'a'): false
+--- dict_keys ---
+len(dict_keys(d)): 2
+k[0] == 'a' or k[0] == 'b': true
+len(dict_keys({})): 0
+--- dict_values ---
+len(dict_values(d)): 2
+v[0] == 10 or v[0] == 20: true
+len(dict_values({})): 0
+--- Edge cases with non-dict / nil inputs ---
+dict_has(nil, 'a') == false: true
+dict_keys(nil) == []: true
+dict_values(nil) == []: true
+dict_has(123, 'a') == false: true
