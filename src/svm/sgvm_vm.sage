@@ -11,6 +11,17 @@ from sgvm_core import SGVMUtils
 from sgvm_core import OP_CONSTANT, OP_NIL, OP_TRUE, OP_FALSE, OP_POP, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_GET_INDEX, OP_SET_INDEX, OP_LOAD_FUNCTION, OP_SLICE, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD, OP_NEGATE, OP_EQUAL, OP_NOT_EQUAL, OP_GREATER, OP_GREATER_EQUAL, OP_LESS, OP_LESS_EQUAL, OP_BIT_AND, OP_BIT_OR, OP_BIT_XOR, OP_BIT_NOT, OP_SHIFT_LEFT, OP_SHIFT_RIGHT, OP_NOT, OP_TRUTHY, OP_JUMP, OP_JUMP_IF_FALSE, OP_CALL, OP_CALL_METHOD, OP_ARRAY, OP_TUPLE, OP_DICT, OP_PRINT, OP_EXEC_AST_STMT, OP_RETURN, OP_MATH_PRINTM, OP_PUSH_ENV, OP_POP_ENV, OP_DUP, OP_ARRAY_LEN, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_INHERIT, OP_SETUP_TRY, OP_END_TRY, OP_RAISE, OP_GET_LOCAL, OP_SET_LOCAL, OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_HALT
 from sgvm_core import OP_GPU_POLL_EVENTS, OP_GPU_WINDOW_SHOULD_CLOSE, OP_GPU_GET_TIME, OP_GPU_KEY_PRESSED, OP_GPU_KEY_DOWN, OP_GPU_MOUSE_POS, OP_GPU_MOUSE_DELTA, OP_GPU_UPDATE_INPUT, OP_GPU_BEGIN_COMMANDS, OP_GPU_END_COMMANDS, OP_GPU_CMD_BEGIN_RP, OP_GPU_CMD_END_RP, OP_GPU_CMD_DRAW, OP_GPU_CMD_BIND_GP, OP_GPU_CMD_BIND_DS, OP_GPU_CMD_SET_VP, OP_GPU_CMD_SET_SC, OP_GPU_CMD_BIND_VB, OP_GPU_CMD_BIND_IB, OP_GPU_CMD_DRAW_IDX, OP_GPU_SUBMIT_SYNC, OP_GPU_ACQUIRE_IMG, OP_GPU_PRESENT, OP_GPU_WAIT_FENCE, OP_GPU_RESET_FENCE, OP_GPU_UPDATE_UNIFORM, OP_GPU_CMD_PUSH_CONST, OP_GPU_CMD_DISPATCH
 
+# Performance: Pre-allocated static argument names to eliminate heap C-string allocation on function/method calls
+let G_ARG_NAMES = [
+    "__arg0", "__arg1", "__arg2", "__arg3", "__arg4", "__arg5", "__arg6", "__arg7",
+    "__arg8", "__arg9", "__arg10", "__arg11", "__arg12", "__arg13", "__arg14", "__arg15"
+]
+
+proc get_arg_name(idx):
+    if idx >= 0 and idx < 16:
+        return G_ARG_NAMES[idx]
+    return "__arg" + str(idx)
+
 proc gc_collect():
     return nil
 proc gc_stats():
@@ -1564,16 +1575,18 @@ class MetalVM:
             self.ip = self.ip + 1
             let args = []
             var j = 0
-            # Performance: Bypass argument collection loops when argc == 0
+            # Performance: Single-pass forward stack indexing for argument array
+            var callee = nil
             if argc > 0:
+                let base = len(self.stack) - argc
+                callee = self.stack[base - 1]
                 while j < argc:
-                    push(args, nil)
+                    push(args, self.stack[base + j])
                     j = j + 1
-                j = 0
-                while j < argc:
-                    args[argc - 1 - j] = pop(self.stack)
-                    j = j + 1
-            let callee = pop(self.stack)
+                while len(self.stack) >= base:
+                    pop(self.stack)
+            else:
+                callee = pop(self.stack)
             if type(callee) == "dict":
                 let ctype = callee["__type__"]
                 if ctype != nil:
@@ -1597,9 +1610,10 @@ class MetalVM:
                         push(self.scopes, {})
                         j = 0
                         while j < argc:
-                            push(self.stack, args[j])
-                            let arg_name = "__arg" + str(j)
-                            self.scopes[len(self.scopes)-1][arg_name] = args[j]
+                            let arg_val = args[j]
+                            push(self.stack, arg_val)
+                            let arg_name = get_arg_name(j)
+                            self.scopes[len(self.scopes)-1][arg_name] = arg_val
                             j = j + 1
                     elif ctype == "generator_fn":
                         let gen_obj = {
@@ -1613,9 +1627,10 @@ class MetalVM:
                         }
                         j = 0
                         while j < argc:
-                            push(gen_obj["__stack__"], args[j])
-                            let arg_name = "__arg" + str(j)
-                            gen_obj["__scopes__"][0][arg_name] = args[j]
+                            let arg_val = args[j]
+                            push(gen_obj["__stack__"], arg_val)
+                            let arg_name = get_arg_name(j)
+                            gen_obj["__scopes__"][0][arg_name] = arg_val
                             j = j + 1
                         push(self.stack, gen_obj)
                     elif ctype == "class":
@@ -1642,9 +1657,10 @@ class MetalVM:
                             self.scopes[len(self.scopes)-1]["__arg0"] = instance
                             j = 0
                             while j < argc:
-                                push(self.stack, args[j])
-                                let arg_name = "__arg" + str(j + 1)
-                                self.scopes[len(self.scopes)-1][arg_name] = args[j]
+                                let arg_val = args[j]
+                                push(self.stack, arg_val)
+                                let arg_name = get_arg_name(j + 1)
+                                self.scopes[len(self.scopes)-1][arg_name] = arg_val
                                 j = j + 1
                         else:
                             push(self.stack, instance)
@@ -1687,16 +1703,18 @@ class MetalVM:
             let name = self.constants[name_idx]
             let args = []
             var j = 0
-            # Performance: Bypass argument collection loops when argc == 0
+            # Performance: Single-pass forward stack indexing for argument array
+            var obj = nil
             if argc > 0:
+                let base = len(self.stack) - argc
+                obj = self.stack[base - 1]
                 while j < argc:
-                    push(args, nil)
+                    push(args, self.stack[base + j])
                     j = j + 1
-                j = 0
-                while j < argc:
-                    args[argc - 1 - j] = pop(self.stack)
-                    j = j + 1
-            let obj = pop(self.stack)
+                while len(self.stack) >= base:
+                    pop(self.stack)
+            else:
+                obj = pop(self.stack)
 
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                 push(self.stack, nil)
@@ -1737,9 +1755,10 @@ class MetalVM:
                     # Direct class method call (e.g. Base.init(self, name))
                     j = 0
                     while j < argc:
-                        push(self.stack, args[j])
-                        let arg_name = "__arg" + str(j)
-                        self.scopes[len(self.scopes)-1][arg_name] = args[j]
+                        let arg_val = args[j]
+                        push(self.stack, arg_val)
+                        let arg_name = get_arg_name(j)
+                        self.scopes[len(self.scopes)-1][arg_name] = arg_val
                         j = j + 1
                 else:
                     # Instance method call (e.g. obj.greet())
@@ -1748,9 +1767,10 @@ class MetalVM:
                     self.scopes[len(self.scopes)-1]["__arg0"] = obj
                     j = 0
                     while j < argc:
-                        push(self.stack, args[j])
-                        let arg_name = "__arg" + str(j + 1)
-                        self.scopes[len(self.scopes)-1][arg_name] = args[j]
+                        let arg_val = args[j]
+                        push(self.stack, arg_val)
+                        let arg_name = get_arg_name(j + 1)
+                        self.scopes[len(self.scopes)-1][arg_name] = arg_val
                         j = j + 1
             elif type(obj) == "module" or (type(obj) == "dict" and dict_has(obj, "__type__") and obj["__type__"] == "module"):
                 # Host module method/attribute access
