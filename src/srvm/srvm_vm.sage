@@ -544,11 +544,19 @@ class SRVM:
                         gc_collect()
                         self.state.x[10] = nil
                     elif b_name == "gc_enable":
-                        gc_enable()
-                        self.state.x[10] = nil
+                        if self.state.safe_mode:
+                            print "Error: gc_enable is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            gc_enable()
+                            self.state.x[10] = nil
                     elif b_name == "gc_disable":
-                        gc_disable()
-                        self.state.x[10] = nil
+                        if self.state.safe_mode:
+                            print "Error: gc_disable is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            gc_disable()
+                            self.state.x[10] = nil
                     elif b_name == "startswith":
                         self.state.x[10] = startswith(self.state.x[10], self.state.x[11])
                     elif b_name == "endswith":

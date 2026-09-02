@@ -1,0 +1,4 @@
+Error: gc_disable is restricted in safe mode
+gc_disable test complete
+Error: gc_enable is restricted in safe mode
+gc_enable test complete
