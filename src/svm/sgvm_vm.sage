@@ -25,9 +25,8 @@ proc reflect_get_class(obj):
     return nil
 
 proc is_truthy(val):
-    if val == nil or val == false or val == 0:
-        return false
-    if type(val) == "string" and len(val) == 0:
+    # Performance: Non-allocating empty string check bypassing heap type(val) descriptor allocation
+    if val == nil or val == false or val == 0 or val == "":
         return false
     return true
 
