@@ -1,5 +1,9 @@
 # Bolt's Performance Journal
 
+## 2026-09-02 - Static Parameter Name Lookup & Single-Pass Stack Slicing in Function/Method Calls
+**Learning:** In the SVM interpreter (`src/svm/sgvm_vm.sage`), binding call arguments (`OP_CALL` and `OP_CALL_METHOD`) repeatedly evaluated dynamic C-string concatenations (`"__arg" + str(j)`), causing heavy `strdup` heap string allocation and garbage collection overhead. Pre-allocating static parameter name lookup strings (`G_ARG_NAMES` / `get_arg_name`) for indices `0..15` and replacing two-pass argument pre-allocation with single-pass forward stack indexing (`stack[base + j]`) dropped function call benchmark execution time from 1m29.65s (89.65s) down to 1m11.23s (71.23s) — a ~20.5% real-time speedup with system/GC overhead slashed by over 32.5% (from 41.97s to 28.32s).
+**Action:** Pre-allocate static argument/parameter lookup tables for interpreter environment binding and extract stack argument vectors via direct forward indexing rather than multi-pass element popping.
+
 ## 2026-08-29 - O(1) Epoch-Based Global Scope Inline Cache Invalidation
 **Learning:** In the SVM interpreter (`MetalVM.run` in `src/svm/sgvm_vm.sage`), invalidating the global scope inline cache during environment scope changes (`OP_PUSH_ENV`, `OP_POP_ENV`) and fallback Boundaries (`execute_op`) originally executed an O(N) loop resetting every constant pool slot (`while ci < const_len: global_cache_dict[ci] = nil`). Replacing this sequential loop with an O(1) integer epoch counter (`global_cache_epoch`) and a parallel epoch validity array (`global_cache_epoch_array`) eliminates O(N) array clearing loops across every block enter/exit and fallback opcode dispatch.
 **Action:** Use integer epoch counters with parallel validity arrays for cache invalidation in virtual machine interpreters rather than looping over cache structures element-by-element.

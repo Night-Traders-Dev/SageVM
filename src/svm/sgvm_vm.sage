@@ -40,6 +40,17 @@ proc str_repeat(s, count):
         i = i + 1
     return res
 
+# Performance: Pre-allocated static argument names to eliminate C-string allocations in OP_CALL / OP_CALL_METHOD
+var G_ARG_NAMES = [
+    "__arg0", "__arg1", "__arg2", "__arg3", "__arg4", "__arg5", "__arg6", "__arg7",
+    "__arg8", "__arg9", "__arg10", "__arg11", "__arg12", "__arg13", "__arg14", "__arg15"
+]
+
+proc get_arg_name(j):
+    if j < 16:
+        return G_ARG_NAMES[j]
+    return "__arg" + str(j)
+
 var g_gil = nil
 
 class MetalVM:
@@ -1564,15 +1575,15 @@ class MetalVM:
             self.ip = self.ip + 1
             let args = []
             var j = 0
-            # Performance: Bypass argument collection loops when argc == 0
+            # Performance: Single-pass forward stack indexing bypassing nil pre-allocations and reverse pop calls
             if argc > 0:
+                let st_len = len(self.stack)
+                let base = st_len - argc
                 while j < argc:
-                    push(args, nil)
+                    push(args, self.stack[base + j])
                     j = j + 1
-                j = 0
-                while j < argc:
-                    args[argc - 1 - j] = pop(self.stack)
-                    j = j + 1
+                while len(self.stack) > base:
+                    pop(self.stack)
             let callee = pop(self.stack)
             if type(callee) == "dict":
                 let ctype = callee["__type__"]
@@ -1598,7 +1609,7 @@ class MetalVM:
                         j = 0
                         while j < argc:
                             push(self.stack, args[j])
-                            let arg_name = "__arg" + str(j)
+                            let arg_name = get_arg_name(j)
                             self.scopes[len(self.scopes)-1][arg_name] = args[j]
                             j = j + 1
                     elif ctype == "generator_fn":
@@ -1614,7 +1625,7 @@ class MetalVM:
                         j = 0
                         while j < argc:
                             push(gen_obj["__stack__"], args[j])
-                            let arg_name = "__arg" + str(j)
+                            let arg_name = get_arg_name(j)
                             gen_obj["__scopes__"][0][arg_name] = args[j]
                             j = j + 1
                         push(self.stack, gen_obj)
@@ -1643,7 +1654,7 @@ class MetalVM:
                             j = 0
                             while j < argc:
                                 push(self.stack, args[j])
-                                let arg_name = "__arg" + str(j + 1)
+                                let arg_name = get_arg_name(j + 1)
                                 self.scopes[len(self.scopes)-1][arg_name] = args[j]
                                 j = j + 1
                         else:
@@ -1687,15 +1698,15 @@ class MetalVM:
             let name = self.constants[name_idx]
             let args = []
             var j = 0
-            # Performance: Bypass argument collection loops when argc == 0
+            # Performance: Single-pass forward stack indexing bypassing nil pre-allocations and reverse pop calls
             if argc > 0:
+                let st_len = len(self.stack)
+                let base = st_len - argc
                 while j < argc:
-                    push(args, nil)
+                    push(args, self.stack[base + j])
                     j = j + 1
-                j = 0
-                while j < argc:
-                    args[argc - 1 - j] = pop(self.stack)
-                    j = j + 1
+                while len(self.stack) > base:
+                    pop(self.stack)
             let obj = pop(self.stack)
 
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
@@ -1738,7 +1749,7 @@ class MetalVM:
                     j = 0
                     while j < argc:
                         push(self.stack, args[j])
-                        let arg_name = "__arg" + str(j)
+                        let arg_name = get_arg_name(j)
                         self.scopes[len(self.scopes)-1][arg_name] = args[j]
                         j = j + 1
                 else:
@@ -1749,7 +1760,7 @@ class MetalVM:
                     j = 0
                     while j < argc:
                         push(self.stack, args[j])
-                        let arg_name = "__arg" + str(j + 1)
+                        let arg_name = get_arg_name(j + 1)
                         self.scopes[len(self.scopes)-1][arg_name] = args[j]
                         j = j + 1
             elif type(obj) == "module" or (type(obj) == "dict" and dict_has(obj, "__type__") and obj["__type__"] == "module"):
