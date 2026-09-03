@@ -81,3 +81,7 @@
 ## 2026-08-23 - [Submodule Commit Synchronization & Canvas Region ARIA Landmarks]
 **Learning:** Interactive HTML5 canvas containers require explicit ARIA landmarks (`role="region"` and descriptive `aria-label`) to ensure screen-reader users understand section boundaries. Furthermore, changes made in git submodules (e.g. `docs/site`) must be committed locally inside the submodule prior to staging the submodule pointer in the parent repository to ensure pull request diffs expose modified code cleanly.
 **Action:** Always wrap interactive canvas sections in ARIA region landmarks with clear labels, and commit submodule updates locally before updating parent submodule pointer references.
+
+## 2026-09-03 - [Opcode Reference Tablist & Clearable Search UX]
+**Learning:** Adding explicit `role="tablist"` and `role="tab"` with `aria-controls` to category tab bars, paired with a clear button on search inputs and keyboard-accessible interactive opcode cards (`role="button"`, `tabIndex={0}`, Enter/Space triggers, `focus-visible` rings), guarantees full keyboard and screen-reader accessibility for technical documentation references.
+**Action:** Pair technical search and filtering interfaces with semantic ARIA tablists, clearable input controls, and focus-visible keyboard event handlers.
