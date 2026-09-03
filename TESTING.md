@@ -99,7 +99,12 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `builtin_tonumber_edge.sage`: Tests `tonumber()`, `str()`, and `int()` across numeric, string, collection, and nil types.
 - `bitwise_shifts_edge.sage`: Tests `OP_SHIFT_LEFT` (`<<`) and `OP_SHIFT_RIGHT` (`>>`) across standard integers, zero shift amounts, float parameters, nil operands, and negative shift count behavior.
 
-### Verification Status (August 2026)
+### Coverage Expansion (September 2026 - Forge Daily)
+- `builtin_upper_lower_edge.sage`: Tests `upper()` and `lower()` string builtins under normal and edge conditions (empty strings, numbers, nil arguments).
+- `builtin_str_int_edge.sage`: Tests `str()` and `int()` type conversion builtins across primitive values, collections, floats, invalid numeric strings, and nil parameters.
+- `builtin_dict_ops_edge.sage`: Tests `dict_has()`, `dict_keys()`, and `dict_values()` dictionary builtins under normal and edge conditions (empty dicts, non-dict objects, nil arguments).
+
+### Verification Status (September 2026)
 As of August 2026, the modern coverage suite passes cleanly under the SVM backend.
 All historical opcode translation mismatches, generator execution support (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`), module method bridging, safe-mode object protections, and interpreter halt controls are fully resolved.
 

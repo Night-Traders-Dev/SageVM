@@ -1,4 +1,5 @@
 Error: Definition of internal global '__secret_var' is restricted in safe mode
 Internal variable test complete
+Error: Definition of internal class '__SecretClass' is restricted in safe mode
 Error: Definition of internal global '__SecretClass' is restricted in safe mode
 Internal class test complete

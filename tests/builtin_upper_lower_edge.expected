@@ -1,0 +1,13 @@
+--- Upper / Lower Normal Strings ---
+HELLO WORLD!
+hello world!
+SAGEVM 2026
+sagevm 2026
+--- Upper / Lower Empty String ---
+
+
+--- Upper / Lower Non-String Inputs ---
+nil
+nil
+nil
+nil
