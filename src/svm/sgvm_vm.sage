@@ -1314,7 +1314,8 @@ class MetalVM:
             let name = self.constants[idx]
             let val = pop(self.stack)
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                 print "Error: Definition of internal global '" + name + "' is restricted in safe mode"
+                if val != nil:
+                    print "Error: Definition of internal global '" + name + "' is restricted in safe mode"
             else:
                  self.scopes[len(self.scopes)-1][name] = val
         elif op == OP_SET_GLOBAL:
