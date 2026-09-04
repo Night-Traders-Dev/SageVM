@@ -272,6 +272,7 @@ class MetalVM:
                     push(stack, val)
                 stack_len = stack_len + 1
             elif op == OP_CONSTANT:
+                # Performance: Direct 16-bit big-endian index unpack, bounds check against pre-cached const_len, and stack slot re-use
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 if idx < const_len:
@@ -1266,9 +1267,11 @@ class MetalVM:
     proc execute_op(self, op):
         let ut = self.utils
         if op == OP_CONSTANT:
-            let idx = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian index unpack and stack push in execute_op fallback
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
-            push(self.stack, self.safe_get_constant(idx))
+            let val = self.safe_get_constant(idx)
+            push(self.stack, val)
         elif op == OP_NIL:
             push(self.stack, nil)
         elif op == OP_TRUE:
