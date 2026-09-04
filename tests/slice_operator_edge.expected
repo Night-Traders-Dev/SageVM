@@ -1,0 +1,26 @@
+--- Array slice operator with negative indices ---
+arr[-3:] len: 3
+30
+40
+50
+arr[:-2] len: 3
+10
+20
+30
+arr[-4:-1] len: 3
+20
+30
+40
+--- String slice operator with negative indices ---
+str[-4:]: ngVM
+str[:-2]: SageLang
+--- Slice builtin with negative indices ---
+slice(arr, -3, -1) len: 2
+30
+40
+slice(str_val, -6, -2): Lang
+--- Edge cases: out-of-range negative start and inverted range ---
+slice(arr, -100, 3) len: 3
+10
+slice(arr, -1, -4) len: 0
+slice(str_val, -2, -5): ''
