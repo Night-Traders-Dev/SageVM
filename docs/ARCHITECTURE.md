@@ -51,6 +51,11 @@ The core SVM implementation in `src/svm/sgvm_vm.sage`. It utilizes an operand st
   - **Local Variable Write Safety Loop Bypassing**: Introduces a fast-path branch in `OP_SET_LOCAL` to bypass safety loops (pre-growing stack allocation) when target indices are already within stack boundaries (`target_idx < stack_len`).
   - **Inline Global Cache Relocation**: Relocates the `global_cache_dict[idx]` inline cache check to the absolute top of `OP_SET_GLOBAL` and `OP_GET_GLOBAL` to completely bypass constant pool bounds checks on cache hits.
   - **Redundant Control Flow Safety Check Removal**: Bypasses redundant stack bounds checks from unconditional control flow instructions (`OP_JUMP` and `OP_LOOP_BACK`) since jump instructions do not alter the stack height.
+  - **Non-Allocating String Truthiness Check**: Inlines string truthiness evaluation in `is_truthy()` using non-allocating `val == ""` comparison to eliminate heap C-string descriptor allocations during truthiness checks.
+  - **Pre-Allocated Argument Name Lookup**: Cached static argument name strings (`G_ARG_NAMES`) in `OP_CALL` and `OP_CALL_METHOD` argument binding to avoid repeated heap C-string allocations (`"__arg" + str(j)`).
+  - **Single-Pass Collection & Call Argument Binding**: Streamlined collection creation (`OP_ARRAY`, `OP_TUPLE`, `OP_DICT`) and call argument binding using direct forward stack indexing (`self.stack[base + j]`) instead of two-pass pre-allocation or pop loops.
+  - **Epoch-Based Global Cache Invalidation**: Replaced the $O(N)$ constant pool reset loop during global scope transitions with an $O(1)$ integer epoch counter (`global_cache_epoch`) and parallel epoch validity array.
+  - **Inlined Local Variable BE16 Decoding**: Inlined BE16 byte unpacking and eliminated redundant `int()` type conversions in `OP_GET_LOCAL` and `OP_SET_LOCAL` fallback execution.
 
 ### 4.2 MetalRV64 (Register-Based)
 The SRVM implementation in `src/srvm/srvm_vm.sage`. It maps guest execution to a virtual RISC-V 64-bit hardware model.
@@ -310,7 +315,7 @@ SGVM exposes several host-level functions directly in the global scope for perfo
 | `slice(obj, start, end)` | Creates a slice object or performs a slice on a string/array. |
 | `gc_collect()` | Manually triggers garbage collection. |
 | `gc_stats()` | Returns a dictionary with GC statistics. |
-| `gc_enable()` / `gc_disable()` | Enables or disables the host garbage collector. |
+| `gc_enable()` / `gc_disable()` | Enables or disables the host garbage collector (restricted in `safe_mode`). |
 | `reflect_get_methods(obj)` | Returns a list of method names available on an object (SVM-only). |
 | `reflect_get_class(obj)` | Returns the class object for a given instance (SVM-only). |
 | `push(arr, val)` | Pushes a value onto an array. |
@@ -345,8 +350,9 @@ For high-isolation environments, SGVM provides several security features impleme
   - **Deferred Initialization**: SVM (`MetalVM`) defers the population of sensitive host modules until after `safe_mode` has been configured, preventing race conditions or eager loading bypasses.
   - **Mutation Protection**: Guest code is prevented from mutating host modules or module wrappers via `is_protected(obj)` checks in property and index assignments.
   - **Builtin Protection**: Both SVM and SRVM enforce strict protection for objects tagged with `__builtin__` in `safe_mode`, ensuring core host-provided utility structures remain immutable.
+  - **Garbage Collection Control Hardening**: In `safe_mode`, both SVM and SRVM interpreters restrict `gc_enable()`, `gc_disable()`, `__builtin_gc_enable()`, and `__builtin_gc_disable()` calls to prevent untrusted guest scripts from altering host GC state and causing DoS via memory exhaustion or freeze attacks.
   - **Sandbox Hardening (struct module)**: Safe mode restrictions are extended to the `struct` module, blocking its guest-side import to mitigate sandbox escape vectors.
-- **Sandbox Hardening (Internal Properties)**: In `safe_mode`, both SVM and SRVM interpreters block property, index, and method access (via `OP_CALL_METHOD`) for all identifiers starting with `__` (except `__arg`), preventing guest code from inspecting internal VM state or leaking host bridge objects.
+- **Sandbox Hardening (Internal Properties & Class Definitions)**: In `safe_mode`, both SVM and SRVM interpreters block property, index, and method access (via `OP_CALL_METHOD`) for all identifiers starting with `__` (except `__arg`), preventing guest code from inspecting internal VM state or leaking host bridge objects. In `OP_DEFINE_GLOBAL`, internal name definition checks suppress duplicate restriction output when `OP_CLASS` has already rejected a definition and pushed `nil`.
 - **Dynamic Command Execution Restricting**: Hardens execution capability restrictions by wiring the `--no-exec` CLI flag down to the runner and interpreter VM configurations as `exec_enabled`. When disabled (`exec_enabled = false`), both `__builtin_sys_exec` and `__builtin_sys_system` block system command execution to prevent arbitrary code execution on the host machine.
 - **Internal Execution Limits**: To prevent Denial of Service (DoS) via resource exhaustion, the VM enforces the following internal limits:
   - **Maximum Stack Depth**: 65,536 (Maximum depth of the operand stack).

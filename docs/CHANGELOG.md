@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-09-03]
+
+### Security
+- **Garbage Collection Control Restrictions**: Enforced `safe_mode` checks on garbage collection builtins (`gc_enable`, `gc_disable`, `__builtin_gc_enable`, `__builtin_gc_disable`) in both SVM (`src/svm/sgvm_vm.sage`) and SRVM (`src/srvm/srvm_vm.sage`) interpreters to prevent untrusted guest scripts from modifying host GC state and causing Denial of Service via memory exhaustion or freezes.
+
+### Fixed
+- **Deduplicated Error Reporting for Internal Class Definitions**: Fixed duplicate error output for reserved internal class definitions (`__` prefix) under `safe_mode` in `OP_DEFINE_GLOBAL` by checking `if val != nil:`, preventing redundant error messages when `OP_CLASS` had already rejected the definition and pushed `nil`.
+
+### Performance
+- **Non-Allocating Truthiness Evaluation**: Replaced `type(val) == "string" and len(val) == 0` in `is_truthy()` with non-allocating empty string comparison `val == ""`, eliminating heap string descriptor allocations during truthiness checks.
+- **Fast Function and Method Argument Binding**: Pre-allocated static argument lookup string array (`G_ARG_NAMES`) to eliminate repeated heap C-string allocations (`"__arg" + str(j)`), and replaced two-pass `nil` pre-allocation with single-pass forward stack indexing (`self.stack[base + j]`) in `OP_CALL` and `OP_CALL_METHOD`.
+- **Single-Pass Collection Allocation**: Streamlined `OP_ARRAY`, `OP_TUPLE`, and `OP_DICT` creation in `src/svm/sgvm_vm.sage` by replacing two-pass pop/reverse loops with direct single-pass forward stack indexing (`self.stack[base + j]`).
+- **$O(1)$ Epoch-Based Global Cache Invalidation**: Replaced the $O(N)$ constant pool reset loop across scope transitions with an $O(1)$ integer epoch counter (`global_cache_epoch`) and parallel epoch array (`global_cache_epoch_array`).
+- **Inlined Local Variable BE16 Decoding**: Removed redundant `int()` function and type conversion calls during BE16 byte unpacking in `OP_GET_LOCAL` and `OP_SET_LOCAL` fallback execution.
+
 ## [1.1.0] - 2026-08-23
 
 ### Fixed
