@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-09-02]
+
+### Fixed
+- **Garbage Collection Mode Restrictions (SVM & SRVM)**: Enforced `safe_mode` restrictions on `gc_enable()` and `gc_disable()` (and `__builtin_gc_enable` / `__builtin_gc_disable`) across both Stack VM (`src/svm/sgvm_vm.sage`) and RISC-V VM (`src/srvm/srvm_vm.sage`) interpreters, preventing untrusted guest scripts from altering garbage collector state and causing host resource exhaustion or DoS.
+
+### Changed
+- **Call Argument Binding Optimization**: Pre-allocated static argument lookup strings (`G_ARG_NAMES`) and optimized forward stack indexing in `OP_CALL` and `OP_CALL_METHOD` in `src/svm/sgvm_vm.sage`.
+- **Truthiness Evaluation Non-Allocating String Check**: Replaced `type(val) == "string" and len(val) == 0` with direct non-allocating `val == ""` comparison in `is_truthy()` in `src/svm/sgvm_vm.sage`.
+- **Local Variable Read/Write BE16 Inlining**: Inlined big-endian 16-bit integer decoding for `OP_GET_LOCAL` and `OP_SET_LOCAL` in `execute_op` fallback in `src/svm/sgvm_vm.sage`.
+
 ## [1.1.0] - 2026-08-23
 
 ### Fixed
