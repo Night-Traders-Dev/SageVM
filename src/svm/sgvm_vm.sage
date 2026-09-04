@@ -1881,10 +1881,16 @@ class MetalVM:
         elif op == OP_METHOD:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
-            let name = self.constants[idx]
+            let name = self.safe_get_constant(idx)
             let func = pop(self.stack)
-            let cls = self.stack[len(self.stack)-1]
-            cls["__methods__"][name] = func
+            if len(self.stack) > 0:
+                let cls = self.stack[len(self.stack)-1]
+                if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                    print "Error: Definition of internal method '" + name + "' is restricted in safe mode"
+                elif self.safe_mode and self.is_protected(cls):
+                    print "Error: Modification of protected object is restricted in safe mode"
+                elif type(cls) == "dict" and dict_has(cls, "__methods__") and type(cls["__methods__"]) == "dict":
+                    cls["__methods__"][name] = func
         elif op == OP_INHERIT:
             let cls = pop(self.stack)
             let parent = pop(self.stack)
