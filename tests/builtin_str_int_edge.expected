@@ -1,0 +1,18 @@
+--- str() conversions ---
+str(123): 123
+str(-45.6): -45.6
+str(true): true
+str(false): false
+str(nil) == 'nil': true
+str([1, 2]): <array>
+--- int() conversions ---
+int(123): 123
+int(45.8): 45
+int(-12.3): -12
+int('99'): 99
+int('-15'): -15
+int('3.14'): 3
+int('invalid'): 0
+int(true): 1
+int(false): 0
+int(nil): 0
