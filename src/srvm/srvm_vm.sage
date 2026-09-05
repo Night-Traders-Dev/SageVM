@@ -600,6 +600,27 @@ class SRVM:
                                 self.state.x[10] = sys.getenv(g_arg)
                             else:
                                 self.state.x[10] = nil
+                    elif startswith(b_name, "mem_"):
+                        if self.state.safe_mode:
+                            print "Error: " + b_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = nil
+                    elif startswith(b_name, "ffi_"):
+                        if not self.state.ffi_enabled:
+                            print "Error: FFI is disabled"
+                            self.state.x[10] = nil
+                        elif self.state.safe_mode:
+                            print "Error: " + b_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = nil
+                    elif startswith(b_name, "struct_"):
+                        if self.state.safe_mode:
+                            print "Error: " + b_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = nil
                     self.state.pc = self.state.pc + 4
                     return
                 

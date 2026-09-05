@@ -1,0 +1,6 @@
+Error: mem_alloc is restricted in safe mode
+mem_alloc blocked
+Error: ffi_open is restricted in safe mode
+ffi_open blocked
+Error: struct_def is restricted in safe mode
+struct_def blocked
