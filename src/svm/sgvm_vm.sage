@@ -739,50 +739,46 @@ class MetalVM:
             elif op == OP_GET_INDEX:
                 # Performance: Delay type(idx) check so it only evaluates when safe_mode is enabled
                 # to avoid heap string allocations in default mode. Prioritize array/tuple indexing
-                # and bypass int(idx) when idx is already numeric.
+                # and bypass int(idx) when idx is already numeric. Bypass pop() calls via logical stack_len management.
                 let idx = stack[stack_len-1]
                 let obj = stack[stack_len-2]
+                stack_len = stack_len - 1
                 if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
-                    pop(stack)
-                    stack[stack_len-2] = nil
+                    stack[stack_len-1] = nil
                 else:
-                    pop(stack)
                     let type_obj = type(obj)
                     if type_obj == "array" or type_obj == "tuple":
                         var i_idx = idx
                         if tonumber(idx) != idx: i_idx = int(idx)
                         if i_idx != nil and i_idx >= 0 and i_idx < len(obj):
-                            stack[stack_len-2] = obj[i_idx]
+                            stack[stack_len-1] = obj[i_idx]
                         else:
-                            stack[stack_len-2] = nil
+                            stack[stack_len-1] = nil
                     elif type_obj == "dict":
                         # Performance: direct key lookup bypassing dict_has and type overhead
-                        stack[stack_len-2] = obj[idx]
+                        stack[stack_len-1] = obj[idx]
                     elif type_obj == "string":
                         var i_idx = idx
                         if tonumber(idx) != idx: i_idx = int(idx)
                         if i_idx != nil and i_idx >= 0 and i_idx < len(obj):
-                            stack[stack_len-2] = obj[i_idx]
+                            stack[stack_len-1] = obj[i_idx]
                         else:
-                            stack[stack_len-2] = nil
+                            stack[stack_len-1] = nil
                     else:
-                        stack[stack_len-2] = nil
-                stack_len = stack_len - 1
+                        stack[stack_len-1] = nil
             elif op == OP_SET_INDEX:
-                # Performance: Delay type(idx) check to safe_mode and short-circuit is_protected method calls
+                # Performance: Delay type(idx) check to safe_mode and short-circuit is_protected method calls.
+                # Bypass pop() calls via logical stack_len management.
                 let val = stack[stack_len-1]
                 let idx = stack[stack_len-2]
                 let obj = stack[stack_len-3]
+                stack_len = stack_len - 2
                 if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
-                    pop(stack)
-                    pop(stack)
-                    stack[stack_len-3] = nil
+                    stack[stack_len-1] = nil
                 elif safe_mode and self.is_protected(obj):
                     print "Error: Index assignment to protected object is restricted in safe mode"
-                    pop(stack)
-                    pop(stack)
-                    stack[stack_len-3] = nil
+                    stack[stack_len-1] = nil
                 else:
                     let type_obj = type(obj)
                     if type_obj == "dict":
@@ -791,10 +787,7 @@ class MetalVM:
                         let i_idx = int(idx)
                         if i_idx >= 0 and i_idx < len(obj):
                             obj[i_idx] = val
-                    pop(stack)
-                    pop(stack)
-                    stack[stack_len-3] = val
-                stack_len = stack_len - 2
+                    stack[stack_len-1] = val
             elif op == OP_GET_PROPERTY:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -849,19 +842,16 @@ class MetalVM:
                     let name = constants[idx]
                     let val = stack[stack_len-1]
                     let obj = stack[stack_len-2]
+                    stack_len = stack_len - 1
                     if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                         print "Error: Access to internal property '" + name + "' is restricted in safe mode"
-                        pop(stack)
-                        stack[stack_len-2] = nil
+                        stack[stack_len-1] = nil
                     elif safe_mode and self.is_protected(obj):
                         print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
-                        pop(stack)
-                        stack[stack_len-2] = nil
+                        stack[stack_len-1] = nil
                     else:
                         obj[name] = val
-                        pop(stack)
-                        stack[stack_len-2] = val
-                    stack_len = stack_len - 1
+                        stack[stack_len-1] = val
                 else:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
