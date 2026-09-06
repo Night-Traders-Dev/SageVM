@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-09-05]
+
+### Fixed
+- **Duplicate Safe-Mode Error Suppression (`OP_DEFINE_GLOBAL`)**: Prevented duplicate safe-mode error reporting in `src/svm/sgvm_vm.sage` when defining internal variables/classes (prefixed with `__`) by verifying `val != nil` in `OP_DEFINE_GLOBAL`, avoiding redundant error output when `OP_CLASS` or preceding opcodes have already blocked internal definition and pushed `nil` onto the stack.
+
 ## [2026-09-02]
 
 ### Fixed
