@@ -1,11 +1,7 @@
-import io
-
-# Test calling writefile on restricted io module in safe mode
-try:
-    io.writefile("tmp_test_file.txt", "hello")
-catch e:
-    print "Error caught"
-
-# Test direct builtin execution under safe mode
 let b_write = "__builtin_io_writefile"
-print "builtin writefile direct result: " + str(b_write)
+let res = b_write("tmp_test_file.txt", "hello")
+print "direct writefile result: " + str(res)
+
+let b_read = "__builtin_io_readfile"
+let r_res = b_read("tmp_test_file.txt")
+print "direct readfile result: " + str(r_res)

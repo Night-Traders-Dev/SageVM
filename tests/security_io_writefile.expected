@@ -1,3 +1,4 @@
-Error: Access to module 'io' is restricted in safe mode
-Error: Method writefile not found
-builtin writefile direct result: __builtin_io_writefile
+Error: io.writefile is restricted in safe mode
+direct writefile result: nil
+Error: io.readfile is restricted in safe mode
+direct readfile result: nil
