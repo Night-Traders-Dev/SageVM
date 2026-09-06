@@ -600,6 +600,48 @@ class SRVM:
                                 self.state.x[10] = sys.getenv(g_arg)
                             else:
                                 self.state.x[10] = nil
+                    elif b_name == "io_writebytes" or b_name == "__builtin_io_writebytes":
+                        if self.state.safe_mode:
+                            print "Error: io.writebytes is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            let arg0 = self.state.x[10]
+                            let arg1 = self.state.x[11]
+                            if arg0 != nil and arg1 != nil:
+                                self.state.x[10] = io.writebytes(arg0, arg1)
+                            else:
+                                self.state.x[10] = false
+                    elif b_name == "io_writefile" or b_name == "__builtin_io_writefile":
+                        if self.state.safe_mode:
+                            print "Error: io.writefile is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            let arg0 = self.state.x[10]
+                            let arg1 = self.state.x[11]
+                            if arg0 != nil and arg1 != nil:
+                                self.state.x[10] = io.writefile(arg0, arg1)
+                            else:
+                                self.state.x[10] = false
+                    elif b_name == "io_readbytes" or b_name == "__builtin_io_readbytes":
+                        if self.state.safe_mode:
+                            print "Error: io.readbytes is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            let arg0 = self.state.x[10]
+                            if arg0 != nil and type(arg0) == "string":
+                                self.state.x[10] = io.readbytes(arg0)
+                            else:
+                                self.state.x[10] = nil
+                    elif b_name == "io_readfile" or b_name == "__builtin_io_readfile":
+                        if self.state.safe_mode:
+                            print "Error: io.readfile is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            let arg0 = self.state.x[10]
+                            if arg0 != nil and type(arg0) == "string":
+                                self.state.x[10] = io.readfile(arg0)
+                            else:
+                                self.state.x[10] = nil
                     self.state.pc = self.state.pc + 4
                     return
                 
