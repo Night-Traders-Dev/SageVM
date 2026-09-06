@@ -739,14 +739,13 @@ class MetalVM:
             elif op == OP_GET_INDEX:
                 # Performance: Delay type(idx) check so it only evaluates when safe_mode is enabled
                 # to avoid heap string allocations in default mode. Prioritize array/tuple indexing
-                # and bypass int(idx) when idx is already numeric.
+                # and bypass int(idx) when idx is already numeric. Bypass C pop(stack) list mutations
+                # as stack_len manages logical size and push opcodes overwrite stack[stack_len].
                 let idx = stack[stack_len-1]
                 let obj = stack[stack_len-2]
                 if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
-                    pop(stack)
                     stack[stack_len-2] = nil
                 else:
-                    pop(stack)
                     let type_obj = type(obj)
                     if type_obj == "array" or type_obj == "tuple":
                         var i_idx = idx
@@ -769,19 +768,16 @@ class MetalVM:
                         stack[stack_len-2] = nil
                 stack_len = stack_len - 1
             elif op == OP_SET_INDEX:
-                # Performance: Delay type(idx) check to safe_mode and short-circuit is_protected method calls
+                # Performance: Delay type(idx) check to safe_mode and short-circuit is_protected method calls.
+                # Bypass C pop(stack) list mutations as stack_len manages logical size and push opcodes overwrite stack[stack_len].
                 let val = stack[stack_len-1]
                 let idx = stack[stack_len-2]
                 let obj = stack[stack_len-3]
                 if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
-                    pop(stack)
-                    pop(stack)
                     stack[stack_len-3] = nil
                 elif safe_mode and self.is_protected(obj):
                     print "Error: Index assignment to protected object is restricted in safe mode"
-                    pop(stack)
-                    pop(stack)
                     stack[stack_len-3] = nil
                 else:
                     let type_obj = type(obj)
@@ -791,8 +787,6 @@ class MetalVM:
                         let i_idx = int(idx)
                         if i_idx >= 0 and i_idx < len(obj):
                             obj[i_idx] = val
-                    pop(stack)
-                    pop(stack)
                     stack[stack_len-3] = val
                 stack_len = stack_len - 2
             elif op == OP_GET_PROPERTY:
@@ -851,15 +845,12 @@ class MetalVM:
                     let obj = stack[stack_len-2]
                     if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                         print "Error: Access to internal property '" + name + "' is restricted in safe mode"
-                        pop(stack)
                         stack[stack_len-2] = nil
                     elif safe_mode and self.is_protected(obj):
                         print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
-                        pop(stack)
                         stack[stack_len-2] = nil
                     else:
                         obj[name] = val
-                        pop(stack)
                         stack[stack_len-2] = val
                     stack_len = stack_len - 1
                 else:
