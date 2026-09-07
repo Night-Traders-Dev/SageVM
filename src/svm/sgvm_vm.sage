@@ -713,8 +713,12 @@ class MetalVM:
                 print stack[stack_len-1]
                 stack_len = stack_len - 1
             elif op == OP_NEGATE:
-                if stack[stack_len-1] == nil: stack[stack_len-1] = 0
-                else: stack[stack_len-1] = -stack[stack_len-1]
+                # Performance: Bind top-of-stack to local variable to eliminate redundant list indexing
+                let val = stack[stack_len-1]
+                if val != nil:
+                    stack[stack_len-1] = -val
+                else:
+                    stack[stack_len-1] = 0
             elif op == OP_ARRAY_LEN:
                 stack[stack_len-1] = len(stack[stack_len-1])
             elif op == OP_PUSH_ENV:
