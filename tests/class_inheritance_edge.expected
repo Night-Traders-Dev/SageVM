@@ -1,0 +1,9 @@
+GrandParent legacy: Alex
+Parent voice: Alex
+Parent exclusive method
+GrandParent legacy: Sam
+Parent exclusive method
+Child shout: Sam
+Calling missing method:
+Error: Method missing_method not found
+Missing method result: nil
