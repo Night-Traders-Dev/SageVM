@@ -1,0 +1,12 @@
+--- Clean Try Block ---
+normal execution without raise
+after try
+--- Primitive Raises ---
+caught int: 404
+caught bool: false
+caught nil: true
+--- Collection Raise ---
+caught array len: 3
+--- Nested Try and Re-raise ---
+caught inner: inner error
+caught re-raise: outer error
