@@ -677,8 +677,9 @@ class MetalVM:
                 if b_val == nil: b_val = 0
                 stack[stack_len-1] = a ^ b_val
             elif op == OP_BIT_NOT:
-                if stack[stack_len-1] == nil: stack[stack_len-1] = 0
-                else: stack[stack_len-1] = ~stack[stack_len-1]
+                let val = stack[stack_len-1]
+                if val == nil: stack[stack_len-1] = 0
+                else: stack[stack_len-1] = ~val
             elif op == OP_SHIFT_LEFT:
                 let b = stack[stack_len-1]
                 stack_len = stack_len - 1
@@ -713,10 +714,12 @@ class MetalVM:
                 print stack[stack_len-1]
                 stack_len = stack_len - 1
             elif op == OP_NEGATE:
-                if stack[stack_len-1] == nil: stack[stack_len-1] = 0
-                else: stack[stack_len-1] = -stack[stack_len-1]
+                let val = stack[stack_len-1]
+                if val == nil: stack[stack_len-1] = 0
+                else: stack[stack_len-1] = -val
             elif op == OP_ARRAY_LEN:
-                stack[stack_len-1] = len(stack[stack_len-1])
+                let val = stack[stack_len-1]
+                stack[stack_len-1] = len(val)
             elif op == OP_PUSH_ENV:
                 if scopes_len >= self.max_call_depth:
                     print "Error: Environment stack depth limit exceeded"
@@ -1266,7 +1269,7 @@ class MetalVM:
     proc execute_op(self, op):
         let ut = self.utils
         if op == OP_CONSTANT:
-            let idx = ut.read_be16(self.code, self.ip)
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             push(self.stack, self.safe_get_constant(idx))
         elif op == OP_NIL:
@@ -1285,7 +1288,7 @@ class MetalVM:
             else:
                 push(self.stack, nil)
         elif op == OP_GET_GLOBAL:
-            let idx = ut.read_be16(self.code, self.ip)
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let name = self.safe_get_constant(idx)
             if self.halted: return false
@@ -1316,7 +1319,7 @@ class MetalVM:
                 if self.trace: print "DEBUG: Found " + name + " in globals: " + str(val)
                 push(self.stack, val)
         elif op == OP_DEFINE_GLOBAL:
-            let idx = ut.read_be16(self.code, self.ip)
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             if idx >= len(self.constants):
                 print "Error: Constant pool index out of bounds: " + str(idx)
@@ -1330,7 +1333,7 @@ class MetalVM:
             else:
                  self.scopes[len(self.scopes)-1][name] = val
         elif op == OP_SET_GLOBAL:
-            let idx = ut.read_be16(self.code, self.ip)
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let name = self.safe_get_constant(idx)
             if self.halted: return false
@@ -1484,9 +1487,9 @@ class MetalVM:
                 print "Error: Stack overflow"
                 self.halted = true
                 return false
-            self.ip = ut.read_be16(self.code, self.ip)
+            self.ip = (self.code[self.ip] << 8) | self.code[self.ip+1]
         elif op == OP_JUMP_IF_FALSE:
-            let target = ut.read_be16(self.code, self.ip)
+            let target = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let st = self.stack
             let st_len = len(st)
@@ -1498,7 +1501,7 @@ class MetalVM:
                 print "Error: Stack overflow"
                 self.halted = true
                 return false
-            self.ip = self.ip - ut.read_be16(self.code, self.ip)
+            self.ip = self.ip - ((self.code[self.ip] << 8) | self.code[self.ip+1])
         elif op == OP_PRINT:
             print pop(self.stack)
         elif op == OP_MATH_PRINTM:
@@ -1506,7 +1509,7 @@ class MetalVM:
             self.call_builtin("__builtin_math_printm", [matrix])
             push(self.stack, nil)
         elif op == OP_ARRAY:
-            let count = ut.read_be16(self.code, self.ip)
+            let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let arr = []
             var j = 0
@@ -1519,7 +1522,7 @@ class MetalVM:
                 pop(self.stack)
             push(self.stack, arr)
         elif op == OP_TUPLE:
-            let count = ut.read_be16(self.code, self.ip)
+            let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let t = []
             var j = 0
@@ -1532,7 +1535,7 @@ class MetalVM:
                 pop(self.stack)
             push(self.stack, t)
         elif op == OP_DICT:
-            let count = ut.read_be16(self.code, self.ip)
+            let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let d = {}
             var j = 0
@@ -1550,8 +1553,8 @@ class MetalVM:
             let obj = pop(self.stack)
             push(self.stack, slice(obj, start_idx, end_idx))
         elif op == OP_DEFINE_FUNCTION:
-            let name_idx = ut.read_be16(self.code, self.ip)
-            let chunk_idx = ut.read_be16(self.code, self.ip + 2)
+            let name_idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
+            let chunk_idx = (self.code[self.ip+2] << 8) | self.code[self.ip+3]
             self.ip = self.ip + 4
             let name = self.constants[name_idx]
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
@@ -1560,7 +1563,7 @@ class MetalVM:
                 let func_obj = {"__type__": "function", "__chunk__": chunk_idx, "__name__": name}
                 self.scopes[len(self.scopes)-1][name] = func_obj
         elif op == OP_LOAD_FUNCTION:
-            let chunk_idx = ut.read_be16(self.code, self.ip)
+            let chunk_idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             if chunk_idx < 0 or chunk_idx >= len(self.chunks):
                 print "Error: Chunk index out of bounds: " + str(chunk_idx)
@@ -1868,7 +1871,7 @@ class MetalVM:
             self.halted = true
             return false
         elif op == OP_CLASS:
-            let idx = ut.read_be16(self.code, self.ip)
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let name = self.constants[idx]
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
@@ -1879,7 +1882,7 @@ class MetalVM:
                 self.scopes[len(self.scopes)-1][name] = cls
                 push(self.stack, cls)
         elif op == OP_METHOD:
-            let idx = ut.read_be16(self.code, self.ip)
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let name = self.constants[idx]
             let func = pop(self.stack)
@@ -1909,7 +1912,7 @@ class MetalVM:
                         k = k + 1
             push(self.stack, cls)
         elif op == OP_IMPORT:
-            let idx = ut.read_be16(self.code, self.ip)
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let name = self.constants[idx]
             # Delegation Bridge: check host first for native modules
@@ -1999,7 +2002,7 @@ class MetalVM:
                 print "Error: Stack overflow"
                 self.halted = true
                 return false
-            let handler = ut.read_be16(self.code, self.ip)
+            let handler = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             # Security: Prevent nested handlers from exhausting VM memory (DoS)
             if len(self.handlers) >= self.max_handler_depth:
@@ -2058,7 +2061,7 @@ class MetalVM:
                 print "Error: Code execution is restricted"
                 self.ip = self.ip + 2
                 return true
-            let idx = ut.read_be16(self.code, self.ip)
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let ast_code = self.constants[idx]
             if type(ast_code) == "string":
@@ -2219,8 +2222,8 @@ class MetalVM:
             else:
                 push(self.stack, val)
         elif op == OP_CREATE_GENERATOR:
-            let name_idx = ut.read_be16(self.code, self.ip)
-            let chunk_idx = ut.read_be16(self.code, self.ip + 2)
+            let name_idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
+            let chunk_idx = (self.code[self.ip+2] << 8) | self.code[self.ip+3]
             self.ip = self.ip + 4
             let name = self.constants[name_idx]
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
