@@ -600,6 +600,55 @@ class SRVM:
                                 self.state.x[10] = sys.getenv(g_arg)
                             else:
                                 self.state.x[10] = nil
+                    elif b_name == "sys_exit":
+                        self.state.running = false
+                        self.state.x[10] = nil
+                    elif b_name == "mem_alloc" or b_name == "mem_free" or b_name == "mem_read" or b_name == "mem_write" or b_name == "mem_size":
+                        if self.state.safe_mode:
+                            let m_name = b_name
+                            if startswith(m_name, "mem_"): m_name = slice(m_name, 4, len(m_name))
+                            print "Error: mem_" + m_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif b_name == "mem_alloc": self.state.x[10] = mem_alloc(self.state.x[10])
+                        elif b_name == "mem_free": self.state.x[10] = mem_free(self.state.x[10])
+                        elif b_name == "mem_read": self.state.x[10] = mem_read(self.state.x[10], self.state.x[11], self.state.x[12])
+                        elif b_name == "mem_write": self.state.x[10] = mem_write(self.state.x[10], self.state.x[11], self.state.x[12], self.state.x[13])
+                        elif b_name == "mem_size": self.state.x[10] = mem_size(self.state.x[10])
+                    elif b_name == "ffi_open" or b_name == "ffi_close" or b_name == "ffi_call":
+                        if not self.state.ffi_enabled:
+                            print "Error: FFI is disabled"
+                            self.state.x[10] = nil
+                        elif self.state.safe_mode:
+                            let f_name = b_name
+                            if startswith(f_name, "ffi_"): f_name = slice(f_name, 4, len(f_name))
+                            print "Error: ffi_" + f_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif b_name == "ffi_open": self.state.x[10] = ffi_open(self.state.x[10])
+                        elif b_name == "ffi_close": self.state.x[10] = ffi_close(self.state.x[10])
+                        elif b_name == "ffi_call":
+                            try: self.state.x[10] = ffi_call(self.state.x[10], self.state.x[11], self.state.x[12])
+                            catch e: self.state.x[10] = nil
+                    elif b_name == "struct_def" or b_name == "struct_new" or b_name == "struct_get" or b_name == "struct_set" or b_name == "struct_size":
+                        if self.state.safe_mode:
+                            let s_name = b_name
+                            if startswith(s_name, "struct_"): s_name = slice(s_name, 7, len(s_name))
+                            print "Error: struct_" + s_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif b_name == "struct_def": self.state.x[10] = struct_def(self.state.x[10])
+                        elif b_name == "struct_new": self.state.x[10] = struct_new(self.state.x[10])
+                        elif b_name == "struct_get": self.state.x[10] = struct_get(self.state.x[10], self.state.x[11], self.state.x[12])
+                        elif b_name == "struct_set": self.state.x[10] = struct_set(self.state.x[10], self.state.x[11], self.state.x[12], self.state.x[13])
+                        elif b_name == "struct_size": self.state.x[10] = struct_size(self.state.x[10])
+                    elif b_name == "io_writefile" or b_name == "io_writebytes" or b_name == "io_readfile" or b_name == "io_readbytes":
+                        if self.state.safe_mode:
+                            let io_sub = b_name
+                            if startswith(io_sub, "io_"): io_sub = slice(io_sub, 3, len(io_sub))
+                            print "Error: io." + io_sub + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif b_name == "io_readfile": self.state.x[10] = io.readfile(self.state.x[10])
+                        elif b_name == "io_readbytes": self.state.x[10] = io.readbytes(self.state.x[10])
+                        elif b_name == "io_writefile": self.state.x[10] = io.writefile(self.state.x[10], self.state.x[11])
+                        elif b_name == "io_writebytes": self.state.x[10] = io.writebytes(self.state.x[10], self.state.x[11])
                     self.state.pc = self.state.pc + 4
                     return
                 
