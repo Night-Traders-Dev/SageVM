@@ -85,3 +85,7 @@
 ## 2026-09-03 - [Opcode Reference Tablist & Clearable Search UX]
 **Learning:** Adding explicit `role="tablist"` and `role="tab"` with `aria-controls` to category tab bars, paired with a clear button on search inputs and keyboard-accessible interactive opcode cards (`role="button"`, `tabIndex={0}`, Enter/Space triggers, `focus-visible` rings), guarantees full keyboard and screen-reader accessibility for technical documentation references.
 **Action:** Pair technical search and filtering interfaces with semantic ARIA tablists, clearable input controls, and focus-visible keyboard event handlers.
+
+## 2026-09-10 - [Hero Section Canvas Accessibility Landmarks]
+**Learning:** Embedded 3D WebGL `<canvas>` elements lack native accessibility structure and can confuse screen readers if not isolated. Marking decorative canvases with `aria-hidden="true"` while wrapping hero containers in semantic `<section role="region" aria-label="...">` landmarks enables screen-reader users to skip noisy visual canvas elements and navigate directly to hero text content.
+**Action:** Mark decorative background 3D canvas elements with `aria-hidden="true"` and enclose hero sections in ARIA region landmarks.
