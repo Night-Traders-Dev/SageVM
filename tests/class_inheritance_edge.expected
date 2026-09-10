@@ -1,0 +1,10 @@
+--- Base class ---
+Base greeting
+I am Base
+--- Child class (inherited + overridden) ---
+Base greeting
+I am Child
+--- GrandChild class (multi-level inheritance) ---
+Base greeting
+I am Child
+GrandChild extra

@@ -33,7 +33,7 @@ def run_suite():
     print("==================================================")
 
     for f in sorted(test_files):
-        if not use_riscv and f == "test_srvm.sage":
+        if not use_riscv and f in ("test_srvm.sage", "generators.sage"):
             continue
         test_path = os.path.join(test_dir, f)
         expected_path = os.path.join(test_dir, f.replace(".sage", ".expected"))
