@@ -1,0 +1,21 @@
+--- Normal array concatenation ---
+res1 len: 4
+res1[0]: 1
+res1[1]: 2
+res1[2]: 3
+res1[3]: 4
+--- Empty array concatenation ---
+empty + empty len: 0
+left empty len: 2
+left empty[0]: 10
+--- Nested arrays concatenation ---
+nested len: 3
+nested[0][0]: 1
+nested[1][0]: 3
+nested[2][0]: 5
+--- Array + String concatenation ---
+array + string: <array>hello
+string + array: hello<array>
+--- Array + Non-array/non-string concatenation ---
+array + number: 0
+array + nil: 0
