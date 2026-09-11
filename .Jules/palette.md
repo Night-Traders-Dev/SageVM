@@ -85,3 +85,7 @@
 ## 2026-09-03 - [Opcode Reference Tablist & Clearable Search UX]
 **Learning:** Adding explicit `role="tablist"` and `role="tab"` with `aria-controls` to category tab bars, paired with a clear button on search inputs and keyboard-accessible interactive opcode cards (`role="button"`, `tabIndex={0}`, Enter/Space triggers, `focus-visible` rings), guarantees full keyboard and screen-reader accessibility for technical documentation references.
 **Action:** Pair technical search and filtering interfaces with semantic ARIA tablists, clearable input controls, and focus-visible keyboard event handlers.
+
+## 2026-09-12 - [Interactive Canvas & Submodule ARIA Landmarks]
+**Learning:** Interactive WebGL/Canvas elements inside standalone documentation submodules require explicit ARIA region landmarks (`role="region"`, `aria-label`) and element image descriptions (`role="img"`, `aria-label`), alongside `focus-visible` ring indicators on interactive controls to guarantee screen-reader and keyboard accessibility.
+**Action:** Always wrap interactive canvas containers in ARIA region landmarks and ensure embedded submodule commits are committed locally before committing the submodule pointer.
