@@ -101,6 +101,8 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `builtin_upper_lower_edge.sage`: Tests `upper()` and `lower()` string builtins under normal and edge conditions.
 - `builtin_str_int_edge.sage`: Tests `str()` and `int()` type conversion builtins across numbers, booleans, strings, arrays, dicts, and nil.
 - `builtin_dict_ops_edge.sage`: Tests `dict_has()`, `dict_keys()`, and `dict_values()` dictionary builtins under normal and edge conditions.
+- `array_concat_edge.sage`: Tests array concatenation (`+` operator / `OP_ADD`) on normal arrays, empty arrays, nested arrays, array + string coercion, and array + number/nil fallback behavior (documenting suspected VM bug where adding non-array/non-string values to arrays falls through to 0).
+- `comparison_ops_edge.sage`: Tests relational (`<`, `<=`, `>`, `>=`) and equality (`==`, `!=`) comparisons across numeric values, strings, mixed types, `nil`, booleans, and deep collection equality (documenting suspected VM bug where string and cross-type relational comparisons evaluate to false).
 
 ### Verification Status (September 2026)
 As of August 2026, the modern coverage suite passes cleanly under the SVM backend.
