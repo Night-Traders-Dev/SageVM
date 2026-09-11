@@ -368,7 +368,9 @@ class SRVM:
                             m["cos"] = math.cos
                             m["printm"] = "__builtin_math_printm"
                             self.state.x[rd] = m
-                        elif name == "io": self.state.x[rd] = io
+                        elif name == "io":
+                            let iom = {"__type__": "module", "readfile": {"__builtin__": "io_readfile"}, "readbytes": {"__builtin__": "io_readbytes"}, "writebytes": {"__builtin__": "io_writebytes"}, "writefile": {"__builtin__": "io_writefile"}}
+                            self.state.x[rd] = iom
                         elif name == "sys":
                             let s = {"args": sys.args()}
                             s["__type__"] = "module"
@@ -600,6 +602,45 @@ class SRVM:
                                 self.state.x[10] = sys.getenv(g_arg)
                             else:
                                 self.state.x[10] = nil
+                    elif b_name == "sys_exit":
+                        self.state.running = false
+                        self.state.x[10] = nil
+                    elif b_name == "io_readfile" or b_name == "io_readbytes" or b_name == "io_writefile" or b_name == "io_writebytes":
+                        if self.state.safe_mode:
+                            print "Error: io." + b_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif b_name == "io_readfile": self.state.x[10] = io.readfile(self.state.x[10])
+                        elif b_name == "io_readbytes": self.state.x[10] = io.readbytes(self.state.x[10])
+                        elif b_name == "io_writefile": self.state.x[10] = io.writefile(self.state.x[10], self.state.x[11])
+                        elif b_name == "io_writebytes": self.state.x[10] = io.writebytes(self.state.x[10], self.state.x[11])
+                    elif startswith(b_name, "mem_"):
+                        if self.state.safe_mode:
+                            print "Error: " + b_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif b_name == "mem_alloc": self.state.x[10] = mem_alloc(self.state.x[10])
+                        elif b_name == "mem_free": self.state.x[10] = mem_free(self.state.x[10])
+                        elif b_name == "mem_read": self.state.x[10] = mem_read(self.state.x[10], self.state.x[11], self.state.x[12])
+                        elif b_name == "mem_write": self.state.x[10] = mem_write(self.state.x[10], self.state.x[11], self.state.x[12], self.state.x[13])
+                        elif b_name == "mem_size": self.state.x[10] = mem_size(self.state.x[10])
+                    elif startswith(b_name, "ffi_"):
+                        if not self.state.ffi_enabled:
+                            print "Error: FFI is disabled"
+                            self.state.x[10] = nil
+                        elif self.state.safe_mode:
+                            print "Error: " + b_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif b_name == "ffi_open": self.state.x[10] = ffi_open(self.state.x[10])
+                        elif b_name == "ffi_close": self.state.x[10] = ffi_close(self.state.x[10])
+                        elif b_name == "ffi_call": self.state.x[10] = ffi_call(self.state.x[10], self.state.x[11], self.state.x[12])
+                    elif startswith(b_name, "struct_"):
+                        if self.state.safe_mode:
+                            print "Error: " + b_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif b_name == "struct_def": self.state.x[10] = struct_def(self.state.x[10])
+                        elif b_name == "struct_new": self.state.x[10] = struct_new(self.state.x[10])
+                        elif b_name == "struct_get": self.state.x[10] = struct_get(self.state.x[10], self.state.x[11], self.state.x[12])
+                        elif b_name == "struct_set": self.state.x[10] = struct_set(self.state.x[10], self.state.x[11], self.state.x[12], self.state.x[13])
+                        elif b_name == "struct_size": self.state.x[10] = struct_size(self.state.x[10])
                     self.state.pc = self.state.pc + 4
                     return
                 
