@@ -367,62 +367,6 @@ class MetalVM:
                 else:
                     push(stack, val)
                 stack_len = stack_len + 1
-            elif op == OP_SET_LOCAL:
-                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
-                ip = ip + 2
-                let val = stack[stack_len-1]
-                let target_idx = local_base + idx
-                if target_idx < stack_len:
-                    stack[target_idx] = val
-                else:
-                    while target_idx >= stack_len:
-                        if stack_len >= max_stack:
-                            print "Error: Stack overflow"
-                            halted = true
-                            break
-                        if stack_len < len(stack):
-                            stack[stack_len] = nil
-                        else:
-                            push(stack, nil)
-                        stack_len = stack_len + 1
-                    if halted: break
-                    stack[target_idx] = val
-            elif op == OP_ADD:
-                let b = stack[stack_len-1]
-                stack_len = stack_len - 1
-                var a = stack[stack_len-1]
-                # Performance: fast-path non-allocating check for numerical addition
-                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
-                    stack[stack_len-1] = a + b
-                else:
-                    let type_a = type(a)
-                    let type_b = type(b)
-                    if type_a == "number" and type_b == "number":
-                        stack[stack_len-1] = a + b
-                    elif type_a == "string" or type_b == "string":
-                        if a == nil: a = ""
-                        var b_str = b
-                        if b_str == nil: b_str = ""
-                        stack[stack_len-1] = str(a) + str(b_str)
-                    elif type_a == "array" and type_b == "array":
-                        let res = []
-                        var ai = 0
-                        while ai < len(a):
-                            push(res, a[ai])
-                            ai = ai + 1
-                        ai = 0
-                        while ai < len(b):
-                            push(res, b[ai])
-                            ai = ai + 1
-                        stack[stack_len-1] = res
-                    else:
-                        if a == nil: a = 0
-                        var b_val = b
-                        if b_val == nil: b_val = 0
-                        if type(a) != "number" or type(b_val) != "number":
-                            stack[stack_len-1] = 0
-                        else:
-                            stack[stack_len-1] = a + b_val
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
@@ -492,6 +436,62 @@ class MetalVM:
                 if resolved_dict != nil:
                     global_cache_dict[idx] = resolved_dict
                     global_cache_epoch_array[idx] = global_cache_epoch
+            elif op == OP_SET_LOCAL:
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                let val = stack[stack_len-1]
+                let target_idx = local_base + idx
+                if target_idx < stack_len:
+                    stack[target_idx] = val
+                else:
+                    while target_idx >= stack_len:
+                        if stack_len >= max_stack:
+                            print "Error: Stack overflow"
+                            halted = true
+                            break
+                        if stack_len < len(stack):
+                            stack[stack_len] = nil
+                        else:
+                            push(stack, nil)
+                        stack_len = stack_len + 1
+                    if halted: break
+                    stack[target_idx] = val
+            elif op == OP_ADD:
+                let b = stack[stack_len-1]
+                stack_len = stack_len - 1
+                var a = stack[stack_len-1]
+                # Performance: fast-path non-allocating check for numerical addition
+                if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
+                    stack[stack_len-1] = a + b
+                else:
+                    let type_a = type(a)
+                    let type_b = type(b)
+                    if type_a == "number" and type_b == "number":
+                        stack[stack_len-1] = a + b
+                    elif type_a == "string" or type_b == "string":
+                        if a == nil: a = ""
+                        var b_str = b
+                        if b_str == nil: b_str = ""
+                        stack[stack_len-1] = str(a) + str(b_str)
+                    elif type_a == "array" and type_b == "array":
+                        let res = []
+                        var ai = 0
+                        while ai < len(a):
+                            push(res, a[ai])
+                            ai = ai + 1
+                        ai = 0
+                        while ai < len(b):
+                            push(res, b[ai])
+                            ai = ai + 1
+                        stack[stack_len-1] = res
+                    else:
+                        if a == nil: a = 0
+                        var b_val = b
+                        if b_val == nil: b_val = 0
+                        if type(a) != "number" or type(b_val) != "number":
+                            stack[stack_len-1] = 0
+                        else:
+                            stack[stack_len-1] = a + b_val
             elif op == OP_JUMP:
                 ip = (code_bytes[ip] << 8) | code_bytes[ip+1]
             elif op == OP_JUMP_IF_FALSE:
@@ -677,8 +677,9 @@ class MetalVM:
                 if b_val == nil: b_val = 0
                 stack[stack_len-1] = a ^ b_val
             elif op == OP_BIT_NOT:
-                if stack[stack_len-1] == nil: stack[stack_len-1] = 0
-                else: stack[stack_len-1] = ~stack[stack_len-1]
+                let val = stack[stack_len-1]
+                if val == nil: stack[stack_len-1] = 0
+                else: stack[stack_len-1] = ~val
             elif op == OP_SHIFT_LEFT:
                 let b = stack[stack_len-1]
                 stack_len = stack_len - 1
@@ -713,10 +714,13 @@ class MetalVM:
                 print stack[stack_len-1]
                 stack_len = stack_len - 1
             elif op == OP_NEGATE:
-                if stack[stack_len-1] == nil: stack[stack_len-1] = 0
-                else: stack[stack_len-1] = -stack[stack_len-1]
+                let val = stack[stack_len-1]
+                if val == nil: stack[stack_len-1] = 0
+                else: stack[stack_len-1] = -val
             elif op == OP_ARRAY_LEN:
-                stack[stack_len-1] = len(stack[stack_len-1])
+                let val = stack[stack_len-1]
+                if val != nil: stack[stack_len-1] = len(val)
+                else: stack[stack_len-1] = 0
             elif op == OP_PUSH_ENV:
                 if scopes_len >= self.max_call_depth:
                     print "Error: Environment stack depth limit exceeded"
@@ -946,8 +950,57 @@ class MetalVM:
 
     proc call_builtin(self, callee, args):
         let argc = len(args)
-        if callee == "__builtin_clock":
-            return clock()
+        # Performance: High-frequency builtins placed at top of dispatch chain to eliminate branch checks
+        if callee == "__builtin_len":
+            if len(args) == 0 or args[0] == nil: return nil
+            return len(args[0])
+        elif callee == "__builtin_push":
+            if len(args) > 0 and self.is_protected(args[0]):
+                print "Error: Modification of protected object is restricted in safe mode"
+                return nil
+            if len(args) > 1:
+                push(args[0], args[1])
+            return nil
+        elif callee == "__builtin_pop":
+            if len(args) > 0 and self.is_protected(args[0]):
+                print "Error: Modification of protected object is restricted in safe mode"
+                return nil
+            if len(args) > 0:
+                return pop(args[0])
+            return nil
+        elif callee == "__builtin_dict_has":
+            if len(args) < 2: return false
+            let key = args[1]
+            if self.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+                return false
+            return dict_has(args[0], key)
+        elif callee == "__builtin_dict_keys":
+            if len(args) == 0 or args[0] == nil: return []
+            let keys = dict_keys(args[0])
+            if self.safe_mode:
+                let safe_keys = []
+                var i = 0
+                while i < len(keys):
+                    let key = keys[i]
+                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                        push(safe_keys, key)
+                    i = i + 1
+                return safe_keys
+            return keys
+        elif callee == "__builtin_dict_values":
+            if len(args) == 0 or args[0] == nil: return []
+            let obj = args[0]
+            if self.safe_mode:
+                let safe_vals = []
+                let keys = dict_keys(obj)
+                var i = 0
+                while i < len(keys):
+                    let key = keys[i]
+                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                        push(safe_vals, obj[key])
+                    i = i + 1
+                return safe_vals
+            return dict_values(obj)
         elif callee == "__builtin_str":
             return str(args[0])
         elif callee == "__builtin_int":
@@ -961,24 +1014,26 @@ class MetalVM:
         elif callee == "__builtin_tonumber":
             if len(args) == 0 or args[0] == nil: return nil
             return tonumber(args[0])
-        elif callee == "__builtin_len":
-            if len(args) == 0 or args[0] == nil: return nil
-            return len(args[0])
-        elif callee == "__builtin_print":
-            print args[0]
-            return nil
-        elif callee == "__builtin_range":
-            return range(args[0])
         elif callee == "__builtin_type":
             return type(args[0])
-        elif callee == "__builtin_slice":
-            var s0 = args[0]
-            var s1 = args[1]
-            var s2 = args[2]
-            if s0 == nil: return ""
-            if s1 == nil: s1 = 0
-            if s2 == nil: s2 = len(s0)
-            return slice(s0, s1, s2)
+        elif callee == "__builtin_chr":
+            if len(args) == 0 or args[0] == nil: return ""
+            return chr(int(args[0]))
+        elif callee == "__builtin_ord":
+            if len(args) == 0 or args[0] == nil or type(args[0]) != "string" or len(args[0]) == 0: return 0
+            return ord(args[0])
+        elif callee == "__builtin_upper":
+            return upper(args[0])
+        elif callee == "__builtin_lower":
+            return lower(args[0])
+        elif callee == "__builtin_strip":
+            return strip(args[0])
+        elif callee == "__builtin_join":
+            return join(args[0], args[1])
+        elif callee == "__builtin_split":
+            return split(args[0], args[1])
+        elif callee == "__builtin_replace":
+            return replace(args[0], args[1], args[2])
         elif callee == "__builtin_startswith":
             if args[0] == nil or args[1] == nil: return false
             return startswith(args[0], args[1])
@@ -988,6 +1043,21 @@ class MetalVM:
         elif callee == "__builtin_contains":
             if args[0] == nil or args[1] == nil: return false
             return contains(args[0], args[1])
+        elif callee == "__builtin_slice":
+            var s0 = args[0]
+            var s1 = args[1]
+            var s2 = args[2]
+            if s0 == nil: return ""
+            if s1 == nil: s1 = 0
+            if s2 == nil: s2 = len(s0)
+            return slice(s0, s1, s2)
+        elif callee == "__builtin_clock":
+            return clock()
+        elif callee == "__builtin_print":
+            print args[0]
+            return nil
+        elif callee == "__builtin_range":
+            return range(args[0])
         elif callee == "__builtin_math_printm":
             let matrix = args[0]
             if type(matrix) != "array":
@@ -1156,20 +1226,6 @@ class MetalVM:
             return gc_disable()
         elif callee == "__builtin_reflect_get_methods": return reflect_get_methods(args[0])
         elif callee == "__builtin_reflect_get_class": return reflect_get_class(args[0])
-        elif callee == "__builtin_push":
-            if len(args) > 0 and self.is_protected(args[0]):
-                print "Error: Modification of protected object is restricted in safe mode"
-                return nil
-            if len(args) > 1:
-                push(args[0], args[1])
-            return nil
-        elif callee == "__builtin_pop":
-            if len(args) > 0 and self.is_protected(args[0]):
-                print "Error: Modification of protected object is restricted in safe mode"
-                return nil
-            if len(args) > 0:
-                return pop(args[0])
-            return nil
         elif callee == "__builtin_next":
             if len(args) > 0 and type(args[0]) == "dict" and dict_has(args[0], "__type__") and args[0]["__type__"] == "generator":
                 let gen = args[0]
@@ -1202,63 +1258,6 @@ class MetalVM:
                     return pop(self.stack)
                 return nil
             return nil
-        elif callee == "__builtin_chr":
-            if len(args) == 0 or args[0] == nil: return ""
-            return chr(int(args[0]))
-        elif callee == "__builtin_ord":
-            if len(args) == 0 or args[0] == nil or type(args[0]) != "string" or len(args[0]) == 0: return 0
-            return ord(args[0])
-        elif callee == "__builtin_startswith":
-            return startswith(args[0], args[1])
-        elif callee == "__builtin_endswith":
-            return endswith(args[0], args[1])
-        elif callee == "__builtin_contains":
-            return contains(args[0], args[1])
-        elif callee == "__builtin_join":
-            return join(args[0], args[1])
-        elif callee == "__builtin_split":
-            return split(args[0], args[1])
-        elif callee == "__builtin_replace":
-            return replace(args[0], args[1], args[2])
-        elif callee == "__builtin_upper":
-            return upper(args[0])
-        elif callee == "__builtin_lower":
-            return lower(args[0])
-        elif callee == "__builtin_strip":
-            return strip(args[0])
-        elif callee == "__builtin_dict_has":
-            if len(args) < 2: return false
-            let key = args[1]
-            if self.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
-                return false
-            return dict_has(args[0], key)
-        elif callee == "__builtin_dict_keys":
-            if len(args) == 0 or args[0] == nil: return []
-            let keys = dict_keys(args[0])
-            if self.safe_mode:
-                let safe_keys = []
-                var i = 0
-                while i < len(keys):
-                    let key = keys[i]
-                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
-                        push(safe_keys, key)
-                    i = i + 1
-                return safe_keys
-            return keys
-        elif callee == "__builtin_dict_values":
-            if len(args) == 0 or args[0] == nil: return []
-            let obj = args[0]
-            if self.safe_mode:
-                let safe_vals = []
-                let keys = dict_keys(obj)
-                var i = 0
-                while i < len(keys):
-                    let key = keys[i]
-                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
-                        push(safe_vals, obj[key])
-                    i = i + 1
-                return safe_vals
-            return dict_values(obj)
         else:
             print "Error: Unknown builtin: " + callee
             return nil
@@ -1588,7 +1587,9 @@ class MetalVM:
                     pop(self.stack)
             else:
                 callee = pop(self.stack)
-            if type(callee) == "dict":
+            # Performance: Cache type(callee) to avoid redundant C strdup heap string allocations
+            let callee_type = type(callee)
+            if callee_type == "dict":
                 let ctype = callee["__type__"]
                 if ctype != nil:
                     if ctype == "function":
@@ -1669,10 +1670,10 @@ class MetalVM:
                         print "Error: Callee dict is not a function or class. callee=" + str(callee) + " type=" + str(ctype)
                 else:
                     print "Error: Callee dict has no __type__"
-            elif type(callee) == "string":
+            elif callee_type == "string":
                 push(self.stack, self.call_builtin(callee, args))
                 if self.halted: return false
-            elif type(callee) == "function" or type(callee) == "native fn":
+            elif callee_type == "function" or callee_type == "native fn":
                 if self.safe_mode:
                     print "Error: Direct host function call is restricted in safe mode"
                     push(self.stack, nil)
@@ -1724,7 +1725,9 @@ class MetalVM:
             # Performance: Bypass dict_has function calls for method and class lookups via direct subscripting
             var is_class_call = false
             var method = nil
-            if type(obj) == "dict":
+            # Performance: Cache type(obj) to avoid redundant C strdup heap string allocations
+            let obj_type = type(obj)
+            if obj_type == "dict":
                 let methods = obj["__methods__"]
                 if methods != nil:
                     let m = methods[name]
@@ -1773,7 +1776,7 @@ class MetalVM:
                         let arg_name = get_arg_name(j + 1)
                         self.scopes[len(self.scopes)-1][arg_name] = arg_val
                         j = j + 1
-            elif type(obj) == "module" or (type(obj) == "dict" and dict_has(obj, "__type__") and obj["__type__"] == "module"):
+            elif obj_type == "module" or (obj_type == "dict" and dict_has(obj, "__type__") and obj["__type__"] == "module"):
                 # Host module method/attribute access
                 if dict_has(obj, name):
                     let val = obj[name]
