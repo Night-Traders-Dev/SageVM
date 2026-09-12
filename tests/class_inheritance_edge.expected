@@ -1,0 +1,8 @@
+--- Multi-level Inheritance & Overriding ---
+g.get_val(): 100
+g.describe(): Child val: 100
+g.extra(): GrandChild extra feature
+--- Missing Property / Method Access ---
+b.val: 42
+b.missing_prop == nil: true
+b.missing_method == nil: true
