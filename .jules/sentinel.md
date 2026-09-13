@@ -87,3 +87,8 @@
 **Vulnerability:** In the RISC-V VM (`srvm_vm.sage`), direct calls to `sys.getenv` or `__builtin_sys_getenv` passed string target names directly to `VMO_CALL`. The call dispatcher previously only handled dictionary-wrapped builtins (`{"__builtin__": ...}`), causing direct string calls to bypass security checks in `b_name == "sys_getenv"` and leak sensitive host environment variables in `safe_mode`.
 **Learning:** Multi-backend virtual machines can have architectural subtle differences in type representations for function dispatch. When dispatch logic does not handle string function names or `__builtin_` prefix variations uniformly across backends, sandbox enforcement checks are bypassed.
 **Prevention:** Ensure function call dispatchers normalize target names and enforce security checks across both dictionary and string representation types uniformly.
+
+## 2026-09-14 - Sandbox Restriction Bypass and Panic via Unhardened OP_METHOD
+**Vulnerability:** The `OP_METHOD` opcode in `src/svm/sgvm_vm.sage` lacked `safe_mode` restrictions on internal method names starting with `__`, lacked `is_protected` object checks, and indexed constant indices directly without `safe_get_constant(idx)`. Guest code in `safe_mode` could define internal methods on classes or trigger host-level panics via unvalidated constant indices or nil class pointers.
+**Learning:** Hardening class creation (`OP_CLASS`) is insufficient if method binding opcodes (`OP_METHOD`) do not enforce symmetrical safety restrictions on method names and parent objects.
+**Prevention:** Ensure method definition and property mutation opcodes mirror class creation safety rules and validate constant pool bounds.
