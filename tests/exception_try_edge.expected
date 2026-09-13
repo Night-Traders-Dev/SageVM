@@ -1,0 +1,9 @@
+--- Try without exception ---
+Clean execution: 200
+--- Catch primitive values ---
+Caught code: 404
+Caught bool: false
+Caught nil: true
+--- Nested try and re-raise ---
+Inner caught array len: 2
+Outer caught re-raised: error
