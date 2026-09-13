@@ -85,3 +85,7 @@
 ## 2026-09-03 - [Opcode Reference Tablist & Clearable Search UX]
 **Learning:** Adding explicit `role="tablist"` and `role="tab"` with `aria-controls` to category tab bars, paired with a clear button on search inputs and keyboard-accessible interactive opcode cards (`role="button"`, `tabIndex={0}`, Enter/Space triggers, `focus-visible` rings), guarantees full keyboard and screen-reader accessibility for technical documentation references.
 **Action:** Pair technical search and filtering interfaces with semantic ARIA tablists, clearable input controls, and focus-visible keyboard event handlers.
+
+## 2026-09-13 - [Accessible Playground Interactive Controls & Keyboard Navigation]
+**Learning:** Interactive VM playgrounds featuring custom action buttons, range sliders, file upload inputs, and collapsible status panels require explicit ARIA properties (`role="tablist"`, `role="tab"`, `aria-selected`, `aria-label`, `aria-expanded`), keyboard event handlers (`Enter`/`Space`), and focus-visible ring styles (`focus-visible:ring-2 focus-visible:ring-sage-mid focus-visible:outline-none`) to ensure seamless accessibility for keyboard and screen-reader users.
+**Action:** Always enrich playground control headers, range inputs, file upload labels, and action buttons with semantic ARIA roles, focus-visible indicators, and keydown listeners.
