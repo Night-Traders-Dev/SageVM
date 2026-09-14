@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-09-04]
+
+### Fixed
+- **`OP_DEFINE_GLOBAL` Safe Mode Restriction Error (SVM)**: Guarded internal global definition safe-mode restriction error logging in `src/svm/sgvm_vm.sage` (`OP_DEFINE_GLOBAL`) with an explicit `val != nil` check, preventing duplicate restriction messages when prior internal opcodes (such as `OP_CLASS`) have already reported a safe-mode violation and pushed `nil`.
+
 ## [2026-09-02]
 
 ### Fixed
