@@ -1881,22 +1881,31 @@ class MetalVM:
         elif op == OP_METHOD:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
-            let name = self.constants[idx]
+            let name = self.safe_get_constant(idx)
+            if self.halted: return false
             let func = pop(self.stack)
             let cls = self.stack[len(self.stack)-1]
-            cls["__methods__"][name] = func
+            if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                print "Error: Definition of internal method '" + name + "' is restricted in safe mode"
+            elif self.safe_mode and self.is_protected(cls):
+                print "Error: Modification of protected object is restricted in safe mode"
+            elif type(cls) == "dict" and dict_has(cls, "__methods__"):
+                cls["__methods__"][name] = func
         elif op == OP_INHERIT:
             let cls = pop(self.stack)
             let parent = pop(self.stack)
-            if type(parent) == "dict":
+            if self.safe_mode and self.is_protected(parent):
+                print "Error: Inheritance from protected object is restricted in safe mode"
+            elif type(parent) == "dict" and type(cls) == "dict" and dict_has(cls, "__methods__"):
                 if dict_has(parent, "__methods__"):
                     let methods = parent["__methods__"]
                     let keys = dict_keys(methods)
                     var k = 0
                     while k < len(keys):
                         let mname = keys[k]
-                        if not dict_has(cls["__methods__"], mname):
-                            cls["__methods__"][mname] = methods[mname]
+                        if not (self.safe_mode and type(mname) == "string" and startswith(mname, "__") and not startswith(mname, "__arg")):
+                            if not dict_has(cls["__methods__"], mname):
+                                cls["__methods__"][mname] = methods[mname]
                         k = k + 1
                 else:
                     # Host class inheritance bridge (copy host attributes)
@@ -1904,8 +1913,9 @@ class MetalVM:
                     var k = 0
                     while k < len(keys):
                         let mname = keys[k]
-                        if not dict_has(cls["__methods__"], mname):
-                            cls["__methods__"][mname] = parent[mname]
+                        if not (self.safe_mode and type(mname) == "string" and startswith(mname, "__") and not startswith(mname, "__arg")):
+                            if not dict_has(cls["__methods__"], mname):
+                                cls["__methods__"][mname] = parent[mname]
                         k = k + 1
             push(self.stack, cls)
         elif op == OP_IMPORT:
