@@ -85,3 +85,7 @@
 ## 2026-09-03 - [Opcode Reference Tablist & Clearable Search UX]
 **Learning:** Adding explicit `role="tablist"` and `role="tab"` with `aria-controls` to category tab bars, paired with a clear button on search inputs and keyboard-accessible interactive opcode cards (`role="button"`, `tabIndex={0}`, Enter/Space triggers, `focus-visible` rings), guarantees full keyboard and screen-reader accessibility for technical documentation references.
 **Action:** Pair technical search and filtering interfaces with semantic ARIA tablists, clearable input controls, and focus-visible keyboard event handlers.
+
+## 2026-09-10 - [Keyboard-Accessible Overflow Code Blocks & Workflow Region Accessibility]
+**Learning:** Code snippet containers with horizontal overflow (`overflow-x-auto`) are inaccessible to keyboard-only users if they cannot receive focus to enable keyboard arrow-key scrolling. Adding `tabIndex={0}`, `role="region"`, descriptive `aria-label`, and `focus-visible` outline styles allows keyboard users to scroll long lines, while adding `aria-hidden="true"` to visual flow arrows keeps screen-reader navigation clean.
+**Action:** Ensure all scrollable pre/code blocks are keyboard focusable with descriptive ARIA labels and focus-visible ring styles.
