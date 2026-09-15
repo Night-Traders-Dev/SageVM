@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-09-04]
+
+### Fixed
+- **`OP_DEFINE_GLOBAL` Safe Mode Restriction Logging (SVM)**: Fixed duplicate restriction error output when defining internal class structures or globals (`__` prefix) under `safe_mode` in `src/svm/sgvm_vm.sage` by checking `if val != nil:` before emitting restriction warnings.
+
 ## [2026-09-02]
 
 ### Fixed
