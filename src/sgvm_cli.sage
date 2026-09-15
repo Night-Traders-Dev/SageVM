@@ -189,6 +189,7 @@ class SGVMCLI:
         if input_file == "":
             print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
             print "Usage: " + COLOR_BOLD + "sagevm run" + COLOR_RESET + " <file.sgvm|sgrv> [--debug] [--safe] [--no-ffi] [--riscv] [--jit]"
+            print COLOR_YELLOW + "💡 Tip: Provide a compiled binary file to execute (e.g. sagevm run app.sgvm)." + COLOR_RESET
             return
 
         var guest_args = [input_file]
@@ -250,6 +251,7 @@ class SGVMCLI:
         if input_file == "":
             print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
             print "Usage: " + COLOR_BOLD + "sagevm compile" + COLOR_RESET + " <input.sage> [output.sgvm|sgrv] [--shebang] [--riscv]"
+            print COLOR_YELLOW + "💡 Tip: Provide a .sage source file to compile (e.g. sagevm compile main.sage)." + COLOR_RESET
             return
         
         if self.verify_input(input_file, true) == nil: return
