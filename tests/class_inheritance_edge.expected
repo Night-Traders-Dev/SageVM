@@ -1,0 +1,11 @@
+--- Multi-level class inheritance & overriding ---
+Generic makes a generic sound
+Living Being
+Buddy (Golden) barks
+Living Being
+Max (Beagle) barks
+Living Being
+Max yips loudly!
+--- Instance property access ---
+Puppy name: Max
+Puppy breed: Beagle
