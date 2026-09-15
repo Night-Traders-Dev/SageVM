@@ -228,6 +228,7 @@ class MetalVM:
         var halted = false
         let stack = self.stack
         var stack_len = len(stack)
+        var physical_stack_len = stack_len
         let max_stack = self.max_stack_depth
         let constants = self.constants
         var scopes = self.scopes
@@ -266,20 +267,22 @@ class MetalVM:
                 var val = nil
                 if local_base + idx < stack_len:
                     val = stack[local_base + idx]
-                if stack_len < len(stack):
+                if stack_len < physical_stack_len:
                     stack[stack_len] = val
                 else:
                     push(stack, val)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_CONSTANT:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 if idx < const_len:
                     let val = constants[idx]
-                    if stack_len < len(stack):
+                    if stack_len < physical_stack_len:
                         stack[stack_len] = val
                     else:
                         push(stack, val)
+                        physical_stack_len = physical_stack_len + 1
                     stack_len = stack_len + 1
                 else:
                     print "Error: Constant pool index out of bounds: " + str(idx)
@@ -293,10 +296,11 @@ class MetalVM:
                 # Check inline cache with O(1) epoch check
                 if global_cache_epoch_array[idx] == global_cache_epoch:
                     let val = global_cache_dict[idx][constants[idx]]
-                    if stack_len < len(stack):
+                    if stack_len < physical_stack_len:
                         stack[stack_len] = val
                     else:
                         push(stack, val)
+                        physical_stack_len = physical_stack_len + 1
                     stack_len = stack_len + 1
                     continue
 
@@ -307,10 +311,11 @@ class MetalVM:
                 let name = constants[idx]
 
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                    if stack_len < len(stack):
+                    if stack_len < physical_stack_len:
                         stack[stack_len] = nil
                     else:
                         push(stack, nil)
+                        physical_stack_len = physical_stack_len + 1
                     stack_len = stack_len + 1
                     continue
                 # Performance: Bypassing dict_has for direct lookup where possible
@@ -362,10 +367,11 @@ class MetalVM:
                 if resolved_dict != nil:
                     global_cache_dict[idx] = resolved_dict
                     global_cache_epoch_array[idx] = global_cache_epoch
-                if stack_len < len(stack):
+                if stack_len < physical_stack_len:
                     stack[stack_len] = val
                 else:
                     push(stack, val)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
@@ -380,10 +386,11 @@ class MetalVM:
                             print "Error: Stack overflow"
                             halted = true
                             break
-                        if stack_len < len(stack):
+                        if stack_len < physical_stack_len:
                             stack[stack_len] = nil
                         else:
                             push(stack, nil)
+                            physical_stack_len = physical_stack_len + 1
                         stack_len = stack_len + 1
                     if halted: break
                     stack[target_idx] = val
@@ -613,22 +620,25 @@ class MetalVM:
                     if type(a) == "number" and type(b) == "number": stack[stack_len-1] = a >= b
                     else: stack[stack_len-1] = false
             elif op == OP_NIL:
-                if stack_len < len(stack):
+                if stack_len < physical_stack_len:
                     stack[stack_len] = nil
                 else:
                     push(stack, nil)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_TRUE:
-                if stack_len < len(stack):
+                if stack_len < physical_stack_len:
                     stack[stack_len] = true
                 else:
                     push(stack, true)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_FALSE:
-                if stack_len < len(stack):
+                if stack_len < physical_stack_len:
                     stack[stack_len] = false
                 else:
                     push(stack, false)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_DUP:
                 let distance = code_bytes[ip]
@@ -636,10 +646,11 @@ class MetalVM:
                 var val = nil
                 if distance < stack_len:
                     val = stack[stack_len-1-distance]
-                if stack_len < len(stack):
+                if stack_len < physical_stack_len:
                     stack[stack_len] = val
                 else:
                     push(stack, val)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_MOD:
                 let b = stack[stack_len-1]
@@ -744,9 +755,11 @@ class MetalVM:
                 let obj = stack[stack_len-2]
                 if safe_mode and type(idx) == "string" and startswith(idx, "__") and not startswith(idx, "__arg"):
                     pop(stack)
+                    physical_stack_len = physical_stack_len - 1
                     stack[stack_len-2] = nil
                 else:
                     pop(stack)
+                    physical_stack_len = physical_stack_len - 1
                     let type_obj = type(obj)
                     if type_obj == "array" or type_obj == "tuple":
                         var i_idx = idx
@@ -777,11 +790,13 @@ class MetalVM:
                     print "Error: Index assignment to internal key '" + idx + "' is restricted in safe mode"
                     pop(stack)
                     pop(stack)
+                    physical_stack_len = physical_stack_len - 2
                     stack[stack_len-3] = nil
                 elif safe_mode and self.is_protected(obj):
                     print "Error: Index assignment to protected object is restricted in safe mode"
                     pop(stack)
                     pop(stack)
+                    physical_stack_len = physical_stack_len - 2
                     stack[stack_len-3] = nil
                 else:
                     let type_obj = type(obj)
@@ -793,6 +808,7 @@ class MetalVM:
                             obj[i_idx] = val
                     pop(stack)
                     pop(stack)
+                    physical_stack_len = physical_stack_len - 2
                     stack[stack_len-3] = val
                 stack_len = stack_len - 2
             elif op == OP_GET_PROPERTY:
@@ -852,14 +868,17 @@ class MetalVM:
                     if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                         print "Error: Access to internal property '" + name + "' is restricted in safe mode"
                         pop(stack)
+                        physical_stack_len = physical_stack_len - 1
                         stack[stack_len-2] = nil
                     elif safe_mode and self.is_protected(obj):
                         print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
                         pop(stack)
+                        physical_stack_len = physical_stack_len - 1
                         stack[stack_len-2] = nil
                     else:
                         obj[name] = val
                         pop(stack)
+                        physical_stack_len = physical_stack_len - 1
                         stack[stack_len-2] = val
                     stack_len = stack_len - 1
                 else:
@@ -876,10 +895,11 @@ class MetalVM:
                 while j < count:
                     push(arr, stack[base + j])
                     j = j + 1
-                if base < len(stack):
+                if base < physical_stack_len:
                     stack[base] = arr
                 else:
                     push(stack, arr)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = base + 1
             elif op == OP_TUPLE:
                 # Performance: Inline tuple construction in hot loop and bypass pop() calls via single-pass stack indexing
@@ -891,10 +911,11 @@ class MetalVM:
                 while j < count:
                     push(t, stack[base + j])
                     j = j + 1
-                if base < len(stack):
+                if base < physical_stack_len:
                     stack[base] = t
                 else:
                     push(stack, t)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = base + 1
             elif op == OP_DICT:
                 # Performance: Inline dictionary construction in hot loop and bypass pop() calls via single-pass stack indexing
@@ -906,10 +927,11 @@ class MetalVM:
                 while j < count:
                     d[stack[base + j * 2]] = stack[base + j * 2 + 1]
                     j = j + 1
-                if base < len(stack):
+                if base < physical_stack_len:
                     stack[base] = d
                 else:
                     push(stack, d)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = base + 1
             else:
                 # Synchronize stack list length before fallback
@@ -933,6 +955,7 @@ class MetalVM:
                 global_scope = scopes[0]
                 scopes_len = len(scopes)
                 stack_len = len(stack)
+                physical_stack_len = stack_len
                 # Performance: O(1) epoch increment invalidates cache instantly without O(N) loop
                 global_cache_epoch = global_cache_epoch + 1
 
