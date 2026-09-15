@@ -87,3 +87,8 @@
 **Vulnerability:** In the RISC-V VM (`srvm_vm.sage`), direct calls to `sys.getenv` or `__builtin_sys_getenv` passed string target names directly to `VMO_CALL`. The call dispatcher previously only handled dictionary-wrapped builtins (`{"__builtin__": ...}`), causing direct string calls to bypass security checks in `b_name == "sys_getenv"` and leak sensitive host environment variables in `safe_mode`.
 **Learning:** Multi-backend virtual machines can have architectural subtle differences in type representations for function dispatch. When dispatch logic does not handle string function names or `__builtin_` prefix variations uniformly across backends, sandbox enforcement checks are bypassed.
 **Prevention:** Ensure function call dispatchers normalize target names and enforce security checks across both dictionary and string representation types uniformly.
+
+## 2026-09-10 - Sandbox Bypass via Unhardened Class Inheritance (OP_INHERIT) in SVM
+**Vulnerability:** In `safe_mode`, `OP_INHERIT` allowed a guest class to inherit methods and properties from protected host objects (such as `math` or host module wrappers) and copied internal `__`-prefixed properties into the child class's method table.
+**Learning:** Hardening property and index assignment/read opcodes (`OP_SET_PROPERTY`, `OP_SET_INDEX`) is insufficient if object inheritance opcodes (`OP_INHERIT`) can copy protected host structures or internal properties without checking `is_protected` or internal key blacklists.
+**Prevention:** Always enforce `is_protected(parent)` checks and internal key blacklists (`__` prefix) inside object and class inheritance instruction handlers when running under sandboxed execution modes.
