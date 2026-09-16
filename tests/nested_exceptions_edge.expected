@@ -1,0 +1,13 @@
+--- Primitive Exception Payload Types ---
+Caught int exception: 500
+Caught bool exception: false
+Caught nil exception: true
+--- Clean Try Execution (No Exception) ---
+Inside try without raise
+After clean try
+--- Exception Thrown In Catch Block ---
+First catch: Initial error
+Second catch: Secondary error inside catch
+--- Function Returning From Try ---
+Inside func try
+Func return value: returned_val

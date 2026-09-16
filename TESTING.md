@@ -102,6 +102,11 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `builtin_str_int_edge.sage`: Tests `str()` and `int()` type conversion builtins across numbers, booleans, strings, arrays, dicts, and nil.
 - `builtin_dict_ops_edge.sage`: Tests `dict_has()`, `dict_keys()`, and `dict_values()` dictionary builtins under normal and edge conditions.
 - `slice_operator_edge.sage`: Tests slice operator syntax and `slice()` builtin with negative start/end indices, out-of-range negative bounds, and inverted slice index ranges.
+- `nested_exceptions_edge.sage`: Tests nested `try-catch` blocks (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`), catching errors thrown inside catch blocks, handling numeric/boolean error payloads, and returning from within try blocks.
+- `string_concat_types_edge.sage`: Tests string concatenation (`OP_ADD`) across numbers, booleans, nil, arrays, and dictionaries, documenting type coercion behavior.
+
+### Build Environment & Headless Setup
+- Automated `make test` executes builds using `SAGE_NO_GUI=1` and `-DSAGE_NO_GUI` flags to ensure headless build compatibility without `libglfw.so.3` graphics library dependencies.
 
 ### Verification Status (September 2026)
 As of August 2026, the modern coverage suite passes cleanly under the SVM backend.
