@@ -493,6 +493,24 @@ class MetalVM:
                 if resolved_dict != nil:
                     global_cache_dict[idx] = resolved_dict
                     global_cache_epoch_array[idx] = global_cache_epoch
+            elif op == OP_DEFINE_GLOBAL:
+                # Performance: Inline OP_DEFINE_GLOBAL in dispatch loop to avoid fallback to execute_op
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                if idx < const_len:
+                    let name = constants[idx]
+                    let val = stack[stack_len-1]
+                    stack_len = stack_len - 1
+                    if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                        if val != nil:
+                            print "Error: Definition of internal global '" + name + "' is restricted in safe mode"
+                    else:
+                        scopes[scopes_len-1][name] = val
+                        global_cache_epoch = global_cache_epoch + 1
+                else:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
             elif op == OP_JUMP:
                 ip = (code_bytes[ip] << 8) | code_bytes[ip+1]
             elif op == OP_JUMP_IF_FALSE:
@@ -1309,7 +1327,7 @@ class MetalVM:
                 if self.trace: print "DEBUG: Found " + name + " in globals: " + str(val)
                 push(self.stack, val)
         elif op == OP_DEFINE_GLOBAL:
-            let idx = ut.read_be16(self.code, self.ip)
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             if idx >= len(self.constants):
                 print "Error: Constant pool index out of bounds: " + str(idx)
