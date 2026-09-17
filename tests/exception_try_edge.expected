@@ -1,0 +1,16 @@
+--- Clean Try Block Execution ---
+Inside clean try block
+Computed sum: 30
+After clean try block
+--- Raising Primitive Values ---
+Caught integer exception: 404, type: number
+Caught boolean exception: false, type: bool
+Caught nil exception: true
+--- Raising Array Exceptions ---
+Caught array exception, len: 2, code: 500, msg: Server Error
+--- Nested Re-raising Across Blocks ---
+Outer try start
+Inner try start
+Inner caught: Initial error
+Outer caught: Reraised error: Initial error
+Outer try end
