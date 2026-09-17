@@ -92,3 +92,8 @@
 **Vulnerability:** In `safe_mode`, `OP_INHERIT` allowed a guest class to inherit methods and properties from protected host objects (such as `math` or host module wrappers) and copied internal `__`-prefixed properties into the child class's method table.
 **Learning:** Hardening property and index assignment/read opcodes (`OP_SET_PROPERTY`, `OP_SET_INDEX`) is insufficient if object inheritance opcodes (`OP_INHERIT`) can copy protected host structures or internal properties without checking `is_protected` or internal key blacklists.
 **Prevention:** Always enforce `is_protected(parent)` checks and internal key blacklists (`__` prefix) inside object and class inheritance instruction handlers when running under sandboxed execution modes.
+
+## 2026-09-17 - Sandbox Bypass via Inline Global Cache Fast-Path in MetalVM.run
+**Vulnerability:** In `MetalVM.run` (`src/svm/sgvm_vm.sage`), the inline cache check (`global_cache_epoch_array[idx] == global_cache_epoch`) was evaluated before bounds checks and `safe_mode` internal global restrictions (`__` prefix) in `OP_GET_GLOBAL` and `OP_SET_GLOBAL`. If a global look-up entry was cached, subsequent accesses bypassed `safe_mode` checks for internal global variables.
+**Learning:** Performance optimizations (such as inline fast-path lookups or caches) must never precede security validation checks in interpreter dispatch loops. When fast-paths execute before security checks, cached states bypass sandbox boundaries.
+**Prevention:** Always place security restriction checks and bounds checks before fast-path/cache hit branches in opcode handlers.

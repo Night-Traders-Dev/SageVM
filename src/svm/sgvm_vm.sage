@@ -291,16 +291,6 @@ class MetalVM:
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                # Check inline cache with O(1) epoch check
-                if global_cache_epoch_array[idx] == global_cache_epoch:
-                    let val = global_cache_dict[idx][constants[idx]]
-                    if stack_len < len(stack):
-                        stack[stack_len] = val
-                    else:
-                        push(stack, val)
-                    stack_len = stack_len + 1
-                    continue
-
                 if idx >= const_len:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
@@ -312,6 +302,16 @@ class MetalVM:
                         stack[stack_len] = nil
                     else:
                         push(stack, nil)
+                    stack_len = stack_len + 1
+                    continue
+
+                # Check inline cache with O(1) epoch check
+                if global_cache_epoch_array[idx] == global_cache_epoch:
+                    let val = global_cache_dict[idx][name]
+                    if stack_len < len(stack):
+                        stack[stack_len] = val
+                    else:
+                        push(stack, val)
                     stack_len = stack_len + 1
                     continue
                 # Performance: Bypassing dict_has for direct lookup where possible
@@ -427,21 +427,22 @@ class MetalVM:
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if global_cache_epoch_array[idx] == global_cache_epoch:
-                    global_cache_dict[idx][constants[idx]] = stack[stack_len-1]
-                    continue
-
                 if idx >= const_len:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
                     break
-                let val = stack[stack_len-1]
-
                 let name = constants[idx]
+
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
                     stack[stack_len-1] = nil
                     continue
+
+                if global_cache_epoch_array[idx] == global_cache_epoch:
+                    global_cache_dict[idx][name] = stack[stack_len-1]
+                    continue
+
+                let val = stack[stack_len-1]
                 # Performance: Fast-path for common scope depths bypassing dict_has
                 var resolved_dict = nil
                 if scopes_len == 1:

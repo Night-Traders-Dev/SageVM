@@ -1,0 +1,7 @@
+GET_GLOBAL internal read blocked
+GET_GLOBAL internal read blocked
+GET_GLOBAL internal read blocked
+Error: Assignment to internal global '__secret_internal' is restricted in safe mode
+Error: Assignment to internal global '__secret_internal' is restricted in safe mode
+Error: Assignment to internal global '__secret_internal' is restricted in safe mode
+SET_GLOBAL internal write loop complete
