@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-09-18]
+
+### Security / Fixed
+- **Inheritance Protection Hardening (SVM)**: Enforced `safe_mode` restrictions on `OP_INHERIT` in `src/svm/sgvm_vm.sage` to prevent inheriting from protected host objects (such as `math`) and filtered out internal property/method names starting with `__` (excluding `__arg`) during class method copying.
+
 ## [2026-09-02]
 
 ### Fixed
