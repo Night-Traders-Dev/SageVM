@@ -1,0 +1,20 @@
+--- Numeric Comparisons ---
+10 < 20: true
+20 <= 20: true
+30 > 15: true
+15 >= 15: true
+10 == 10: true
+10 != 20: true
+--- String Comparisons ---
+'apple' == 'apple': true
+'apple' != 'banana': true
+'apple' < 'banana': false
+--- Nil and Mixed-Type Equality ---
+nil == nil: true
+nil != 0: true
+false == false: true
+true != false: true
+10 == '10': false
+--- Collection Equality ---
+[1, 2] == [1, 2]: true
+[1, 2] != [3, 4]: true
