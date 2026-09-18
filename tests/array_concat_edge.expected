@@ -1,0 +1,19 @@
+--- Normal array concatenation ---
+len(a1 + a2): 4
+concat1[0]: 10
+concat1[1]: 20
+concat1[2]: 30
+concat1[3]: 40
+--- Array + String coercion ---
+array + string: <array>hello
+--- Nested array concatenation ---
+len(nested_concat): 4
+nested_concat[0]: 1
+nested_concat[2]: 3
+--- Empty array concatenation ---
+len([] + [100, 200]): 2
+res_empty[0]: 100
+--- Non-array / Non-string addition to array ---
+[1, 2] + nil: 0
+[1, 2] + 5: 0
+[1, 2] + true: 0
