@@ -409,7 +409,10 @@ class StackToRiscVTranslator:
                     push(self.reg_stack, rd)
 
             elif op == OP_CLASS:
+                let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
                 let rd = self.alloc_reg()
+                self.emit_load_imm(10, idx)
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_NEW_CLASS, 0))
                 push(self.reg_stack, rd)
 

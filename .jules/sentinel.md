@@ -92,3 +92,8 @@
 **Vulnerability:** In `safe_mode`, `OP_INHERIT` allowed a guest class to inherit methods and properties from protected host objects (such as `math` or host module wrappers) and copied internal `__`-prefixed properties into the child class's method table.
 **Learning:** Hardening property and index assignment/read opcodes (`OP_SET_PROPERTY`, `OP_SET_INDEX`) is insufficient if object inheritance opcodes (`OP_INHERIT`) can copy protected host structures or internal properties without checking `is_protected` or internal key blacklists.
 **Prevention:** Always enforce `is_protected(parent)` checks and internal key blacklists (`__` prefix) inside object and class inheritance instruction handlers when running under sandboxed execution modes.
+
+## 2026-09-21 - Unhandled Class and Inheritance Opcodes in SRVM Backend Evasion
+**Vulnerability:** In the RISC-V VM (`srvm_vm.sage`), class creation (`OBJ_NEW_CLASS`), inheritance (`OBJ_INHERIT`), and method definition (`OBJ_METHOD_BIND` with `rd == 0`) lacked handler implementations and safe mode checks. In `safe_mode`, guest code compiled to RISC-V could bypass internal class/method naming restrictions (`__` prefix) and inherit from or mutate protected host objects.
+**Learning:** In multi-backend virtual machines, opcode translation passes must preserve instruction operand sizes, and the secondary execution substrate must replicate all object-model write protection and sandbox boundary checks.
+**Prevention:** Audit all VM backends to ensure full handler parity for class instantiation, method binding, and inheritance instructions with unified `is_protected` and internal key filters.

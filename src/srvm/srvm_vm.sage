@@ -708,30 +708,67 @@ class SRVM:
                     print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
                 elif type(obj) == "dict":
                     obj[name] = val
+            elif sub_op == OBJ_NEW_CLASS:
+                let idx = int(self.state.x[10])
+                let name = self.safe_get_constant(idx)
+                if not self.state.running: return
+                if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                    print "Error: Definition of internal class '" + name + "' is restricted in safe mode"
+                    self.state.x[rd] = nil
+                else:
+                    let cls = {"__type__": "class", "__name__": name, "__methods__": {}}
+                    self.state.heap[name] = cls
+                    self.state.x[rd] = cls
+            elif sub_op == OBJ_INHERIT:
+                let child = self.state.x[rs2]
+                let parent = self.state.x[10]
+                if self.state.safe_mode and self.is_protected(parent):
+                    print "Error: Inheritance from protected object is restricted in safe mode"
+                elif type(parent) == "dict" and type(child) == "dict":
+                    let p_methods = parent
+                    if dict_has(parent, "__methods__"):
+                        p_methods = parent["__methods__"]
+                    let keys = dict_keys(p_methods)
+                    var k = 0
+                    while k < len(keys):
+                        let mname = keys[k]
+                        if not (self.state.safe_mode and type(mname) == "string" and startswith(mname, "__") and not startswith(mname, "__arg")):
+                            if dict_has(child, "__methods__") and not dict_has(child["__methods__"], mname):
+                                child["__methods__"][mname] = p_methods[mname]
+                        k = k + 1
             elif sub_op == OBJ_METHOD_BIND:
                 let obj = self.state.x[rs2]
                 let name_idx = int(self.state.x[10])
                 let name = self.safe_get_constant(name_idx)
                 if not self.state.running: return
-                if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                    self.state.x[rd] = nil
-                    self.state.x[28] = 0
-                elif type(obj) == "dict":
-                    if dict_has(obj, name):
-                        self.state.x[rd] = obj[name]
-                        self.state.x[28] = 1
-                    elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
-                        self.state.x[rd] = obj["__methods__"][name]
-                        self.state.x[28] = 1
-                    elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
-                        self.state.x[rd] = obj["__class__"]["__methods__"][name]
-                        self.state.x[28] = 1
+                if rd == 0:
+                    let func = self.state.x[11]
+                    if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                        print "Error: Definition of internal method '" + name + "' is restricted in safe mode"
+                    elif self.state.safe_mode and self.is_protected(obj):
+                        print "Error: Modification of protected object is restricted in safe mode"
+                    elif type(obj) == "dict" and dict_has(obj, "__methods__") and type(obj["__methods__"]) == "dict":
+                        obj["__methods__"][name] = func
+                else:
+                    if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                        self.state.x[rd] = nil
+                        self.state.x[28] = 0
+                    elif type(obj) == "dict":
+                        if dict_has(obj, name):
+                            self.state.x[rd] = obj[name]
+                            self.state.x[28] = 1
+                        elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
+                            self.state.x[rd] = obj["__methods__"][name]
+                            self.state.x[28] = 1
+                        elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
+                            self.state.x[rd] = obj["__class__"]["__methods__"][name]
+                            self.state.x[28] = 1
+                        else:
+                            self.state.x[rd] = nil
+                            self.state.x[28] = 0
                     else:
                         self.state.x[rd] = nil
                         self.state.x[28] = 0
-                else:
-                    self.state.x[rd] = nil
-                    self.state.x[28] = 0
             elif sub_op == OBJ_NEW_FUNC:
                 let chunk_idx = int(self.state.x[10])
                 self.state.x[rd] = {"type": "function", "chunk_idx": chunk_idx}
