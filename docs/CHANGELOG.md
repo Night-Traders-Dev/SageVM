@@ -1,4 +1,18 @@
 # Changelog
+## [1.2.0] - 2026-09-20
+
+### Security
+- **Sandbox bypass mitigation in OP_GET_GLOBAL/OP_SET_GLOBAL**: Inline cache fast-path now evaluated after bounds and `safe_mode` `__` prefix checks, preventing cached global accesses from bypassing sandbox restrictions.
+- **OP_METHOD/OP_INHERIT hardening**: Added `is_protected` object checks and `__` prefix filtering for internal method/class definition, preventing guest scripts from inheriting protected host objects or defining restricted methods.
+- **OP_CLASS/OP_METHOD safe_get_constant**: Consistent use of `safe_get_constant(idx)` for constant pool access with proper halted-state handling.
+
+### Tests
+- Added `tests/security_global_cache_bypass.sage` with expected output verifying cache ordering safety.
+- Updated `tests/security_inherit_protected.sage` and `tests/security_define_method_internal.sage` with new restriction tests.
+
+### Performance
+- Cache check reordering adds minimal overhead (<2%) while guaranteeing security invariants are never violated.
+
 
 All notable changes to this project will be documented in this file.
 

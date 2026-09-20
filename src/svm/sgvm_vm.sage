@@ -1888,9 +1888,10 @@ class MetalVM:
         elif op == OP_CLASS:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
-            let name = self.constants[idx]
+            let name = self.safe_get_constant(idx)
+            if self.halted: return false
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                print "Error: Definition of internal class '" + name + "' is restricted in safe mode"
+                print "Error: Definition of internal class '" + str(name) + "' is restricted in safe mode"
                 push(self.stack, nil)
             else:
                 let cls = {"__type__": "class", "__name__": name, "__methods__": {}}
@@ -1900,6 +1901,7 @@ class MetalVM:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
             let name = self.safe_get_constant(idx)
+            if self.halted: return false
             let func = pop(self.stack)
             if len(self.stack) > 0:
                 let cls = self.stack[len(self.stack)-1]
