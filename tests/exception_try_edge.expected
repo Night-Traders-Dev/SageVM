@@ -1,0 +1,10 @@
+--- Try block with no exceptions ---
+Inside clean try, status = OK
+After clean try block
+--- Raising primitive values ---
+Caught int exception: 404
+Caught bool exception: false
+Caught nil exception: nil
+--- Nested try re-raise with array ---
+Inner caught array: <array>
+Outer caught re-raised: <array>
