@@ -38,7 +38,7 @@ def run_suite():
         if not use_riscv and f == "test_srvm.sage":
             continue
 
-        # Skip generators.sage on SVM as sage --emit-vm frontend does not support yield statements
+        # Skip generators.sage on SVM as sage --emit-vm frontend does not emit VM bytecode for yield statements
         if not use_riscv and f == "generators.sage":
             print(f"[SKIP] {f} (sage --emit-vm frontend does not emit VM bytecode for yield statements)")
             skipped += 1

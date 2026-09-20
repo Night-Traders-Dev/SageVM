@@ -1,0 +1,14 @@
+--- String + Number ---
+Count: 42
+3.14 is pi
+--- String + Boolean ---
+Status: true
+false is status
+--- String + Nil ---
+Value: 
+ item
+--- String + Array / Dict ---
+Array: <array>
+Dict: <dict>
+--- Multiple Concat Chain ---
+Val: 10 / true / 

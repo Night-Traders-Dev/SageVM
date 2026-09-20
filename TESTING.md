@@ -106,6 +106,11 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `exception_try_edge.sage`: Tests `try-catch` blocks (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`) with clean execution, raising primitive values (`raise 404`, `raise false`, `raise nil`), structured array exceptions with indexed field checks, collection exceptions with length/index checks, nested unwinding, and re-raising array/primitive exceptions across nested blocks.
 - `array_concat_edge.sage`: Tests array concatenation (`+` operator / `OP_ADD`) on normal arrays, empty arrays, nested arrays, array + string coercion, and array + number/nil fallback behavior (documenting suspected VM bug where adding non-array/non-string values to arrays falls through to 0).
 - `comparison_ops_edge.sage`: Tests relational (`<`, `<=`, `>`, `>=`) and equality (`==`, `!=`) comparisons across numeric values, strings, mixed types, `nil`, booleans, and deep collection equality (documenting suspected VM bug where string and cross-type relational comparisons evaluate to false).
+- `nested_exceptions_edge.sage`: Tests nested `try-catch` blocks (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`), catching errors thrown inside catch blocks, handling numeric/boolean error payloads, and returning from within try blocks.
+- `string_concat_types_edge.sage`: Tests string concatenation (`OP_ADD`) across numbers, booleans, nil, arrays, and dictionaries, documenting type coercion behavior.
+
+### Build Environment & Headless Setup
+- Automated `make test` executes builds using `SAGE_NO_GUI=1` and `-DSAGE_NO_GUI` flags to ensure headless build compatibility without `libglfw.so.3` graphics library dependencies.
 
 ### Verification Status (September 2026)
 As of September 2026, the modern coverage suite passes cleanly under the SVM backend.
