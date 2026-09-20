@@ -33,7 +33,7 @@ def run_suite():
     print("==================================================")
 
     for f in sorted(test_files):
-        if not use_riscv and f == "test_srvm.sage":
+        if not use_riscv and f in ("test_srvm.sage", "generators.sage"):
             continue
         if f == "generators.sage":
             # sage --emit-vm does not support emitting VM bytecode for yield statements

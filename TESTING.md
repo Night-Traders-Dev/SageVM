@@ -102,8 +102,8 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `builtin_str_int_edge.sage`: Tests `str()` and `int()` type conversion builtins across numbers, booleans, strings, arrays, dicts, and nil.
 - `builtin_dict_ops_edge.sage`: Tests `dict_has()`, `dict_keys()`, and `dict_values()` dictionary builtins under normal and edge conditions.
 - `slice_operator_edge.sage`: Tests slice operator syntax and `slice()` builtin with negative start/end indices, out-of-range negative bounds, and inverted slice index ranges.
-- `class_inheritance_edge.sage`: Tests multi-level class inheritance (`OP_CLASS`, `OP_METHOD`, `OP_INHERIT`), method overriding, inherited method lookups/dispatch/resolution, superclass value access, and missing method/property calls on instances.
-- `exception_try_edge.sage`: Tests `try-catch` blocks (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`) with clean execution, raising primitive values (`raise 404`, `raise false`, `raise nil`), collection exceptions with length/index checks, and re-raising across nested blocks.
+- `class_inheritance_edge.sage`: Tests multi-level class inheritance (`OP_CLASS`, `OP_METHOD`, `OP_INHERIT`), method overriding, inherited method lookups/dispatch/resolution, superclass value access, child instantiation, and missing method/property calls on instances.
+- `exception_try_edge.sage`: Tests `try-catch` blocks (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`) with clean execution, raising primitive values (`raise 404`, `raise false`, `raise nil`), collection exceptions with length/index checks, nested unwinding, and re-raising across nested blocks.
 
 ### Verification Status (September 2026)
 As of August 2026, the modern coverage suite passes cleanly under the SVM backend.

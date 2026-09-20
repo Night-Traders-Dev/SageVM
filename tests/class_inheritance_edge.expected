@@ -20,3 +20,13 @@ g.extra(): GrandChild extra feature
 b.val: 42
 b.missing_prop == nil: true
 b.missing_method == nil: true
+--- Base class ---
+Base greeting
+I am Base
+--- Child class (inherited + overridden) ---
+Base greeting
+I am Child
+--- GrandChild class (multi-level inheritance) ---
+Base greeting
+I am Child
+GrandChild extra

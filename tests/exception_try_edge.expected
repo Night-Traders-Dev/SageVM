@@ -30,3 +30,16 @@ Caught nil == nil: true
 --- Nested try with array exception ---
 Inner caught array len: 2
 Outer caught array code: 500
+--- Clean try block execution ---
+Inside clean try
+After clean try
+--- Raising primitive values ---
+Caught number exception: 404
+Caught bool exception: false
+Caught nil exception: nil
+--- Nested try-catch blocks ---
+Outer try start
+Inner try start
+Inner catch: <array>
+Outer catch: <array>
+--- Done exception tests ---
