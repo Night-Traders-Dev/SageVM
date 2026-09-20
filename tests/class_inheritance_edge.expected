@@ -30,3 +30,7 @@ I am Child
 Base greeting
 I am Child
 GrandChild extra
+Child msg: Child
+Child parent_msg: Parent
+Missing method:
+Error: Method unknown_method not found
