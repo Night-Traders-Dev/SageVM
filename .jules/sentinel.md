@@ -93,6 +93,11 @@
 **Learning:** Hardening property and index assignment/read opcodes (`OP_SET_PROPERTY`, `OP_SET_INDEX`) is insufficient if object inheritance opcodes (`OP_INHERIT`) can copy protected host structures or internal properties without checking `is_protected` or internal key blacklists.
 **Prevention:** Always enforce `is_protected(parent)` checks and internal key blacklists (`__` prefix) inside object and class inheritance instruction handlers when running under sandboxed execution modes.
 
+## 2026-09-17 - Sandbox Bypass via Inline Global Cache Fast-Path in MetalVM.run
+**Vulnerability:** In `MetalVM.run` (`src/svm/sgvm_vm.sage`), the inline cache check (`global_cache_epoch_array[idx] == global_cache_epoch`) was evaluated before bounds checks and `safe_mode` internal global restrictions (`__` prefix) in `OP_GET_GLOBAL` and `OP_SET_GLOBAL`. If a global look-up entry was cached, subsequent accesses bypassed `safe_mode` checks for internal global variables.
+**Learning:** Performance optimizations (such as inline fast-path lookups or caches) must never precede security validation checks in interpreter dispatch loops. When fast-paths execute before security checks, cached states bypass sandbox boundaries.
+**Prevention:** Always place security restriction checks and bounds checks before fast-path/cache hit branches in opcode handlers.
+
 ## 2026-09-19 - Safe Mode Direct Builtin Dispatch Disparity in SRVM
 **Vulnerability:** Direct calls to file I/O builtins (e.g. `io_readfile`, `io_writefile`, `io_writebytes`, `io_readbytes`, `__builtin_io_writefile`) bypassed safe mode restrictions in the SRVM (RISC-V) interpreter because `VMO_CALL` lacked `io_` prefix handling in its builtin dispatch table.
 **Learning:** Multi-architecture virtual machines require audit parity across all execution engines; restricting module import is insufficient when direct function pointers or builtins can be resolved by name.
