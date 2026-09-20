@@ -29,3 +29,33 @@ true == false: false
 {"a": 1} == {"a": 1}: true
 {"a": 1} == {"a": 2}: false
 [1, 2] == (1, 2): true
+--- Numeric Comparisons ---
+10 < 20: true
+20 <= 20: true
+30 > 15: true
+15 >= 15: true
+-5 < 0: true
+3.14 > 2.71: true
+--- Numeric Boundary and False Conditions ---
+20 < 10: false
+25 <= 20: false
+10 > 30: false
+10 >= 15: false
+--- Equality and Inequality ---
+10 == 10: true
+10 != 20: true
+'abc' == 'abc': true
+'abc' != 'xyz': true
+nil == nil: true
+true != false: true
+[1, 2] == [1, 2]: true
+--- Non-Numeric Relational Comparisons (SVM Fallback Behavior) ---
+'a' < 'b': false
+'b' > 'a': false
+true < false: false
+nil < 0: false
+[1] < [2]: false
+--- Mixed Type Equality ---
+10 == '10': false
+0 == false: false
+nil == false: false

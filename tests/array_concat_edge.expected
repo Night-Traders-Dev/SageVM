@@ -19,3 +19,30 @@ string + array: hello<array>
 --- Array + Non-array/non-string concatenation ---
 array + number: 0
 array + nil: 0
+--- Normal Array Concatenation ---
+len(res1): 6
+res1[0]: 1
+res1[2]: 3
+res1[3]: 4
+res1[5]: 6
+--- Empty Array Concatenation ---
+len(res2): 2
+res2[0]: 10
+res2[1]: 20
+len(res3): 2
+res3[0]: 30
+res3[1]: 40
+--- Nested Array Concatenation ---
+len(res4): 3
+len(res4[0]): 2
+res4[0][0]: 1
+res4[1][1]: 4
+--- Mixed Types and Coercion Edge Cases ---
+len(str_arr): 3
+str_arr[0]: a
+str_arr[1]: true
+str_arr[2] == nil: true
+--- Array + String Coercion ---
+arr_str: <array>hello
+--- Array + Non-array / Non-string Fallback ---
+arr_num: 0
