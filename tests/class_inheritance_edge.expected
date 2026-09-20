@@ -6,8 +6,17 @@ Parent exclusive method
 Child shout: Sam
 Calling missing method:
 Error: Method missing_method not found
-Missing method result: nil--- Multi-level Inheritance & Method Overriding ---
+Missing method result: nil
+--- Multi-level Inheritance & Method Overriding ---
 Overridden in Sub
 Middle class
 --- Missing Method Call ---
 Error: Method non_existent_method not found
+--- Multi-level Inheritance & Overriding ---
+g.get_val(): 100
+g.describe(): Child val: 100
+g.extra(): GrandChild extra feature
+--- Missing Property / Method Access ---
+b.val: 42
+b.missing_prop == nil: true
+b.missing_method == nil: true

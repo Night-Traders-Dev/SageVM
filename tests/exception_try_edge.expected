@@ -20,3 +20,13 @@ caught array len: 3
 --- Nested Try and Re-raise ---
 caught inner: inner error
 caught re-raise: outer error
+--- Clean try block ---
+Inside clean try
+After clean try
+--- Raising primitive values ---
+Caught int: 404
+Caught bool: false
+Caught nil == nil: true
+--- Nested try with array exception ---
+Inner caught array len: 2
+Outer caught array code: 500
