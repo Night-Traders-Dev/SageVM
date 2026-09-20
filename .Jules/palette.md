@@ -89,3 +89,7 @@
 ## 2026-09-10 - [Keyboard-Accessible Overflow Code Blocks & Workflow Region Accessibility]
 **Learning:** Code snippet containers with horizontal overflow (`overflow-x-auto`) are inaccessible to keyboard-only users if they cannot receive focus to enable keyboard arrow-key scrolling. Adding `tabIndex={0}`, `role="region"`, descriptive `aria-label`, and `focus-visible` outline styles allows keyboard users to scroll long lines, while adding `aria-hidden="true"` to visual flow arrows keeps screen-reader navigation clean.
 **Action:** Ensure all scrollable pre/code blocks are keyboard focusable with descriptive ARIA labels and focus-visible ring styles.
+
+## 2026-09-13 - [Accessible Playground Interactive Controls & Keyboard Navigation]
+**Learning:** Interactive VM playgrounds featuring custom action buttons, range sliders, file upload inputs, and collapsible status panels require explicit ARIA properties (`role="tablist"`, `role="tab"`, `aria-selected`, `aria-label`, `aria-expanded`), keyboard event handlers (`Enter`/`Space`), and focus-visible ring styles (`focus-visible:ring-2 focus-visible:ring-sage-mid focus-visible:outline-none`) to ensure seamless accessibility for keyboard and screen-reader users.
+**Action:** Always enrich playground control headers, range inputs, file upload labels, and action buttons with semantic ARIA roles, focus-visible indicators, and keydown listeners.
