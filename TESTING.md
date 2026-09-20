@@ -104,6 +104,8 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `slice_operator_edge.sage`: Tests slice operator syntax and `slice()` builtin with negative start/end indices, out-of-range negative bounds, and inverted slice index ranges.
 - `class_inheritance_edge.sage`: Tests multi-level class inheritance (`OP_CLASS`, `OP_METHOD`, `OP_INHERIT`), method overriding, inherited method lookups/dispatch/resolution, superclass value access, child instantiation, and missing method/property calls on instances.
 - `exception_try_edge.sage`: Tests `try-catch` blocks (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`) with clean execution, raising primitive values (`raise 404`, `raise false`, `raise nil`), collection exceptions with length/index checks, nested unwinding, and re-raising across nested blocks.
+- `array_concat_edge.sage`: Tests array concatenation (`+` operator / `OP_ADD`) on normal arrays, empty arrays, nested arrays, array + string coercion, and array + number/nil fallback behavior (documenting suspected VM bug where adding non-array/non-string values to arrays falls through to 0).
+- `comparison_ops_edge.sage`: Tests relational (`<`, `<=`, `>`, `>=`) and equality (`==`, `!=`) comparisons across numeric values, strings, mixed types, `nil`, booleans, and deep collection equality (documenting suspected VM bug where string and cross-type relational comparisons evaluate to false).
 
 ### Verification Status (September 2026)
 As of August 2026, the modern coverage suite passes cleanly under the SVM backend.
