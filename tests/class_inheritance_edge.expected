@@ -55,3 +55,13 @@ Child id: Child
 Grandchild val: 40
 Grandchild id: Child
 Grandchild extra: extra_20
+--- Multi-level Inheritance & Overriding ---
+Button ID: 101 ['Submit'], visible: true
+Button Submit clicked!
+--- Grandparent Method Inheritance ---
+Base only method executed for ID: 101
+--- Parent Class Instance ---
+UIElement ID: 202, visible: false
+Base only method executed for ID: 202
+--- Non-existent Property Edge Case ---
+elem.non_existent == nil: true
