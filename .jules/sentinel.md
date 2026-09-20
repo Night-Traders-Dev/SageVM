@@ -92,3 +92,8 @@
 **Vulnerability:** In `safe_mode`, `OP_INHERIT` allowed a guest class to inherit methods and properties from protected host objects (such as `math` or host module wrappers) and copied internal `__`-prefixed properties into the child class's method table.
 **Learning:** Hardening property and index assignment/read opcodes (`OP_SET_PROPERTY`, `OP_SET_INDEX`) is insufficient if object inheritance opcodes (`OP_INHERIT`) can copy protected host structures or internal properties without checking `is_protected` or internal key blacklists.
 **Prevention:** Always enforce `is_protected(parent)` checks and internal key blacklists (`__` prefix) inside object and class inheritance instruction handlers when running under sandboxed execution modes.
+
+## 2026-09-19 - Safe Mode Direct Builtin Dispatch Disparity in SRVM
+**Vulnerability:** Direct calls to file I/O builtins (e.g. `io_readfile`, `io_writefile`, `io_writebytes`, `io_readbytes`, `__builtin_io_writefile`) bypassed safe mode restrictions in the SRVM (RISC-V) interpreter because `VMO_CALL` lacked `io_` prefix handling in its builtin dispatch table.
+**Learning:** Multi-architecture virtual machines require audit parity across all execution engines; restricting module import is insufficient when direct function pointers or builtins can be resolved by name.
+**Prevention:** Ensure builtin dispatch tables in all VM engines maintain identical prefix blacklists for restricted subsystems (io, mem, ffi, struct).

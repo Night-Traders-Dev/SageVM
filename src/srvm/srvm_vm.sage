@@ -606,6 +606,21 @@ class SRVM:
                             self.state.x[10] = nil
                         else:
                             self.state.x[10] = nil
+                    elif startswith(b_name, "io_"):
+                        if self.state.safe_mode:
+                            print "Error: " + b_name + " is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            if b_name == "io_readfile" or b_name == "readfile":
+                                self.state.x[10] = io.readfile(self.state.x[10])
+                            elif b_name == "io_readbytes" or b_name == "readbytes":
+                                self.state.x[10] = io.readbytes(self.state.x[10])
+                            elif b_name == "io_writefile" or b_name == "writefile":
+                                self.state.x[10] = io.writefile(self.state.x[10], self.state.x[11])
+                            elif b_name == "io_writebytes" or b_name == "writebytes":
+                                self.state.x[10] = io.writebytes(self.state.x[10], self.state.x[11])
+                            else:
+                                self.state.x[10] = nil
                     elif startswith(b_name, "ffi_"):
                         if not self.state.ffi_enabled:
                             print "Error: FFI is disabled"
