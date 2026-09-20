@@ -34,3 +34,14 @@ Child msg: Child
 Child parent_msg: Parent
 Missing method:
 Error: Method unknown_method not found
+--- Multi-level class inheritance & overriding ---
+Generic makes a generic sound
+Living Being
+Buddy (Golden) barks
+Living Being
+Max (Beagle) barks
+Living Being
+Max yips loudly!
+--- Instance property access ---
+Puppy name: Max
+Puppy breed: Beagle

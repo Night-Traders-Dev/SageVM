@@ -52,3 +52,16 @@ Caught nil: true
 --- Nested try and re-raise ---
 Inner caught array len: 2
 Outer caught re-raised: error
+--- Clean try block completion ---
+Inside clean try block
+After clean try block
+--- Raising primitive values ---
+Caught integer exception: 404
+Caught boolean exception: false
+Caught nil exception: true
+--- Raising structured array exception ---
+Caught array exception code: ERR_OOB id: 101 msg: Index out of range
+--- Re-raising primitive across nested try blocks ---
+Inner catch got: 99
+Outer catch got re-raised: 99
+Done exception edge tests

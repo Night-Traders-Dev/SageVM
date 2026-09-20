@@ -40,6 +40,9 @@ def run_suite():
         # Skip generators.sage since yield statements require AST fallback in sage --emit-vm
         if f == "generators.sage":
             continue
+        if f == "generators.sage":
+            # Skip generators.sage since sage --emit-vm frontend does not emit VM bytecode for yield statements
+            continue
         test_path = os.path.join(test_dir, f)
         expected_path = os.path.join(test_dir, f.replace(".sage", ".expected"))
         bin_path = os.path.join(test_dir, f.replace(".sage", ext))
