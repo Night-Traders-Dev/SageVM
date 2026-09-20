@@ -108,7 +108,7 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `comparison_ops_edge.sage`: Tests relational (`<`, `<=`, `>`, `>=`) and equality (`==`, `!=`) comparisons across numeric values, strings, mixed types, `nil`, booleans, and deep collection equality (documenting suspected VM bug where string and cross-type relational comparisons evaluate to false).
 
 ### Verification Status (September 2026)
-As of August 2026, the modern coverage suite passes cleanly under the SVM backend.
+As of September 2026, the modern coverage suite passes cleanly under the SVM backend.
 All historical opcode translation mismatches, generator execution support (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`), module method bridging, safe-mode object protections, and interpreter halt controls are fully resolved.
 
 ## Adding Tests

@@ -65,3 +65,12 @@ Caught array exception code: ERR_OOB id: 101 msg: Index out of range
 Inner catch got: 99
 Outer catch got re-raised: 99
 Done exception edge tests
+--- Clean Try Execution ---
+Clean execution val: 100
+--- Primitive Exceptions ---
+Caught int: 404
+Caught bool: false
+Caught nil: nil
+--- Nested Re-raising Array Exception ---
+Inner caught len: 3
+Outer caught len: 3

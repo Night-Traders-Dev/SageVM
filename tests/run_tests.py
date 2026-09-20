@@ -23,6 +23,7 @@ def run_suite():
 
     passed = 0
     failed = 0
+    skipped = 0
 
     # Locate sage binary relative to the script
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,16 +34,16 @@ def run_suite():
     print("==================================================")
 
     for f in sorted(test_files):
-        # Skip srvm specific test in non-RISC-V mode, as well as generators.sage
-        # since sage --emit-vm frontend does not emit VM bytecode for yield statements.
-        if not use_riscv and f in ["test_srvm.sage", "generators.sage"]:
+        # Skip srvm specific test in non-RISC-V mode.
+        if not use_riscv and f == "test_srvm.sage":
             continue
-        # Skip generators.sage since yield statements require AST fallback in sage --emit-vm
-        if f == "generators.sage":
+
+        # Skip generators.sage on SVM as sage --emit-vm frontend does not support yield statements
+        if not use_riscv and f == "generators.sage":
+            print(f"[SKIP] {f} (sage --emit-vm frontend does not emit VM bytecode for yield statements)")
+            skipped += 1
             continue
-        if f == "generators.sage":
-            # Skip generators.sage since sage --emit-vm frontend does not emit VM bytecode for yield statements
-            continue
+
         test_path = os.path.join(test_dir, f)
         expected_path = os.path.join(test_dir, f.replace(".sage", ".expected"))
         bin_path = os.path.join(test_dir, f.replace(".sage", ext))
@@ -99,6 +100,7 @@ def run_suite():
         if not os.path.exists(expected_path):
             print(f"[SKIP] {f} (No .expected file)")
             if os.path.exists(bin_path): os.remove(bin_path)
+            skipped += 1
             continue
 
         with open(expected_path, "r") as exp_file:
@@ -118,7 +120,7 @@ def run_suite():
         if os.path.exists(bin_path): os.remove(bin_path)
 
     print("==================================================")
-    print(f"Summary: {passed} passed, {failed} failed")
+    print(f"Summary: {passed} passed, {failed} failed, {skipped} skipped")
     print("==================================================")
 
     return failed == 0

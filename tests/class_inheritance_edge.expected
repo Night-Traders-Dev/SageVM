@@ -45,3 +45,13 @@ Max yips loudly!
 --- Instance property access ---
 Puppy name: Max
 Puppy breed: Beagle
+--- Base class instance ---
+Base val: 10
+Base id: Base
+--- Child class instance (overrides & inherited init) ---
+Child val: 30
+Child id: Child
+--- Grandchild instance (multi-level inheritance) ---
+Grandchild val: 40
+Grandchild id: Child
+Grandchild extra: extra_20
