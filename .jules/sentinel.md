@@ -98,6 +98,11 @@
 **Learning:** Performance optimizations (such as inline fast-path lookups or caches) must never precede security validation checks in interpreter dispatch loops. When fast-paths execute before security checks, cached states bypass sandbox boundaries.
 **Prevention:** Always place security restriction checks and bounds checks before fast-path/cache hit branches in opcode handlers.
 
+## 2026-09-15 - Sandbox Evasion via Unhardened Class Method Definition and Inheritance
+**Vulnerability:** In `OP_METHOD` and `OP_INHERIT` (`src/svm/sgvm_vm.sage`), guest scripts in `safe_mode` could define internal methods starting with `__` or inherit directly from protected host objects (such as `math`). During inheritance, host bridge properties like `__host_mod__` were copied into class method dictionaries without filtering, allowing guest scripts to access host modules. Additionally, `OP_METHOD` accessed the constant pool without bounds checking.
+**Learning:** Object-oriented opcodes (`OP_METHOD`, `OP_INHERIT`) must enforce the same sandbox controls as property assignment (`OP_SET_PROPERTY`). Copying attributes from parent objects without filtering private key prefixes allows guest programs to bypass global module restrictions.
+**Prevention:** Enforce `is_protected` write/inheritance blocks, filter `__` internal property keys during inheritance method copying, and bounds-check constant pool lookups across all OOP opcodes.
+
 ## 2026-09-19 - Safe Mode Direct Builtin Dispatch Disparity in SRVM
 **Vulnerability:** Direct calls to file I/O builtins (e.g. `io_readfile`, `io_writefile`, `io_writebytes`, `io_readbytes`, `__builtin_io_writefile`) bypassed safe mode restrictions in the SRVM (RISC-V) interpreter because `VMO_CALL` lacked `io_` prefix handling in its builtin dispatch table.
 **Learning:** Multi-architecture virtual machines require audit parity across all execution engines; restricting module import is insufficient when direct function pointers or builtins can be resolved by name.
