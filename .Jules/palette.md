@@ -94,6 +94,10 @@
 **Learning:** Embedded 3D WebGL `<canvas>` elements lack native accessibility structure and can confuse screen readers if not isolated. Marking decorative canvases with `aria-hidden="true"` while wrapping hero containers in semantic `<section role="region" aria-label="...">` landmarks enables screen-reader users to skip noisy visual canvas elements and navigate directly to hero text content.
 **Action:** Mark decorative background 3D canvas elements with `aria-hidden="true"` and enclose hero sections in ARIA region landmarks.
 
+## 2026-09-12 - [Interactive Canvas & Submodule ARIA Landmarks]
+**Learning:** Interactive WebGL/Canvas elements inside standalone documentation submodules require explicit ARIA region landmarks (`role="region"`, `aria-label`) and element image descriptions (`role="img"`, `aria-label`), alongside `focus-visible` ring indicators on interactive controls to guarantee screen-reader and keyboard accessibility.
+**Action:** Always wrap interactive canvas containers in ARIA region landmarks and ensure embedded submodule commits are committed locally before committing the submodule pointer.
+
 ## 2026-09-13 - [Accessible Playground Interactive Controls & Keyboard Navigation]
 **Learning:** Interactive VM playgrounds featuring custom action buttons, range sliders, file upload inputs, and collapsible status panels require explicit ARIA properties (`role="tablist"`, `role="tab"`, `aria-selected`, `aria-label`, `aria-expanded`), keyboard event handlers (`Enter`/`Space`), and focus-visible ring styles (`focus-visible:ring-2 focus-visible:ring-sage-mid focus-visible:outline-none`) to ensure seamless accessibility for keyboard and screen-reader users.
 **Action:** Always enrich playground control headers, range inputs, file upload labels, and action buttons with semantic ARIA roles, focus-visible indicators, and keydown listeners.
