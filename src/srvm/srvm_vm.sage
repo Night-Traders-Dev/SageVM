@@ -756,12 +756,57 @@ class SRVM:
                     print "Error: Modification of protected object '" + name + "' is restricted in safe mode"
                 elif type(obj) == "dict":
                     obj[name] = val
+            elif sub_op == OBJ_NEW_CLASS:
+                let name_idx = int(self.state.x[10])
+                let name = self.safe_get_constant(name_idx)
+                if not self.state.running: return
+                if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                    print "Error: Definition of internal class '" + str(name) + "' is restricted in safe mode"
+                    self.state.x[rd] = nil
+                else:
+                    let cls = {"__type__": "class", "__name__": name, "__methods__": {}}
+                    if dict_has(self.state.heap, name):
+                        self.state.heap[name] = cls
+                    self.state.x[rd] = cls
+            elif sub_op == OBJ_INHERIT:
+                let child = self.state.x[rs2]
+                let parent = self.state.x[10]
+                if self.state.safe_mode and self.is_protected(parent):
+                    print "Error: Inheritance from protected object is restricted in safe mode"
+                elif type(parent) == "dict":
+                    if dict_has(parent, "__methods__"):
+                        let methods = parent["__methods__"]
+                        let keys = dict_keys(methods)
+                        var k = 0
+                        while k < len(keys):
+                            let mname = keys[k]
+                            if not (self.state.safe_mode and type(mname) == "string" and startswith(mname, "__") and not startswith(mname, "__arg")):
+                                if type(child) == "dict" and dict_has(child, "__methods__") and not dict_has(child["__methods__"], mname):
+                                    child["__methods__"][mname] = methods[mname]
+                            k = k + 1
+                    else:
+                        let keys = dict_keys(parent)
+                        var k = 0
+                        while k < len(keys):
+                            let mname = keys[k]
+                            if not (self.state.safe_mode and type(mname) == "string" and startswith(mname, "__") and not startswith(mname, "__arg")):
+                                if type(child) == "dict" and dict_has(child, "__methods__") and not dict_has(child["__methods__"], mname):
+                                    child["__methods__"][mname] = parent[mname]
+                            k = k + 1
             elif sub_op == OBJ_METHOD_BIND:
                 let obj = self.state.x[rs2]
                 let name_idx = int(self.state.x[10])
                 let name = self.safe_get_constant(name_idx)
                 if not self.state.running: return
-                if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                if rd == 0:
+                    let func = self.state.x[11]
+                    if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                        print "Error: Definition of internal method '" + name + "' is restricted in safe mode"
+                    elif self.state.safe_mode and self.is_protected(obj):
+                        print "Error: Modification of protected object is restricted in safe mode"
+                    elif type(obj) == "dict" and dict_has(obj, "__methods__") and type(obj["__methods__"]) == "dict":
+                        obj["__methods__"][name] = func
+                elif self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     self.state.x[rd] = nil
                     self.state.x[28] = 0
                 elif type(obj) == "dict":
