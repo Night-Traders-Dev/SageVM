@@ -107,3 +107,8 @@
 **Vulnerability:** Direct calls to file I/O builtins (e.g. `io_readfile`, `io_writefile`, `io_writebytes`, `io_readbytes`, `__builtin_io_writefile`) bypassed safe mode restrictions in the SRVM (RISC-V) interpreter because `VMO_CALL` lacked `io_` prefix handling in its builtin dispatch table.
 **Learning:** Multi-architecture virtual machines require audit parity across all execution engines; restricting module import is insufficient when direct function pointers or builtins can be resolved by name.
 **Prevention:** Ensure builtin dispatch tables in all VM engines maintain identical prefix blacklists for restricted subsystems (io, mem, ffi, struct).
+
+## 2026-09-21 - Unhardened Class Operations and Inheritance in SRVM
+**Vulnerability:** The RISC-V interpreter (`src/srvm/srvm_vm.sage`) lacked handlers for `OBJ_NEW_CLASS` and `OBJ_INHERIT`, and `OBJ_METHOD_BIND` (`rd == 0`) lacked `safe_mode` restrictions, allowing guest programs in `safe_mode` to define internal methods or inherit from protected host objects under RISC-V mode.
+**Learning:** Multi-backend execution engines must maintain feature and security check parity across object operations. When object/class creation or method binding is missing sandbox checks in one execution backend, sandboxing can be bypassed via architecture selection.
+**Prevention:** Maintain strict parity across all VM backends for object creation, method binding, and class inheritance instructions with explicit `safe_mode` and `is_protected` checks.
