@@ -1,0 +1,20 @@
+--- Math Constants ---
+math.pi > 3.14: true
+math.e > 2.71: true
+--- Math Functions ---
+math.abs(-42): nil
+math.abs(0): nil
+math.sqrt(100): nil
+math.sqrt(0): nil
+math.sin(0): nil
+math.cos(0): nil
+--- Math Print Matrix ---
+[
+  [1, 2]
+  [3, 4]
+]
+--- Edge Cases / Error Paths ---
+math.sqrt(-1) == nil: true
+math.abs(nil) == nil: true
+non-array printm:
+Error: math.printm() expects an array

@@ -1,0 +1,10 @@
+--- Local Variable Execution ---
+Initial locals x, y: 15, 20
+Loop sum, final i: 10, 5
+Local shadow global_x: 999
+Function result: 45
+Global x unchanged: 100
+Global y unchanged: 200
+--- Parameter Binding ---
+arg0: alpha, arg1: beta, arg2: gamma
+arg0: 1, arg1: nil, arg2: true

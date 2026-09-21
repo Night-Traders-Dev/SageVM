@@ -118,6 +118,8 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `float_ops_edge.sage`: Tests floating-point arithmetic (`OP_ADD`, `OP_SUB`, `OP_MUL`, `OP_DIV`, `OP_MOD`), float comparisons (`OP_GREATER`, `OP_LESS_EQUAL`, `OP_EQUAL`), float type conversions (`int()`, `tonumber()`), and float division by zero (`1.0 / 0.0`).
 - `dict_ops_edge.sage`: Tests dictionary property access (`OP_GET_PROPERTY`, `OP_SET_PROPERTY`), element indexing (`OP_GET_INDEX`, `OP_SET_INDEX`), missing string keys/properties evaluating to `nil`, and nested dictionary reassignments.
 - `function_args_edge.sage`: Tests function calls (`OP_CALL`, `OP_RETURN`) with parameter binding, excess arguments, missing arguments, and conditional early returns.
+- `math_module_edge.sage`: Tests `math` module functions (`math.abs`, `math.sqrt`, `math.sin`, `math.cos`, `math.printm`), constants (`math.pi`, `math.e`), non-array `math.printm` error handling, and invalid/negative/nil parameter inputs.
+- `local_vars_edge.sage`: Tests local variable read/write operations (`OP_GET_LOCAL`, `OP_SET_LOCAL`), parameter bindings (`arg0`, `arg1`, `arg2`), loop variable reassignments, shadowing globals, and accessing uninitialized local slots.
 
 
 ### Verification Status (September 2026)
