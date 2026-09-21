@@ -411,7 +411,7 @@ class SGVMCLI:
 
         print COLOR_CYAN + COLOR_BOLD + "✨ SageVM Interactive REPL v1.1.0" + COLOR_RESET
         print "Target Substrate: " + target_name
-        print "Type " + COLOR_CYAN + ":quit" + COLOR_RESET + " to exit, " + COLOR_CYAN + ":help" + COLOR_RESET + " for REPL instructions."
+        print "Type " + COLOR_CYAN + ":quit" + COLOR_RESET + " to exit, " + COLOR_CYAN + ":clear" + COLOR_RESET + " to clear, " + COLOR_CYAN + ":help" + COLOR_RESET + " for instructions."
         print ""
 
         let tmp_sage = "/tmp/_repl_eval.sage"
@@ -433,10 +433,13 @@ class SGVMCLI:
             if line == nil or line == ":quit" or line == ":exit" or line == "exit":
                 print COLOR_YELLOW + "Goodbye!" + COLOR_RESET
                 running = false
+            elif line == ":clear" or line == ":cls":
+                sys_exec("clear")
             elif line == ":help":
                 print COLOR_BOLD + "SageVM REPL Commands:" + COLOR_RESET
-                print "  " + COLOR_CYAN + ":quit" + COLOR_RESET + "  Exit the interactive REPL"
-                print "  " + COLOR_CYAN + ":help" + COLOR_RESET + "  Display this help dialog"
+                print "  " + COLOR_CYAN + ":quit" + COLOR_RESET + "   Exit the interactive REPL"
+                print "  " + COLOR_CYAN + ":clear" + COLOR_RESET + "  Clear the terminal screen"
+                print "  " + COLOR_CYAN + ":help" + COLOR_RESET + "   Display this help dialog"
             else:
                 let trimmed = ut.trim(line)
                 if trimmed != "":
