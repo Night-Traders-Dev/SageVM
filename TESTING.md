@@ -115,6 +115,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 ### Coverage Expansion (September 2026 - Forge Daily)
 - `array_concat_edge.sage`: Tests array concatenation (`OP_ADD`), empty arrays, nested arrays, array-string coercion, and fallback behavior for non-array additions.
 - `comparison_ops_edge.sage`: Tests relational (`<`, `<=`, `>`, `>=`) and equality (`==`, `!=`) opcodes across numbers, strings, booleans, nil, and collections (noting SVM behavior where non-numeric relational comparisons evaluate to false).
+- `float_ops_edge.sage`: Tests floating-point arithmetic (`OP_ADD`, `OP_SUB`, `OP_MUL`, `OP_DIV`, `OP_MOD`), float comparisons (`OP_GREATER`, `OP_LESS_EQUAL`, `OP_EQUAL`), float type conversions (`int()`, `tonumber()`), and float division by zero (`1.0 / 0.0`).
+- `dict_ops_edge.sage`: Tests dictionary property access (`OP_GET_PROPERTY`, `OP_SET_PROPERTY`), element indexing (`OP_GET_INDEX`, `OP_SET_INDEX`), missing string keys/properties evaluating to `nil`, and nested dictionary reassignments.
+- `function_args_edge.sage`: Tests function calls (`OP_CALL`, `OP_RETURN`) with parameter binding, excess arguments, missing arguments, and conditional early returns.
 
 
 ### Verification Status (September 2026)

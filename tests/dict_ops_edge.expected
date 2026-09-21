@@ -1,0 +1,12 @@
+--- Property Access on Dicts vs Missing Keys ---
+d.name: SageVM
+d.missing == nil: true
+d['absent'] == nil: true
+--- String Key Indexing and Property Equivalency ---
+d.version: 1.2
+d['version']: 1.2
+--- Nested Dictionary Property & Indexing ---
+nested.outer.inner: 42
+nested['outer']['inner']: 42
+--- Reassigning Nested Dictionary Values ---
+reassigned inner: 100
