@@ -25,3 +25,7 @@
 ## 2026-07-23 - [Search & Filter Recovery Patterns]
 **Learning:** In interactive doc sites, search/filter systems can easily trap keyboard users in "zero results" states if there isn't a keyboard-accessible, fast recovery action (such as a clear button or reset button) that focuses back or resets state gracefully. Providing a fallback call-to-action button in empty states improves task flow and prevents navigation dead-ends.
 **Action:** Always include a "Reset" or "Clear" CTA in empty search/filter states to ensure smooth recovery.
+
+## 2026-09-22 - [Keyboard-Accessible Overflow Code Containers]
+**Learning:** Scrollable code blocks with `overflow-x-auto` trap keyboard-only users unless `tabIndex={0}` is present on the scroll container. Adding `tabIndex={0}`, focus rings, and explicit `aria-label` enables keyboard focus and arrow-key scrolling without breaking screen reader context.
+**Action:** Always ensure overflow scroll containers in code samples include `tabIndex={0}`, focus-visible ring styles, and descriptive ARIA labels.
