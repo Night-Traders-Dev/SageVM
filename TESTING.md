@@ -120,6 +120,8 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `function_args_edge.sage`: Tests function calls (`OP_CALL`, `OP_RETURN`) with parameter binding, excess arguments, missing arguments, and conditional early returns.
 - `math_module_edge.sage`: Tests `math` module functions (`math.abs`, `math.sqrt`, `math.sin`, `math.cos`, `math.printm`), constants (`math.pi`, `math.e`), non-array `math.printm` error handling, and invalid/negative/nil parameter inputs.
 - `local_vars_edge.sage`: Tests local variable read/write operations (`OP_GET_LOCAL`, `OP_SET_LOCAL`), parameter bindings (`arg0`, `arg1`, `arg2`), loop variable reassignments, shadowing globals, and accessing uninitialized local slots.
+- `nested_loops_edge.sage`: Tests nested `while` loops with `OP_BREAK` and `OP_CONTINUE` control flow opcodes, ensuring inner loop breaks do not exit outer loops and inner continues skip to the next inner iteration.
+- `loop_try_catch_edge.sage`: Tests `try-catch` exception handling (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`) integrated with loops, including catching errors inside loop bodies and continuing, and unwinding out of loops when exceptions escape.
 
 
 ### Verification Status (September 2026)

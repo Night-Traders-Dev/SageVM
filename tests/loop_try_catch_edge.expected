@@ -1,0 +1,15 @@
+--- Catch exception inside loop and continue ---
+Normal iteration 1
+Normal iteration 2
+Caught in loop: Error at iteration 3
+Normal iteration 4
+Normal iteration 5
+--- Loop inside try-catch with raise ---
+Loop count 1
+Loop count 2
+Loop count 3
+Caught outside loop: Fatal loop error
+--- Break inside try block inside loop ---
+Try iteration 1
+Try iteration 2
+Exited loop at k=3

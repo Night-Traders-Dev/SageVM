@@ -1,0 +1,21 @@
+--- Nested while loops with inner break ---
+Outer i=0
+  Inner j=0
+  Inner j=1
+Outer i=1
+  Inner j=0
+  Inner j=1
+--- Nested while loops with inner continue ---
+Outer m=0
+  Inner n=1
+  Inner n=3
+  Inner n=4
+Outer m=1
+  Inner n=1
+  Inner n=3
+  Inner n=4
+--- Break outer loop from inner condition ---
+x=0, y=0
+x=0, y=1
+x=0, y=2
+x=1, y=0
