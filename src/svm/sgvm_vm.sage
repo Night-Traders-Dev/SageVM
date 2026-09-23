@@ -1587,7 +1587,8 @@ class MetalVM:
             let name_idx = ut.read_be16(self.code, self.ip)
             let chunk_idx = ut.read_be16(self.code, self.ip + 2)
             self.ip = self.ip + 4
-            let name = self.constants[name_idx]
+            let name = self.safe_get_constant(name_idx)
+            if self.halted: return false
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                 print "Error: Definition of internal function '" + name + "' is restricted in safe mode"
             else:
@@ -1737,7 +1738,8 @@ class MetalVM:
             let name_idx = (self.code[self.ip] << 8) | self.code[self.ip + 1]
             let argc = int(self.code[self.ip + 2])
             self.ip = self.ip + 3
-            let name = self.constants[name_idx]
+            let name = self.safe_get_constant(name_idx)
+            if self.halted: return false
             let args = []
             var j = 0
             # Performance: Single-pass forward stack indexing for argument array
@@ -1961,7 +1963,8 @@ class MetalVM:
         elif op == OP_IMPORT:
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
-            let name = self.constants[idx]
+            let name = self.safe_get_constant(idx)
+            if self.halted: return false
             # Delegation Bridge: check host first for native modules
             # Security: Explicitly block 'io' in safe mode blacklist
             if self.safe_mode and (name == "io" or name == "net" or name == "sys" or name == "thread" or name == "gpu" or name == "ml_native" or name == "mem" or name == "ffi" or name == "struct"):
@@ -2110,7 +2113,8 @@ class MetalVM:
                 return true
             let idx = ut.read_be16(self.code, self.ip)
             self.ip = self.ip + 2
-            let ast_code = self.constants[idx]
+            let ast_code = self.safe_get_constant(idx)
+            if self.halted: return false
             if type(ast_code) == "string":
                 # Fallback: Use host execution engine for non-lowered code
                 sys.exec(ast_code)
@@ -2272,7 +2276,8 @@ class MetalVM:
             let name_idx = ut.read_be16(self.code, self.ip)
             let chunk_idx = ut.read_be16(self.code, self.ip + 2)
             self.ip = self.ip + 4
-            let name = self.constants[name_idx]
+            let name = self.safe_get_constant(name_idx)
+            if self.halted: return false
             if self.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                 print "Error: Definition of internal generator '" + name + "' is restricted in safe mode"
             else:
