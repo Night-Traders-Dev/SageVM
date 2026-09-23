@@ -16,6 +16,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2026-09-16]
+
+### Security
+- **SVM OOP Safe-Mode Hardening**: Enforced `safe_mode` restrictions on `OP_METHOD` and `OP_INHERIT` in `src/svm/sgvm_vm.sage`, blocking definitions of internal `__`-prefixed methods, inheritance from protected host objects, and modification of protected class dictionaries.
+- **SRVM Builtin Dispatch Hardening**: Enforced `safe_mode` and `ffi_enabled` checks in `VMO_CALL` in `src/srvm/srvm_vm.sage` for `mem_*`, `ffi_*`, and `struct_*` builtin function dispatching under RISC-V mode.
+
+### Performance
+- **SVM BE16 Decoding & Stack Unpack Inlining**: Inlined big-endian 16-bit integer decoding and stack push in `OP_CONSTANT` (`execute_op` fallback) and eliminated `pop()` calls in index/property opcodes via logical `stack_len` tracking in `src/svm/sgvm_vm.sage`.
+
+### Added
+- **CLI Missing Input Tips**: Added contextual tip messages for `sagevm run` and `sagevm compile` when input file arguments are missing in `src/sgvm_cli.sage`.
+
 ## [2026-09-02]
 
 ### Fixed
