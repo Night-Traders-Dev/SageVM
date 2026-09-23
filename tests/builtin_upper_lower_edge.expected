@@ -4,8 +4,8 @@ lower('HELLO WORLD'): hello world
 upper('Mixed Case 123!'): MIXED CASE 123!
 lower('Mixed Case 123!'): mixed case 123!
 --- Empty string ---
-upper(''):
-lower(''):
+upper(''): 
+lower(''): 
 --- Non-string / nil arguments ---
 upper(nil) == nil: true
 lower(nil) == nil: true

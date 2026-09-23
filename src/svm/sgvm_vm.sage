@@ -1245,18 +1245,18 @@ class MetalVM:
             return nil
         elif callee == "__builtin_gpu_mouse_pos":
             return {"x": 0, "y": 0}
-        elif callee == "__builtin_gc_collect": return gc_collect()
-        elif callee == "__builtin_gc_stats": return gc_stats()
+        elif callee == "__builtin_gc_collect": return nil
+        elif callee == "__builtin_gc_stats": return {"num_objects": 0}
         elif callee == "__builtin_gc_enable":
             if self.safe_mode:
                 print "Error: gc_enable is restricted in safe mode"
                 return nil
-            return gc_enable()
+            return nil
         elif callee == "__builtin_gc_disable":
             if self.safe_mode:
                 print "Error: gc_disable is restricted in safe mode"
                 return nil
-            return gc_disable()
+            return nil
         elif callee == "__builtin_reflect_get_methods": return reflect_get_methods(args[0])
         elif callee == "__builtin_reflect_get_class": return reflect_get_class(args[0])
         elif callee == "__builtin_next":
