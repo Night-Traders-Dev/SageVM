@@ -1,0 +1,14 @@
+=== Test 1: Exception Inside Loop Body ===
+iter 0 ok
+iter 1 ok
+caught in loop: error at iteration 2
+iter 3 ok
+=== Test 2: Exception Handling in Sequential Loops ===
+loop 1 completed count=3
+caught: trigger catch
+loop 2 completed count=3
+=== Test 3: Exception Thrown and Caught in Nested Loop ===
+x=0 y=0
+x=0 y=1
+caught nested: nested fail
+x=1 y=1

@@ -1,0 +1,11 @@
+=== Test 1: Function Scope Nested Loops ===
+i=0 j=0
+i=0 j=1
+i=1 j=0
+i=1 j=1
+=== Test 2: Global Variable Scope Loop ===
+g=0
+g=1
+g=2
+=== Test 3: Zero Iterations Inner Loop ===
+outer=2 inner=0
