@@ -66,6 +66,41 @@ class SRVM:
             return false
         return true
 
+    proc equal_val(self, a, b):
+        let type_a = type(a)
+        let type_b = type(b)
+        if type_a == "nil" and type_b == "nil":
+            return true
+        if type_a == "nil" or type_b == "nil":
+            return false
+        if type_a != type_b:
+            return false
+        if type_a == "dict":
+            let keys_a = dict_keys(a)
+            let keys_b = dict_keys(b)
+            if len(keys_a) != len(keys_b):
+                return false
+            var i = 0
+            while i < len(keys_a):
+                let k = keys_a[i]
+                if not dict_has(b, k):
+                    return false
+                if not self.equal_val(a[k], b[k]):
+                    return false
+                i = i + 1
+            return true
+        elif type_a == "list" or type_a == "array" or type_a == "tuple":
+            if len(a) != len(b):
+                return false
+            var i = 0
+            while i < len(a):
+                if not self.equal_val(a[i], b[i]):
+                    return false
+                i = i + 1
+            return true
+        else:
+            return a == b
+
     proc safe_get_constant(self, idx):
         if idx >= 0 and idx < len(self.state.constants):
             return self.state.constants[idx]
@@ -416,8 +451,8 @@ class SRVM:
                 let val1 = self.state.x[10]
                 let val2 = self.state.x[11]
                 let cmp_type = f7
-                if cmp_type == CMP_EQ: self.state.x[10] = (val1 == val2)
-                elif cmp_type == CMP_NEQ: self.state.x[10] = (val1 != val2)
+                if cmp_type == CMP_EQ: self.state.x[10] = self.equal_val(val1, val2)
+                elif cmp_type == CMP_NEQ: self.state.x[10] = not self.equal_val(val1, val2)
                 elif cmp_type == CMP_LT: self.state.x[10] = (val1 < val2)
                 elif cmp_type == CMP_GT: self.state.x[10] = (val1 > val2)
                 elif cmp_type == CMP_LE: self.state.x[10] = (val1 <= val2)
@@ -681,6 +716,8 @@ class SRVM:
                     self.state.pc = 0
                     self.state.x[1] = 0
                     return
+                else:
+                    self.state.x[10] = nil
             elif sub_op == VMO_ARRAY_LEN:
                 let obj = self.state.x[rs2]
                 if type(obj) == "list": self.state.x[rd] = len(obj)

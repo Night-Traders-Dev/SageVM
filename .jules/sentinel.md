@@ -112,3 +112,8 @@
 **Vulnerability:** The RISC-V interpreter (`src/srvm/srvm_vm.sage`) lacked handlers for `OBJ_NEW_CLASS` and `OBJ_INHERIT`, and `OBJ_METHOD_BIND` (`rd == 0`) lacked `safe_mode` restrictions, allowing guest programs in `safe_mode` to define internal methods or inherit from protected host objects under RISC-V mode.
 **Learning:** Multi-backend execution engines must maintain feature and security check parity across object operations. When object/class creation or method binding is missing sandbox checks in one execution backend, sandboxing can be bypassed via architecture selection.
 **Prevention:** Maintain strict parity across all VM backends for object creation, method binding, and class inheritance instructions with explicit `safe_mode` and `is_protected` checks.
+
+## 2026-09-24 - Host C NaN-Boxing Comparison Flaw in SRVM
+**Vulnerability:** In the RISC-V VM (`src/srvm/srvm_vm.sage`), `VMO_CMP_BINARY` used direct host-level `==` / `!=` comparisons (`val1 == val2`). Due to NaN-boxing in the host C runtime, comparing `nil == nil` evaluated to `false`, causing guest-level equality checks against `nil` (such as safe mode checks in `security_call_bypass.sage`) to fail and incorrectly evaluate restricted or unmapped calls as non-nil.
+**Learning:** VM comparison opcodes running on NaN-boxed value representations must explicitly handle primitive `nil` equality before delegating to host-level comparison operators.
+**Prevention:** Implement explicit `equal_val` helpers in VM interpreters that handle `nil` equality (`a == nil and b == nil`) and container structural comparison explicitly.
