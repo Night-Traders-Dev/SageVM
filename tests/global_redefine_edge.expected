@@ -1,0 +1,16 @@
+--- Initial Globals ---
+g_val: 10
+g_name: Alpha
+g_list len: 2
+g_dict key: val1
+--- Modify via Function ---
+g_val: 99
+g_name: Beta
+g_list len: 3
+g_dict key: val2
+g_dict new_key: val3
+--- Modify via Loop in Function ---
+g_val after loop: 129
+--- Conditional Global Reassignment ---
+g_val conditional: 500
+g_name conditional: Gamma
