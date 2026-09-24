@@ -1,4 +1,17 @@
 # Changelog
+## [1.2.1] - 2026-09-23
+
+### Security & Correctness
+- Fixed nil-aware equality and uncallable return handling in the SRVM interpreter.
+- Added checked constant-pool access to remaining SVM fallback opcode handlers.
+- Synchronized architecture and specification documentation for safe-mode protections.
+
+### Performance
+- Reordered global opcode dispatch and deferred constant lookups behind cache-hit checks.
+
+### Tests
+- Added nested-loop and loop/exception coverage fixtures. The modern SVM suite passes 143 tests with 0 failures and 1 documented skip.
+
 ## [1.2.0] - 2026-09-20
 
 ### Security

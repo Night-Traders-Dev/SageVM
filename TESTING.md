@@ -125,8 +125,7 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 
 
 ### Verification Status (September 2026)
-As of September 2026, the modern coverage suite passes cleanly under the SVM backend.
-All historical opcode translation mismatches, generator execution support (`OP_YIELD`, `OP_CREATE_GENERATOR`, `OP_GENERATOR_NEXT`), module method bridging, safe-mode object protections, and interpreter halt controls are fully resolved.
+The modern SVM coverage suite passes cleanly: **143 passed, 0 failed, 1 skipped** after the v1.2.1 integration. The full SRVM suite is not green in the current checkout because the register backend still has broad compatibility gaps; see the command output and the SRVM-specific tests before relying on that backend.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.

@@ -4,21 +4,21 @@
 
 SageVM is a high-performance, pure SageLang implementation of the Sage Virtual Machine. It provides a portable execution substrate for SageOS, supporting both a traditional stack-based architecture (SVM) and a modern RISC-V register-based architecture (SRVM).
 
-## Status (v1.2.0)
+## Status (v1.2.1)
 
 | Component | Compile | Execute | Self-Host | Coverage Suite |
 |-----------|---------|---------|-----------|----------------|
-| **SVM** (Stack VM / `.sgvm`) | ✅ | ✅ | ✅ | **133 passed, 3 failed, 1 skipped** |
-| **SRVM** (RISC-V Register VM / `.sgrv`) | ✅ | ✅ | — | **Pass** |
+| **SVM** (Stack VM / `.sgvm`) | ✅ | ✅ | ✅ | **143 passed, 0 failed, 1 skipped** |
+| **SRVM** (RISC-V Register VM / `.sgrv`) | ✅ | ⚠️ | — | **Not green; see TESTING.md** |
 
-- **SVM** is fully self-hosting and verified: `sagevm_standalone.sage` compiles to a `.sgvm` binary (~96 KB) and executes on the Stack VM. All coverage test cases pass (133 passed, 3 failed, 1 skipped).
-- **SRVM** compilation & execution pipeline: Full SageLang source → SVM bytecode → RISC-V 32-bit instructions → `.sgrv` binary (~199 KB) execution with RV64I register file semantics.
+- **SVM** is fully self-hosting and verified: `sagevm_standalone.sage` compiles to a `.sgvm` binary (~96 KB) and executes on the Stack VM. The modern coverage suite passes with 143 tests, 0 failures, and 1 documented skip.
+- **SRVM** compilation and execution pipeline: Full SageLang source → SVM bytecode → RISC-V 32-bit instructions → `.sgrv` binary (~199 KB) execution with RV64I register file semantics. The current full SRVM suite still has broad backend compatibility failures in this checkout; targeted security and compilation checks remain required.
 
 ## Features
 
 - **Dual-Architecture Engine**: Seamlessly switch between Stack VM (SVM) and RISC-V Register VM (SRVM) targets.
 - **Self-Hosted Compilation**: The SageVM compiler is written in SageLang and compiles itself via the Stack VM — a true bootstrap.
-- **100% Test & Opcode Coverage**: 133 passed, 3 failed, 1 skipped cleanly across all 92 opcodes including generators, GPU hot-paths, local variable access, and exception handling.
+- **Coverage**: The modern SVM suite covers 143 passing cases with one documented skip; legacy opcode and backend gaps are tracked in `TESTING.md`.
 - **Native Generator Yield Engine**: Native SVM state preservation for `OP_YIELD`, `OP_CREATE_GENERATOR`, and `OP_GENERATOR_NEXT` / `next()`.
 - **RISC-V Translation**: Full `StackToRiscVTranslator` pipeline converts SVM bytecode to RV64I-compatible 32-bit fixed-width instructions.
 - **OOP & Exceptions**: Native support for classes, inheritance, and `try/catch/finally` across both architectures.
@@ -29,7 +29,7 @@ SageVM is a high-performance, pure SageLang implementation of the Sage Virtual M
 
 ## Installation
 
-SageVM requires SageLang **v4.1.2** or higher. To build and install:
+SageVM requires SageLang **v4.2.7** or higher. To build and install:
 
 ```bash
 ./sagemake --install
@@ -81,7 +81,20 @@ A modern, register-based architecture based on the **RV64I** specification.
 - **Type profiling**: `TypeProfiler` for register-level type hint analysis
 - **Performance**: Up to 30–40% faster interpretation for arithmetic-heavy code
 
-## Recent Changes (v1.2.0)
+## Recent Changes (v1.2.1)
+
+### Security & Correctness
+- **SRVM equality and uncallable handling**: Added explicit nil-aware equality and a defined nil result for uncallable return paths.
+- **SVM constant-pool bounds**: Replaced raw constant reads in fallback opcode handlers with checked accessors.
+- **SRVM safe-mode documentation**: Synchronized architecture and specification notes for builtin and method protections.
+
+### Performance
+- **Global dispatch ordering**: Deferred constant lookups behind cache-hit checks and moved startup-only opcode handling out of the hot loop path.
+
+### Tests
+- Added nested-loop and loop/exception coverage fixtures; the SVM suite now passes 143 tests with one documented skip.
+
+## Previous Changes (v1.2.0)
 
 ### Security & Correctness
 - **`sys.system` dispatch fix (SVM)**: `OP_IMPORT` now maps `sys.system` to `__builtin_sys_system`; restricted runs report `Error: sys.system is restricted` and return `-1` instead of silently routing through the `sys.exec` handler.
