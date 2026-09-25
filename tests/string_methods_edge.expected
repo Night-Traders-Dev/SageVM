@@ -1,0 +1,31 @@
+--- replace ---
+hello sage
+bbbbb
+abc
+
+hello
+--- strip ---
+hello world
+sagevm
+no_spaces
+
+--- upper/lower ---
+SAGEVM 1.2.1!
+sagevm 1.2.1!
+
+
+--- startswith/endswith ---
+true
+false
+true
+true
+false
+true
+--- split/join ---
+[one, two, three]
+one - two - three
+[h, e, l, l, o]
+
+--- slice ---
+sage
+gevm

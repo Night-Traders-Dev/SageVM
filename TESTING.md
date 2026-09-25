@@ -122,10 +122,12 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `local_vars_edge.sage`: Tests local variable read/write operations (`OP_GET_LOCAL`, `OP_SET_LOCAL`), parameter bindings (`arg0`, `arg1`, `arg2`), loop variable reassignments, shadowing globals, and accessing uninitialized local slots.
 - `nested_loops_edge.sage`: Tests nested `while` loops, function-scoped loop execution, global loop counters, and zero-iteration inner loops.
 - `loop_try_catch_edge.sage`: Tests `try-catch` exception handling inside loop bodies (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`), exceptions in sequential loops, and exceptions thrown and caught within nested loops.
+- `string_methods_edge.sage`: Tests string manipulation builtins (`replace`, `strip`, `upper`, `lower`, `startswith`, `endswith`, `contains`, `split`, `join`, `slice`) under edge conditions such as empty strings, multi-character delimiters, boundary/out-of-range indices, and nil arguments.
+- `array_methods_edge.sage`: Tests array builtins (`push`, `pop`, `len`, `slice`, `contains`, `join`) under edge conditions such as popping empty arrays, sequential pushing/popping, nested array slicing, out-of-bounds slicing, and array containment behavior.
 
 
 ### Verification Status (September 2026)
-The modern SVM coverage suite passes cleanly: **143 passed, 0 failed, 1 skipped** after the v1.2.1 integration. The full SRVM suite is not green in the current checkout because the register backend still has broad compatibility gaps; see the command output and the SRVM-specific tests before relying on that backend.
+The modern SVM coverage suite passes cleanly: **145 passed, 0 failed, 1 skipped** after the v1.2.1 integration. The full SRVM suite is not green in the current checkout because the register backend still has broad compatibility gaps; see the command output and the SRVM-specific tests before relying on that backend.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
