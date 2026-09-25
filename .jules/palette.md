@@ -25,3 +25,7 @@
 ## 2026-07-23 - [Search & Filter Recovery Patterns]
 **Learning:** In interactive doc sites, search/filter systems can easily trap keyboard users in "zero results" states if there isn't a keyboard-accessible, fast recovery action (such as a clear button or reset button) that focuses back or resets state gracefully. Providing a fallback call-to-action button in empty states improves task flow and prevents navigation dead-ends.
 **Action:** Always include a "Reset" or "Clear" CTA in empty search/filter states to ensure smooth recovery.
+
+## 2026-09-25 - [Interactive Canvas & Submodule Pointer Parity]
+**Learning:** HTML5 canvas elements representing interactive diagrams (such as dependency graphs) require explicit `role="img"` and descriptive `aria-label` attributes to be accessible to screen reader users. Additionally, when making changes to subprojects living inside a git submodule (like `docs/site`), the inner git repository must commit changes first so that the root parent repository can cleanly stage and commit the updated submodule commit pointer.
+**Action:** Always add semantic image roles and accessible descriptions to complex canvas elements, and commit changes inside submodules prior to staging in the parent repository.
