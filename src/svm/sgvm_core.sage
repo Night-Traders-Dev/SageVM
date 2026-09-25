@@ -107,24 +107,21 @@ class SGVMUtils:
         return int(x)
 
     proc hex_to_byte(self, h):
+        # Performance: Direct ASCII arithmetic conversion bypassing 16-iteration loop and string comparisons
         if h == nil or len(h) < 2:
             return 0
-        let chars = "0123456789abcdef"
+        var o1 = ord(h[0])
         var v1 = 0
+        if o1 >= 48 and o1 <= 57: v1 = o1 - 48
+        elif o1 >= 97 and o1 <= 102: v1 = o1 - 87
+        elif o1 >= 65 and o1 <= 70: v1 = o1 - 55
+
+        var o2 = ord(h[1])
         var v2 = 0
-        var c1 = h[0]
-        var c2 = h[1]
-        if ord(c1) >= 65 and ord(c1) <= 70:
-            c1 = chr(ord(c1) + 32)
-        if ord(c2) >= 65 and ord(c2) <= 70:
-            c2 = chr(ord(c2) + 32)
-        var i = 0
-        while i < 16:
-            if chars[i] == c1:
-                v1 = i
-            if chars[i] == c2:
-                v2 = i
-            i = i + 1
+        if o2 >= 48 and o2 <= 57: v2 = o2 - 48
+        elif o2 >= 97 and o2 <= 102: v2 = o2 - 87
+        elif o2 >= 65 and o2 <= 70: v2 = o2 - 55
+
         return v1 * 16 + v2
 
     proc split_lines(self, s):
@@ -148,13 +145,13 @@ class SGVMUtils:
         return lines
 
     proc my_substr(self, s, start, length):
-        var res = ""
-        var i = 0
-        while i < length:
-            if start + i < len(s):
-                res = res + s[start + i]
-            i = i + 1
-        return res
+        # Performance: Direct native slice call bypassing char-by-char string concatenation loop
+        if s == nil or start < 0 or length <= 0: return ""
+        let slen = len(s)
+        if start >= slen: return ""
+        var end_idx = start + length
+        if end_idx > slen: end_idx = slen
+        return slice(s, start, end_idx)
 
     proc parse_int_field(self, line, offset):
         let sub = self.my_substr(line, offset, len(line))

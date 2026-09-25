@@ -263,11 +263,13 @@ class MetalVM:
             # Hot-path dispatch: inline most frequent opcodes to avoid function call overhead
             # Performance: Bypass push/pop C function calls via stack slot re-use
             if op == OP_GET_LOCAL:
+                # Performance: Bind target stack index to local variable to eliminate duplicate addition
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 var val = nil
-                if local_base + idx < stack_len:
-                    val = stack[local_base + idx]
+                let target = local_base + idx
+                if target < stack_len:
+                    val = stack[target]
                 if stack_len < physical_stack_len:
                     stack[stack_len] = val
                 else:

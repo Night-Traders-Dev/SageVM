@@ -1,5 +1,9 @@
 # Bolt's Performance Journal
 
+## 2026-09-24 - O(1) Direct ASCII Hex Decoding and Native String Slicing
+**Learning:** In `SGVMUtils` (`src/svm/sgvm_core.sage`), `hex_to_byte` originally iterated 16 times per hex byte comparing character strings, and `my_substr` concatenated character strings in an explicit loop. Replacing `hex_to_byte` with direct O(1) ASCII arithmetic (`ord(h[i]) - offset`) eliminated a 16-iteration loop and string comparisons per hex byte, while replacing `my_substr` with native `slice()` eliminated character-by-character string concatenation loop allocations. Additionally, in `MetalVM.run` (`OP_GET_LOCAL`), binding `local_base + idx` to a `target` local variable eliminated redundant stack offset addition calculations.
+**Action:** Use direct ASCII arithmetic for hex character conversions instead of lookup loops, and use native `slice()` for substring extractions rather than character-by-character loop concatenation.
+
 ## 2026-09-23 - Cold Opcode Relocation & Deferring Constant Lookups in Global Cache Hits
 **Learning:** In the SVM interpreter (`MetalVM.run` in `src/svm/sgvm_vm.sage`), `OP_DEFINE_GLOBAL` was positioned high in the opcode dispatch chain ahead of hot loop instructions (`OP_SET_LOCAL`, `OP_LESS`, `OP_ADD`, `OP_JUMP`, `OP_JUMP_IF_FALSE`, `OP_LOOP_BACK`), forcing every loop iteration to execute redundant `elif op == OP_DEFINE_GLOBAL` branch checks. Relocating startup-only opcodes like `OP_DEFINE_GLOBAL` below loop instructions and deferring `constants[idx]` list lookups and `safe_mode` string checks inside `OP_SET_GLOBAL` to execute only after cache-hit checks yielded a ~29.7% real-time speedup on 1M-iteration loop benchmarks (~11.49s down to ~7.91s).
 **Action:** Always position setup and declaration opcodes (such as `OP_DEFINE_GLOBAL`) below loop, arithmetic, and control flow opcodes in VM dispatch chains, and defer constant pool list lookups until after inline cache validity checks.
