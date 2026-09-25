@@ -117,3 +117,8 @@
 **Vulnerability:** In the RISC-V VM (`src/srvm/srvm_vm.sage`), `VMO_CMP_BINARY` used direct host-level `==` / `!=` comparisons (`val1 == val2`). Due to NaN-boxing in the host C runtime, comparing `nil == nil` evaluated to `false`, causing guest-level equality checks against `nil` (such as safe mode checks in `security_call_bypass.sage`) to fail and incorrectly evaluate restricted or unmapped calls as non-nil.
 **Learning:** VM comparison opcodes running on NaN-boxed value representations must explicitly handle primitive `nil` equality before delegating to host-level comparison operators.
 **Prevention:** Implement explicit `equal_val` helpers in VM interpreters that handle `nil` equality (`a == nil and b == nil`) and container structural comparison explicitly.
+
+## 2026-09-26 - Sandbox Bypass via Unhardened Host Function Invocation in OP_CALL_METHOD
+**Vulnerability:** In `MetalVM.execute_op` (`src/svm/sgvm_vm.sage`), `OP_CALL_METHOD` dispatched direct host native function calls (`type(val) == "function"` or `type(val) == "native fn"`) on non-module objects without validating `self.safe_mode`. Guest scripts in `safe_mode` could bypass the direct host function call restrictions enforced by `OP_CALL` by storing host function references in dictionaries and calling them as methods.
+**Learning:** Security checks applied to direct function invocation instructions (`OP_CALL`) must be mirrored across method call dispatchers (`OP_CALL_METHOD`). Method call resolution on arbitrary objects can resolve to host functions, requiring identical safe_mode restrictions.
+**Prevention:** Always mirror `self.safe_mode` direct function call restrictions across all function and method call opcodes regardless of object receiver type.

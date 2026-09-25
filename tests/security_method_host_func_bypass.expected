@@ -1,0 +1,4 @@
+Calling restricted builtins via method dispatch:
+Error: sys.exec is restricted
+Error: sys.getenv is restricted in safe mode
+done
