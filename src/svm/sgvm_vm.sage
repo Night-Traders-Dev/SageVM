@@ -265,9 +265,10 @@ class MetalVM:
             if op == OP_GET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                let target = local_base + idx
                 var val = nil
-                if local_base + idx < stack_len:
-                    val = stack[local_base + idx]
+                if target < stack_len:
+                    val = stack[target]
                 if stack_len < physical_stack_len:
                     stack[stack_len] = val
                 else:
@@ -483,8 +484,8 @@ class MetalVM:
                     stack[target_idx] = val
             elif op == OP_LESS:
                 let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
                 stack_len = stack_len - 1
-                let a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a < b
                 else:
@@ -492,8 +493,8 @@ class MetalVM:
                     else: stack[stack_len-1] = false
             elif op == OP_ADD:
                 let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
                 stack_len = stack_len - 1
-                let a = stack[stack_len-1]
                 # Performance: fast-path non-allocating check for numerical addition
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a + b
@@ -559,8 +560,8 @@ class MetalVM:
                     break
             elif op == OP_MUL:
                 let b = stack[stack_len-1]
+                var a = stack[stack_len-2]
                 stack_len = stack_len - 1
-                var a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a * b
                 else:
@@ -576,8 +577,8 @@ class MetalVM:
                         stack[stack_len-1] = 0
             elif op == OP_DIV:
                 let b = stack[stack_len-1]
+                var a = stack[stack_len-2]
                 stack_len = stack_len - 1
-                var a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b and b != 0:
                     stack[stack_len-1] = a / b
                 else:
@@ -587,8 +588,8 @@ class MetalVM:
                         stack[stack_len-1] = nil
             elif op == OP_SUB:
                 let b = stack[stack_len-1]
+                var a = stack[stack_len-2]
                 stack_len = stack_len - 1
-                var a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a - b
                 else:
@@ -632,8 +633,8 @@ class MetalVM:
                         stack[stack_len-1] = true
             elif op == OP_LESS_EQUAL:
                 let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
                 stack_len = stack_len - 1
-                let a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a <= b
                 else:
@@ -641,8 +642,8 @@ class MetalVM:
                     else: stack[stack_len-1] = false
             elif op == OP_GREATER:
                 let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
                 stack_len = stack_len - 1
-                let a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a > b
                 else:
@@ -650,8 +651,8 @@ class MetalVM:
                     else: stack[stack_len-1] = false
             elif op == OP_GREATER_EQUAL:
                 let b = stack[stack_len-1]
+                let a = stack[stack_len-2]
                 stack_len = stack_len - 1
-                let a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b:
                     stack[stack_len-1] = a >= b
                 else:
@@ -692,8 +693,8 @@ class MetalVM:
                 stack_len = stack_len + 1
             elif op == OP_MOD:
                 let b = stack[stack_len-1]
+                var a = stack[stack_len-2]
                 stack_len = stack_len - 1
-                var a = stack[stack_len-1]
                 if a != nil and b != nil and tonumber(a) == a and tonumber(b) == b and b != 0:
                     stack[stack_len-1] = a % b
                 else:
