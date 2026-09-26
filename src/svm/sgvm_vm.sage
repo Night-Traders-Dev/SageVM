@@ -1335,7 +1335,8 @@ class MetalVM:
             else:
                 push(self.stack, nil)
         elif op == OP_GET_GLOBAL:
-            let idx = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian index unpack in execute_op fallback to bypass method call dispatch
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let name = self.safe_get_constant(idx)
             if self.halted: return false
@@ -1380,7 +1381,8 @@ class MetalVM:
             else:
                  self.scopes[len(self.scopes)-1][name] = val
         elif op == OP_SET_GLOBAL:
-            let idx = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian index unpack in execute_op fallback to bypass method call dispatch
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let name = self.safe_get_constant(idx)
             if self.halted: return false
@@ -1534,9 +1536,11 @@ class MetalVM:
                 print "Error: Stack overflow"
                 self.halted = true
                 return false
-            self.ip = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian integer unpack in execute_op fallback to bypass method call dispatch
+            self.ip = (self.code[self.ip] << 8) | self.code[self.ip+1]
         elif op == OP_JUMP_IF_FALSE:
-            let target = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian integer unpack in execute_op fallback to bypass method call dispatch
+            let target = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let st = self.stack
             let st_len = len(st)
@@ -1548,7 +1552,8 @@ class MetalVM:
                 print "Error: Stack overflow"
                 self.halted = true
                 return false
-            self.ip = self.ip - ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian integer unpack in execute_op fallback to bypass method call dispatch
+            self.ip = self.ip - ((self.code[self.ip] << 8) | self.code[self.ip+1])
         elif op == OP_PRINT:
             print pop(self.stack)
         elif op == OP_MATH_PRINTM:
@@ -1556,7 +1561,8 @@ class MetalVM:
             self.call_builtin("__builtin_math_printm", [matrix])
             push(self.stack, nil)
         elif op == OP_ARRAY:
-            let count = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
+            let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let arr = []
             var j = 0
@@ -1569,7 +1575,8 @@ class MetalVM:
                 pop(self.stack)
             push(self.stack, arr)
         elif op == OP_TUPLE:
-            let count = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
+            let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let t = []
             var j = 0
@@ -1582,7 +1589,8 @@ class MetalVM:
                 pop(self.stack)
             push(self.stack, t)
         elif op == OP_DICT:
-            let count = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
+            let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let d = {}
             var j = 0
@@ -1600,8 +1608,9 @@ class MetalVM:
             let obj = pop(self.stack)
             push(self.stack, slice(obj, start_idx, end_idx))
         elif op == OP_DEFINE_FUNCTION:
-            let name_idx = ut.read_be16(self.code, self.ip)
-            let chunk_idx = ut.read_be16(self.code, self.ip + 2)
+            # Performance: Direct 16-bit big-endian index unpack in execute_op fallback to bypass method call dispatch
+            let name_idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
+            let chunk_idx = (self.code[self.ip+2] << 8) | self.code[self.ip+3]
             self.ip = self.ip + 4
             let name = self.safe_get_constant(name_idx)
             if self.halted: return false
@@ -1611,7 +1620,8 @@ class MetalVM:
                 let func_obj = {"__type__": "function", "__chunk__": chunk_idx, "__name__": name}
                 self.scopes[len(self.scopes)-1][name] = func_obj
         elif op == OP_LOAD_FUNCTION:
-            let chunk_idx = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian index unpack in execute_op fallback to bypass method call dispatch
+            let chunk_idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             if chunk_idx < 0 or chunk_idx >= len(self.chunks):
                 print "Error: Chunk index out of bounds: " + str(chunk_idx)
@@ -1928,7 +1938,8 @@ class MetalVM:
             self.halted = true
             return false
         elif op == OP_CLASS:
-            let idx = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian index unpack in execute_op fallback to bypass method call dispatch
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let name = self.safe_get_constant(idx)
             if self.halted: return false
@@ -1940,7 +1951,8 @@ class MetalVM:
                 self.scopes[len(self.scopes)-1][name] = cls
                 push(self.stack, cls)
         elif op == OP_METHOD:
-            let idx = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian index unpack in execute_op fallback to bypass method call dispatch
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let name = self.safe_get_constant(idx)
             if self.halted: return false
@@ -1981,7 +1993,8 @@ class MetalVM:
                         k = k + 1
             push(self.stack, cls)
         elif op == OP_IMPORT:
-            let idx = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian index unpack in execute_op fallback to bypass method call dispatch
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let name = self.safe_get_constant(idx)
             if self.halted: return false
@@ -2072,7 +2085,8 @@ class MetalVM:
                 print "Error: Stack overflow"
                 self.halted = true
                 return false
-            let handler = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian handler offset unpack in execute_op fallback to bypass method call dispatch
+            let handler = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             # Security: Prevent nested handlers from exhausting VM memory (DoS)
             if len(self.handlers) >= self.max_handler_depth:
@@ -2131,7 +2145,8 @@ class MetalVM:
                 print "Error: Code execution is restricted"
                 self.ip = self.ip + 2
                 return true
-            let idx = ut.read_be16(self.code, self.ip)
+            # Performance: Direct 16-bit big-endian index unpack in execute_op fallback to bypass method call dispatch
+            let idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
             let ast_code = self.safe_get_constant(idx)
             if self.halted: return false
@@ -2293,8 +2308,9 @@ class MetalVM:
             else:
                 push(self.stack, val)
         elif op == OP_CREATE_GENERATOR:
-            let name_idx = ut.read_be16(self.code, self.ip)
-            let chunk_idx = ut.read_be16(self.code, self.ip + 2)
+            # Performance: Direct 16-bit big-endian index unpack in execute_op fallback to bypass method call dispatch
+            let name_idx = (self.code[self.ip] << 8) | self.code[self.ip+1]
+            let chunk_idx = (self.code[self.ip+2] << 8) | self.code[self.ip+3]
             self.ip = self.ip + 4
             let name = self.safe_get_constant(name_idx)
             if self.halted: return false
