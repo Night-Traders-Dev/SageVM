@@ -1857,18 +1857,22 @@ class MetalVM:
                 if dict_has(obj, name):
                     let val = obj[name]
                     if type(val) == "function" or type(val) == "native fn":
-                        if argc == 0: push(self.stack, sys.call(val))
-                        elif argc == 1: push(self.stack, sys.call(val, args[0]))
-                        elif argc == 2: push(self.stack, sys.call(val, args[0], args[1]))
-                        elif argc == 3: push(self.stack, sys.call(val, args[0], args[1], args[2]))
-                        elif argc == 4: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3]))
-                        elif argc == 5: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4]))
-                        elif argc == 6: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5]))
-                        elif argc == 7: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5], args[6]))
-                        elif argc == 8: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
-                        else:
-                            print "Error: Host method call with >8 args not implemented"
+                        if self.safe_mode:
+                            print "Error: Direct host function call is restricted in safe mode"
                             push(self.stack, nil)
+                        else:
+                            if argc == 0: push(self.stack, sys.call(val))
+                            elif argc == 1: push(self.stack, sys.call(val, args[0]))
+                            elif argc == 2: push(self.stack, sys.call(val, args[0], args[1]))
+                            elif argc == 3: push(self.stack, sys.call(val, args[0], args[1], args[2]))
+                            elif argc == 4: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3]))
+                            elif argc == 5: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4]))
+                            elif argc == 6: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5]))
+                            elif argc == 7: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5], args[6]))
+                            elif argc == 8: push(self.stack, sys.call(val, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
+                            else:
+                                print "Error: Host method call with >8 args not implemented"
+                                push(self.stack, nil)
                     elif type(val) == "string" and startswith(val, "__builtin_"):
                         push(self.stack, self.call_builtin(val, args))
                     else:
