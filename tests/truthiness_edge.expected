@@ -1,0 +1,42 @@
+boolean true: TRUTHY
+boolean true (not): false
+boolean true (not not): true
+boolean false: FALSY
+boolean false (not): true
+boolean false (not not): false
+nil: FALSY
+nil (not): true
+nil (not not): false
+int 0: FALSY
+int 0 (not): true
+int 0 (not not): false
+int 42: TRUTHY
+int 42 (not): false
+int 42 (not not): true
+int -1: TRUTHY
+int -1 (not): false
+int -1 (not not): true
+float 0.0: FALSY
+float 0.0 (not): true
+float 0.0 (not not): false
+float 3.14: TRUTHY
+float 3.14 (not): false
+float 3.14 (not not): true
+empty string: FALSY
+empty string (not): true
+empty string (not not): false
+non-empty string: TRUTHY
+non-empty string (not): false
+non-empty string (not not): true
+empty array: TRUTHY
+empty array (not): false
+empty array (not not): true
+non-empty array: TRUTHY
+non-empty array (not): false
+non-empty array (not not): true
+empty dict: TRUTHY
+empty dict (not): false
+empty dict (not not): true
+non-empty dict: TRUTHY
+non-empty dict (not): false
+non-empty dict (not not): true

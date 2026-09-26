@@ -124,10 +124,13 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `loop_try_catch_edge.sage`: Tests `try-catch` exception handling inside loop bodies (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`), exceptions in sequential loops, and exceptions thrown and caught within nested loops.
 - `recursion_edge.sage`: Tests recursive function calls (`OP_CALL`, `OP_RETURN`), parameter binding across stack frames, mutual recursion (`is_even` / `is_odd`), accumulator recursion, and base conditions.
 - `global_redefine_edge.sage`: Tests global variable declarations (`OP_DEFINE_GLOBAL`), reassignments (`OP_SET_GLOBAL`), scope cache invalidation, global updates inside functions and loops, conditional reassignments, and global collection mutations.
+- `bitwise_ops_edge.sage`: Tests bitwise opcodes (`OP_BIT_AND`, `OP_BIT_OR`, `OP_BIT_XOR`, `OP_BIT_NOT`, `OP_SHIFT_LEFT`, `OP_SHIFT_RIGHT`) across negative integers, zero masks, float parameters, nil operands, bitwise shifts, and chained bitwise expressions.
+- `truthiness_edge.sage`: Tests truthiness evaluation (`OP_TRUTHY`, `OP_NOT`, `OP_JUMP_IF_FALSE`) across booleans, nil, positive/negative integers, floats, empty/non-empty strings, empty/non-empty arrays, empty/non-empty dictionaries, and double negations (`not not`).
+- `collection_indexing_edge.sage`: Tests array and dictionary indexing/assignment (`OP_GET_INDEX`, `OP_SET_INDEX`), including 2D matrices, expression indices, out-of-bounds array reads, missing dictionary keys, nested dictionary mutations, and non-string dictionary keys.
 
 
 ### Verification Status (September 2026)
-The modern SVM coverage suite passes cleanly: **145 passed, 0 failed, 1 skipped** after the v1.2.1 integration. The full SRVM suite is not green in the current checkout because the register backend still has broad compatibility gaps; see the command output and the SRVM-specific tests before relying on that backend.
+The modern SVM coverage suite passes cleanly: **149 passed, 0 failed, 1 skipped** after the v1.2.1 integration. The full SRVM suite is not green in the current checkout because the register backend still has broad compatibility gaps; see the command output and the SRVM-specific tests before relying on that backend.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
