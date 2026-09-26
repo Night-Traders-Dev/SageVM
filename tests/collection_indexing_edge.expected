@@ -1,0 +1,8 @@
+Matrix [1][0] before: 3
+Matrix [1][0] after: 99
+Matrix [0][1]: 42
+Dict [1]: nil
+Dict [true]: nil
+Arr OOB: nil
+Dict missing: nil
+Nested dict [a][b]: 200

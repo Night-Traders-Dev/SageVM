@@ -1,0 +1,14 @@
+AND neg: -7
+OR neg: -1
+XOR neg: -7
+NOT zero: -1
+NOT -1: 0
+AND mask: 15
+OR mask: 255
+XOR same: 0
+Float AND: 1
+Float OR: 10
+Nil AND left: 0
+Nil OR right: 10
+Nil NOT: 0
+Chained bitwise: 14
