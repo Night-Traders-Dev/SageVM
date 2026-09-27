@@ -262,38 +262,7 @@ class MetalVM:
 
             # Hot-path dispatch: inline most frequent opcodes to avoid function call overhead
             # Performance: Bypass push/pop C function calls via stack slot re-use
-            if op == OP_GET_LOCAL:
-                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
-                ip = ip + 2
-                let target = local_base + idx
-                var val = nil
-                if target < stack_len:
-                    val = stack[target]
-                if stack_len < physical_stack_len:
-                    stack[stack_len] = val
-                else:
-                    push(stack, val)
-                    physical_stack_len = len(stack)
-                stack_len = stack_len + 1
-            elif op == OP_CONSTANT:
-                # Performance: Direct 16-bit big-endian index unpack, bounds check against pre-cached const_len, and stack slot re-use
-                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
-                ip = ip + 2
-                if idx < const_len:
-                    let val = constants[idx]
-                    if stack_len < physical_stack_len:
-                        stack[stack_len] = val
-                    else:
-                        push(stack, val)
-                        physical_stack_len = len(stack)
-                    stack_len = stack_len + 1
-                else:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
-            elif op == OP_POP:
-                stack_len = stack_len - 1
-            elif op == OP_GET_GLOBAL:
+            if op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 if idx >= const_len:
@@ -302,16 +271,17 @@ class MetalVM:
                     break
 
                 if global_cache_epoch_array[idx] == global_cache_epoch:
-                    let name = constants[idx]
-                    if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                        if stack_len < physical_stack_len:
-                            stack[stack_len] = nil
-                        else:
-                            push(stack, nil)
-                            physical_stack_len = len(stack)
-                        stack_len = stack_len + 1
-                        continue
-                    let val = global_cache_dict[idx][name]
+                    if safe_mode:
+                        let name = constants[idx]
+                        if type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                            if stack_len < physical_stack_len:
+                                stack[stack_len] = nil
+                            else:
+                                push(stack, nil)
+                                physical_stack_len = len(stack)
+                            stack_len = stack_len + 1
+                            continue
+                    let val = global_cache_dict[idx][constants[idx]]
                     if stack_len < physical_stack_len:
                         stack[stack_len] = val
                     else:
@@ -394,12 +364,13 @@ class MetalVM:
                     break
 
                 if global_cache_epoch_array[idx] == global_cache_epoch:
-                    let name = constants[idx]
-                    if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                        print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
-                        stack[stack_len-1] = nil
-                        continue
-                    global_cache_dict[idx][name] = stack[stack_len-1]
+                    if safe_mode:
+                        let name = constants[idx]
+                        if type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                            print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
+                            stack[stack_len-1] = nil
+                            continue
+                    global_cache_dict[idx][constants[idx]] = stack[stack_len-1]
                     continue
 
                 let name = constants[idx]
@@ -461,6 +432,37 @@ class MetalVM:
                 if resolved_dict != nil:
                     global_cache_dict[idx] = resolved_dict
                     global_cache_epoch_array[idx] = global_cache_epoch
+            elif op == OP_GET_LOCAL:
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                let target = local_base + idx
+                var val = nil
+                if target < stack_len:
+                    val = stack[target]
+                if stack_len < physical_stack_len:
+                    stack[stack_len] = val
+                else:
+                    push(stack, val)
+                    physical_stack_len = len(stack)
+                stack_len = stack_len + 1
+            elif op == OP_CONSTANT:
+                # Performance: Direct 16-bit big-endian index unpack, bounds check against pre-cached const_len, and stack slot re-use
+                let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
+                ip = ip + 2
+                if idx < const_len:
+                    let val = constants[idx]
+                    if stack_len < physical_stack_len:
+                        stack[stack_len] = val
+                    else:
+                        push(stack, val)
+                        physical_stack_len = len(stack)
+                    stack_len = stack_len + 1
+                else:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
+            elif op == OP_POP:
+                stack_len = stack_len - 1
             elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
