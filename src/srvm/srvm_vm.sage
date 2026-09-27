@@ -635,6 +635,13 @@ class SRVM:
                                 self.state.x[10] = sys.getenv(g_arg)
                             else:
                                 self.state.x[10] = nil
+                    elif b_name == "sys_exit" or b_name == "__builtin_sys_exit":
+                        if self.state.safe_mode:
+                            print "Error: sys.exit is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.running = false
+                            self.state.x[10] = nil
                     elif startswith(b_name, "mem_"):
                         if self.state.safe_mode:
                             print "Error: " + b_name + " is restricted in safe mode"

@@ -1219,6 +1219,9 @@ class MetalVM:
                 return -1
             return sys_exec(args[0])
         elif callee == "__builtin_sys_exit":
+            if self.safe_mode:
+                print "Error: sys.exit is restricted in safe mode"
+                return nil
             self.exit_requested = true
             self.halted = true
             return nil
