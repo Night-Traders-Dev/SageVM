@@ -1,0 +1,16 @@
+--- Simple Chained Assignment ---
+a: 50
+b: 50
+c: 50
+--- Chained Nil Assignment ---
+x == nil: true
+y == nil: true
+--- Expression Assignment Stacking ---
+p: 15
+q: 25
+sum: 40
+--- Chained Array & Property Assignments ---
+arr[0]: 99
+d.key: 99
+--- Chained Reassignment in Loop ---
+total: 30

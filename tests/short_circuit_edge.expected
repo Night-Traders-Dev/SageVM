@@ -1,0 +1,30 @@
+--- OR Short-Circuit Evaluation ---
+Left true -> Right NOT called:
+Branch 1 taken
+Left false -> Right called:
+tracker called: OR_RUN
+Branch 2 taken
+--- AND Short-Circuit Evaluation ---
+Left false -> Right NOT called:
+Branch 3 skipped
+Left true -> Right called:
+tracker called: AND_RUN
+Branch 4 taken
+--- Truthiness in Short-Circuit Expressions ---
+Non-empty string in OR:
+String truthy OK
+Nil in OR:
+tracker called: NIL_OR_RUN
+Nil falsy OK
+Zero in OR:
+tracker called: ZERO_OR_RUN
+Zero truthy/falsy check OK
+--- Chained Logical Expressions ---
+tracker called: C1
+tracker called: C2
+tracker called: C3
+Chained OR resolved
+tracker called: A1
+tracker called: A2
+tracker called: A3
+Chained AND resolved stopped at A3
