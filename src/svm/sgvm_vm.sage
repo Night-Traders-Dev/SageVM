@@ -1833,7 +1833,13 @@ class MetalVM:
                 # Host module method/attribute access
                 if dict_has(obj, name):
                     let val = obj[name]
-                    if type(val) == "function" or type(val) == "native fn":
+                    if self.safe_mode:
+                        if type(val) == "string" and startswith(val, "__builtin_"):
+                            push(self.stack, self.call_builtin(val, args))
+                        else:
+                            print "Error: Direct host function call is restricted in safe mode"
+                            push(self.stack, nil)
+                    elif type(val) == "function" or type(val) == "native fn":
                         if argc == 0: push(self.stack, sys.call(val))
                         elif argc == 1: push(self.stack, sys.call(val, args[0]))
                         elif argc == 2: push(self.stack, sys.call(val, args[0], args[1]))
