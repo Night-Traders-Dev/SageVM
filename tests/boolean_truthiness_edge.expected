@@ -1,0 +1,35 @@
+=== Truthiness Edge Cases ===
+booleans:
+truthy
+falsy
+nil:
+falsy
+numbers:
+falsy
+truthy
+truthy
+falsy
+truthy
+strings:
+falsy
+truthy
+collections:
+truthy
+truthy
+truthy
+truthy
+not operators:
+false
+true
+true
+true
+false
+true
+false
+double negation:
+true
+false
+false
+false
+true
+true

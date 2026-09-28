@@ -1,0 +1,29 @@
+=== Bitwise Operators Edge Cases ===
+a & b:
+8
+a | b:
+14
+a ^ b:
+6
+~a:
+-13
+~0:
+-1
+a << 2:
+48
+a >> 1:
+6
+a & 0:
+0
+a | 0:
+12
+a ^ 0:
+12
+a << 0:
+12
+a >> 0:
+12
+-1 & 255:
+255
+Chained bitwise:
+15

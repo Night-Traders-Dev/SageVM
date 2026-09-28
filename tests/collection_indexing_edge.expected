@@ -1,0 +1,23 @@
+=== Collection Indexing Edge Cases ===
+1. Array Indexing & Mutation:
+10
+30
+nil
+200
+2. Matrix 2D Indexing & Mutation:
+2
+3
+99
+3. Dictionary Key Access & Non-String Keys:
+Sage
+nil
+nil
+SageVM
+nil
+4. String Indexing:
+S
+M
+nil
+5. Nested Collections Mutation:
+20
+999

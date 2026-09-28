@@ -124,6 +124,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `loop_try_catch_edge.sage`: Tests `try-catch` exception handling inside loop bodies (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`), exceptions in sequential loops, and exceptions thrown and caught within nested loops.
 - `recursion_edge.sage`: Tests recursive function calls (`OP_CALL`, `OP_RETURN`), parameter binding across stack frames, mutual recursion (`is_even` / `is_odd`), accumulator recursion, and base conditions.
 - `global_redefine_edge.sage`: Tests global variable declarations (`OP_DEFINE_GLOBAL`), reassignments (`OP_SET_GLOBAL`), scope cache invalidation, global updates inside functions and loops, conditional reassignments, and global collection mutations.
+- `bitwise_ops_edge.sage`: Tests bitwise opcodes (`OP_BIT_AND`, `OP_BIT_OR`, `OP_BIT_XOR`, `OP_BIT_NOT`, `OP_SHIFT_LEFT`, `OP_SHIFT_RIGHT`) across negative numbers, zero masks, floats, nil operands, and chained bitwise expressions.
+- `boolean_truthiness_edge.sage`: Tests truthiness evaluation (`OP_TRUTHY`, `OP_NOT`, `OP_JUMP_IF_FALSE`) across booleans, nil, integers, floats, strings, arrays, dicts, and double negation.
+- `collection_indexing_edge.sage`: Tests collection indexing and mutation (`OP_GET_INDEX`, `OP_SET_INDEX`) across arrays, dicts, strings, 2D matrices, expression indices, out-of-bounds access, missing keys, nested mutations, and non-string dictionary keys.
 
 
 ### Verification Status (September 2026)
