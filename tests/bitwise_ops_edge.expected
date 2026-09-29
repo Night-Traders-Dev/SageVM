@@ -1,0 +1,21 @@
+--- Bitwise AND / OR / XOR / NOT with Negative Numbers ---
+255
+-9
+-16
+0
+-1
+--- Bitwise Operations with Zero Masks ---
+0
+42
+42
+--- Bitwise Operations with Floats and Nil ---
+2
+0
+5
+--- Bitwise Shifts ---
+1
+256
+16
+0
+--- Chained Bitwise Expressions ---
+11
