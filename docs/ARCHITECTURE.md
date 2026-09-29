@@ -141,7 +141,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-22**
+**Last Conformance Sync: 2026-09-29**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists. The authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63). This shifts the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions (e.g., local `OP_GPU_POLL_EVENTS` mapped to 59 collides with authoritative `BC_OP_GET_LOCAL` at 59, and local `OP_YIELD` mapped to 90 collides with authoritative `OP_GPU_CMD_PUSH_CONST` at 90).
 
@@ -246,6 +246,8 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_GPU_CMD_PUSH_CONST | 85 | 90 | gpu.cmd_push_constants(...) [Collision: YIELD] |
 | OP_GPU_CMD_DISPATCH | 86 | 91 | gpu.cmd_dispatch(cmd, gx, gy, gz) [Collision: CREATE_GEN] |
 | OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: OP_GPU_WAIT_FENCE] |
+| OP_AWAIT | 93 | 92 | Await async future/resolved value |
+| OP_DEFINE_ASYNC | 94 | 93 | Define async function binding |
 | OP_HALT | 255 | - | Halt execution [SageVM Extension] |
 
 ## Native Bridge
