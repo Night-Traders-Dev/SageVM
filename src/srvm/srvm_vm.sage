@@ -541,15 +541,19 @@ class SRVM:
                     elif b_name == "dict_has":
                         let obj = self.state.x[10]
                         let key = self.state.x[11]
-                        if self.state.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+                        if obj == nil or type(obj) != "dict":
+                            self.state.x[10] = false
+                        elif self.state.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
                             self.state.x[10] = false
                         else:
                             self.state.x[10] = dict_has(obj, key)
                     elif b_name == "dict_keys":
                         let obj = self.state.x[10]
-                        let keys = dict_keys(obj)
-                        if self.state.safe_mode:
+                        if obj == nil or type(obj) != "dict":
+                            self.state.x[10] = []
+                        elif self.state.safe_mode:
                             let safe_keys = []
+                            let keys = dict_keys(obj)
                             var i = 0
                             while i < len(keys):
                                 let key = keys[i]
@@ -558,10 +562,12 @@ class SRVM:
                                 i = i + 1
                             self.state.x[10] = safe_keys
                         else:
-                            self.state.x[10] = keys
+                            self.state.x[10] = dict_keys(obj)
                     elif b_name == "dict_values":
                         let obj = self.state.x[10]
-                        if self.state.safe_mode:
+                        if obj == nil or type(obj) != "dict":
+                            self.state.x[10] = []
+                        elif self.state.safe_mode:
                             let safe_vals = []
                             let keys = dict_keys(obj)
                             var i = 0
