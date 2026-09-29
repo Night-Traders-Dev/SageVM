@@ -94,6 +94,8 @@ The following opcodes are SageVM-specific extensions or legacy mappings:
 - `OP_YIELD` (90): Yield a value from generator (Collides with authoritative `BC_OP_GPU_CMD_PUSH_CONST` at 90).
 - `OP_CREATE_GENERATOR` (91): Create a generator function (Collides with authoritative `BC_OP_GPU_CMD_DISPATCH` at 91).
 - `OP_GENERATOR_NEXT` (92): Resume generator execution (No collision with GPU block, but shift is maintained).
+- `OP_AWAIT` (93): Await async value or future (Remapped from host emission `0x5c` / `BC_OP_AWAIT` at 109).
+- `OP_DEFINE_ASYNC` (94): Define an async procedure (Remapped from host emission `0x5d` / `BC_OP_DEFINE_ASYNC_FUNCTION` at 118).
 - `OP_HALT` (255): Unconditional VM termination.
 
 ### 9.2 Known Incompatibilities

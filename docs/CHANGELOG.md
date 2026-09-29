@@ -1,4 +1,13 @@
 # Changelog
+## [1.2.2] - 2026-09-29
+
+### Added
+- **Async Opcode Translation**: Added `OP_AWAIT` (93) and `OP_DEFINE_ASYNC` (94) opcode constants in `src/svm/sgvm_core.sage` and `tools/sgvm_core.sage`.
+- **SGVM Compiler Remapping**: Updated `src/svm/sgvm_compiler.sage` to remap host bytecode emissions `0x5c` (`BC_OP_AWAIT`) and `0x5d` (`BC_OP_DEFINE_ASYNC_FUNCTION`) to SGVM internal opcodes 93 and 94.
+
+### Changed
+- **Parity Check Utility**: Updated `tools/parity_check.py` to fix binary path resolution, CLI subcommand invocations (`sagevm` compile/run vs legacy `--sgvm`), and backend AST/bytecode comparison environment setup.
+
 ## [1.2.1] - 2026-09-23
 
 ### Security & Correctness
