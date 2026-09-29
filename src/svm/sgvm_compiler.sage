@@ -332,6 +332,8 @@ class SGVMCompiler:
                     elif op == 0x3d: op = 90 # BC_OP_YIELD
                     elif op == 0x3e: op = 91 # BC_OP_CREATE_GENERATOR
                     elif op == 0x3f: op = 92 # BC_OP_GENERATOR_NEXT
+                    elif op == 0x5c: op = 93 # BC_OP_AWAIT
+                    elif op == 0x5d: op = 94 # BC_OP_DEFINE_ASYNC_FUNCTION
                     
                     self.write_byte(op)
                     j = j + 2

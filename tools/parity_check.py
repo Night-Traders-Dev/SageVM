@@ -15,8 +15,17 @@ import os
 import argparse
 import difflib
 
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# The host SageLang is a submodule at .deps/SageLang, and this binary is at the
+# repo root. These defaults used to point at <repo>/../core and <repo>/../sgvm,
+# which assume SageVM is vendored inside a SageLang checkout -- in this layout
+# neither path exists, so the ast and bytecode backends died with FileNotFound
+# before running anything, and the sgvm backends looked for binaries that are
+# not there. Both are overridable for the embedded arrangement.
+SAGE_DIR = os.environ.get("SAGE_DIR", os.path.join(_REPO_ROOT, ".deps", "SageLang", "core"))
 SAGE_EXECUTABLE = os.environ.get("SAGE_EXEC", "./sage")
-SAGE_DIR = os.environ.get("SAGE_DIR", os.path.join(os.path.dirname(__file__), "..", "core"))
+SAGEVM_DIR = os.environ.get("SAGEVM_DIR", _REPO_ROOT)
 
 
 def run_backend(source_file: str, backend: str) -> str:
@@ -30,12 +39,14 @@ def run_backend(source_file: str, backend: str) -> str:
 
 
 def run_sgvm(source_file: str) -> str:
-    cmd = [os.path.join(SAGE_DIR, SAGE_EXECUTABLE), "--sgvm", source_file, "-o", "/tmp/_parity_out.sgvm"]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    out = "/tmp/_parity_out.sgvm"
+    cmd = [os.path.join(SAGEVM_DIR, "sagevm"), "compile", source_file]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
         return f"ERROR(sgvm-compile): {result.stderr.strip()}"
-    # Run the compiled sgvm file
-    cmd2 = [os.path.join(SAGE_DIR, "sgvm"), "/tmp/_parity_out.sgvm"]
+    # sagevm derives the artifact name from the source name, not from -o
+    derived = os.path.splitext(source_file)[0] + ".sgvm"
+    cmd2 = [os.path.join(SAGEVM_DIR, "sagevm"), "run", derived]
     result2 = subprocess.run(cmd2, capture_output=True, text=True, timeout=30)
     if result2.returncode != 0 and not result2.stdout:
         return f"ERROR(sgvm-run): {result2.stderr.strip()}"
@@ -43,11 +54,11 @@ def run_sgvm(source_file: str) -> str:
 
 
 def run_sgvmc(source_file: str) -> str:
-    cmd = [os.path.join(SAGE_DIR, "sgvmc"), source_file, "/tmp/_parity_sgvmc_out.sgvm"]
+    cmd = [os.path.join(SAGEVM_DIR, "sgvmc"), source_file, "/tmp/_parity_sgvmc_out.sgvm"]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     if result.returncode != 0:
         return f"ERROR(sgvmc-compile): {result.stderr.strip()}"
-    cmd2 = [os.path.join(SAGE_DIR, "sgvm"), "/tmp/_parity_sgvmc_out.sgvm"]
+    cmd2 = [os.path.join(SAGEVM_DIR, "sagevm"), "run", "/tmp/_parity_sgvmc_out.sgvm"]
     result2 = subprocess.run(cmd2, capture_output=True, text=True, timeout=30)
     if result2.returncode != 0 and not result2.stdout:
         return f"ERROR(sgvmc-run): {result2.stderr.strip()}"

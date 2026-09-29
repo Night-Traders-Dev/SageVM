@@ -98,6 +98,12 @@ let OP_SET_LOCAL      = 89
 let OP_YIELD          = 90
 let OP_CREATE_GENERATOR = 91
 let OP_GENERATOR_NEXT = 92
+# async/await. These are SageVM's own numbers; the emitter's are different
+# (BC_OP_AWAIT 92, BC_OP_DEFINE_ASYNC_FUNCTION 93) and sgvm_compiler.sage
+# translates them. They cannot simply be given the emitter's values: 92 and 93
+# are taken here, and the numbering past 59 is not the emitter's at all.
+let OP_AWAIT          = 93
+let OP_DEFINE_ASYNC   = 94
 let OP_HALT           = 255
 
 class SGVMUtils:
