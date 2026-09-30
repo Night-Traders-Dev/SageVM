@@ -568,7 +568,9 @@ class SRVM:
                             while i < len(keys):
                                 let key = keys[i]
                                 if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
-                                    push(safe_vals, obj[key])
+                                    let val = obj[key]
+                                    if not (type(val) == "string" and (val == "module" or startswith(val, "__host_"))):
+                                        push(safe_vals, val)
                                 i = i + 1
                             self.state.x[10] = safe_vals
                         else:
