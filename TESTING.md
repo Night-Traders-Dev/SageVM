@@ -124,6 +124,8 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `loop_try_catch_edge.sage`: Tests `try-catch` exception handling inside loop bodies (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`), exceptions in sequential loops, and exceptions thrown and caught within nested loops.
 - `recursion_edge.sage`: Tests recursive function calls (`OP_CALL`, `OP_RETURN`), parameter binding across stack frames, mutual recursion (`is_even` / `is_odd`), accumulator recursion, and base conditions.
 - `global_redefine_edge.sage`: Tests global variable declarations (`OP_DEFINE_GLOBAL`), reassignments (`OP_SET_GLOBAL`), scope cache invalidation, global updates inside functions and loops, conditional reassignments, and global collection mutations.
+- `nested_scopes_edge.sage`: Tests multi-level block scopes (`OP_PUSH_ENV`, `OP_POP_ENV`), variable lookups across nested environments, local variable shadowing within blocks, scope restoration upon exiting blocks, and nil/unbound variable behavior in block scopes (documenting SageLang frontend variable assignment semantics where block variable definitions update the global environment dictionary).
+- `matrix_ops_edge.sage`: Tests `math.printm` (`OP_MATH_PRINTM`) matrix visualization on 2D matrices, 1D vectors, empty arrays, mixed string/numeric matrices, and non-array/nil parameters.
 
 
 ### Verification Status (September 2026)

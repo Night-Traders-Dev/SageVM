@@ -1,0 +1,22 @@
+--- Initial Global State ---
+global_var
+level1_var
+--- Inside Level 1 Scope ---
+global_var
+shadowed_level1
+level2_var
+--- Inside Level 2 Scope ---
+global_var
+shadowed_level1
+level2_var
+level3_var
+shadowed_global
+--- Back in Level 1 Scope ---
+shadowed_global
+shadowed_level1
+level2_var
+--- Back in Global Scope ---
+shadowed_global
+shadowed_level1
+--- Unbound Variable Lookup in Scope ---
+nil
