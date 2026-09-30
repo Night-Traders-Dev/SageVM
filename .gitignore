@@ -36,3 +36,8 @@ test_int
 !testsuite/benchmarks/results/*.png
 !testsuite/benchmarks/results/*.json
 sagevm
+
+# SageLang used to live here as a submodule, closing a SageLang <-> SageVM
+# cycle that `clone --recurse-submodules` walked three levels deep. sagemake
+# now resolves it via $SAGELANG_DIR or a sibling checkout. See .gitmodules.
+.deps/

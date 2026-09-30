@@ -1,8 +1,26 @@
-[submodule ".deps/SageLang"]
-	path = .deps/SageLang
-	url = https://github.com/Night-Traders-Dev/SageLang.git
-	shallow = true
-	fetchRecurseSubmodules = false
 [submodule "docs/site"]
 	path = docs/site
 	url = https://github.com/Night-Traders-Dev/SageVM-Docs
+
+## .deps/SageLang used to be a submodule here, and it closed a cycle:
+##
+##   SageLang/core/src/sage/vm-tools  ->  SageVM/.deps/SageLang  ->  SageLang
+##
+## That is not theoretical. `git clone --recurse-submodules` on SageLang produced
+## three levels of vm-tools/.deps/SageLang and 1.6 GB for what is fundamentally two
+## repositories, and git 2.53 reported no cycle at all. The `fetchRecurseSubmodules`
+## = false that stood guard on both sides does not help: that setting applies to
+## fetch and `submodule update`, not to an explicit `clone --recurse-submodules`,
+## so it was inert exactly where it was needed. I verified this by cloning rather
+## than by reading the manual.
+##
+## The submodule is gone. sagemake now resolves SageLang instead of vendoring it,
+## in this order:
+##
+##   1. $SAGELANG_DIR          -- explicit override
+##   2. ../SageLang            -- sibling checkout, the normal case
+##   3. .deps/SageLang         -- a hand-placed checkout still works
+##   4. /usr/local             -- a system install, if `sage` is on PATH
+##
+## To restore a submodule-based build, clone SageLang yourself and point
+## $SAGELANG_DIR at it. Do not re-add the submodule: that is what caused this.

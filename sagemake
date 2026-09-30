@@ -25,8 +25,31 @@ VERSION = "1.0.0"
 if Path("VERSION").exists():
     VERSION = Path("VERSION").read_text().strip()
 
-SAGE_BIN = Path(".deps/SageLang/core/sage") if Path(".deps/SageLang/core/sage").exists() else Path("/usr/local/bin/sage")
-SAGE_LIB = Path(".deps/SageLang/core/lib")
+## Locate SageLang. This used to be a submodule at .deps/SageLang, closing a
+## SageLang <-> SageVM cycle: SageLang/core/src/sage/vm-tools -> SageVM ->
+## .deps/SageLang -> SageLang. A `clone --recurse-submodules` on SageLang walked it
+## three levels deep and produced 1.6 GB, with git 2.53 reporting no cycle. The
+## fetchRecurseSubmodules=false that guarded it was inert for this case -- that
+## setting governs fetch and `submodule update`, not an explicit
+## clone --recurse-submodules. Resolving the dependency rather than vendoring it is
+## what actually breaks the loop.
+def resolve_sagelang():
+    candidates = []
+    env = os.environ.get("SAGELANG_DIR")
+    if env:
+        candidates.append(Path(env))
+    candidates.append(Path(__file__).resolve().parent.parent / "SageLang")
+    candidates.append(Path(".deps/SageLang"))
+    for c in candidates:
+        if (c / "core").is_dir():
+            return c
+    return None
+
+SAGELANG_DIR = resolve_sagelang()
+SAGE_BIN = ((SAGELANG_DIR / "core" / "sage")
+           if SAGELANG_DIR and (SAGELANG_DIR / "core" / "sage").exists()
+           else Path("/usr/local/bin/sage"))
+SAGE_LIB = (SAGELANG_DIR / "core" / "lib") if SAGELANG_DIR else Path("/usr/local/lib/sage")
 
 if HAS_RICH:
     console = Console()
@@ -64,12 +87,12 @@ def run_cmd(cmd, cwd=None, capture_output=True, shell=False, env=None):
 def prepare_workspace():
     section("Preparing workspace")
     
-    step("Updating SageLang submodule")
-    if Path(".git").exists():
-        run_cmd(["git", "-c", "submodule..deps/SageLang.update=checkout", "submodule", "update", "--init"])
-        step_ok("synchronized")
+    step("Locating SageLang")
+    if SAGELANG_DIR is None:
+        step_fail("SageLang not found. Set $SAGELANG_DIR to a checkout, place one "
+                  "at ../SageLang, or install `sage` on PATH.")
     else:
-        step_ok("skipped (not a git repo)")
+        step_ok(str(SAGELANG_DIR))
 
     step("Cleaning old artifacts")
     for p in ["sgvm", "sgvmc"]:
@@ -89,7 +112,7 @@ def build_sagelang(args):
     start = time.time()
     
     cflags = os.environ.get("SAGE_CFLAGS", "")
-    res = run_cmd(["make", "-C", ".deps/SageLang/core", "-j" + str(os.cpu_count() or 2)], 
+    res = run_cmd(["make", "-C", str(SAGELANG_DIR / "core"), "-j" + str(os.cpu_count() or 2)], 
                   env={"CFLAGS_EXTRA": cflags}, capture_output=False)
     
     if res and res.returncode == 0:
