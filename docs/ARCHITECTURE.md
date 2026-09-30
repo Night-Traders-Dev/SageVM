@@ -141,9 +141,9 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-22**
+**Last Conformance Sync: 2026-09-30**
 
-> ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists. The authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63). This shifts the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions (e.g., local `OP_GPU_POLL_EVENTS` mapped to 59 collides with authoritative `BC_OP_GET_LOCAL` at 59, and local `OP_YIELD` mapped to 90 collides with authoritative `OP_GPU_CMD_PUSH_CONST` at 90).
+> ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists. The authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), `BC_OP_GENERATOR_NEXT` (63), `BC_OP_AWAIT` (92), and `BC_OP_DEFINE_ASYNC_FUNCTION` (93). This shifts the entire GPU instruction block to indices 64-91 and async opcodes to 92-93. SageVM currently maintains a legacy mapping (59-86 for GPU, 93-94 for async), resulting in a **5-opcode shift** for the Phase 16 block and encoding divergence across local, generator, GPU, and async instructions.
 
 > ⚠️ **Disassembler Logic Gap**: The SVM disassembler (`src/svm/sgvm_disassembler_logic.sage`) currently lacks descriptive labels for local variable (88-89), generator (90-92), matrix (87), and GPU (59-86) opcodes, displaying them as `unknown_N` in disassembled output.
 
@@ -246,6 +246,8 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_GPU_CMD_PUSH_CONST | 85 | 90 | gpu.cmd_push_constants(...) [Collision: YIELD] |
 | OP_GPU_CMD_DISPATCH | 86 | 91 | gpu.cmd_dispatch(cmd, gx, gy, gz) [Collision: CREATE_GEN] |
 | OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: OP_GPU_WAIT_FENCE] |
+| OP_AWAIT | 93 | 92 | await (value on stack) -> resolved value [Collision/Shift: 93 vs Auth 92] |
+| OP_DEFINE_ASYNC | 94 | 93 | define an async proc binding [Collision/Shift: 94 vs Auth 93] |
 | OP_HALT | 255 | - | Halt execution [SageVM Extension] |
 
 ## Native Bridge

@@ -1,4 +1,10 @@
 # Changelog
+## [1.2.2] - 2026-09-30
+
+### Documentation & Conformance
+- Performed opcode conformance sync against authoritative `bytecode.h` (Night-Traders-Dev/SageLang).
+- Synchronized `docs/ARCHITECTURE.md` and `docs/SPEC.md` opcode tables to document `OP_AWAIT` (93 / Auth 92) and `OP_DEFINE_ASYNC` (94 / Auth 93), updated Last Conformance Sync timestamp (2026-09-30), and documented async opcode encoding shifts.
+
 ## [1.2.1] - 2026-09-23
 
 ### Security & Correctness

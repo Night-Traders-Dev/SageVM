@@ -84,7 +84,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-07-22**
+**Last Conformance Sync: 2026-09-30**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
@@ -94,9 +94,11 @@ The following opcodes are SageVM-specific extensions or legacy mappings:
 - `OP_YIELD` (90): Yield a value from generator (Collides with authoritative `BC_OP_GPU_CMD_PUSH_CONST` at 90).
 - `OP_CREATE_GENERATOR` (91): Create a generator function (Collides with authoritative `BC_OP_GPU_CMD_DISPATCH` at 91).
 - `OP_GENERATOR_NEXT` (92): Resume generator execution (No collision with GPU block, but shift is maintained).
+- `OP_AWAIT` (93): Await promise/value resolution (Auth `BC_OP_AWAIT` at 92).
+- `OP_DEFINE_ASYNC` (94): Define an async procedure binding (Auth `BC_OP_DEFINE_ASYNC_FUNCTION` at 93).
 - `OP_HALT` (255): Unconditional VM termination.
 
 ### 9.2 Known Incompatibilities
-- **Opcode Alignment Regression**: As of the latest sync (2026-07-22), the authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63). This has shifted the entire Phase 16 GPU instruction block to indices 64-91. SageVM maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** across the entire GPU block and multiple collisions (e.g., local `OP_GPU_POLL_EVENTS` mapped to 59 collides with authoritative `BC_OP_GET_LOCAL` at 59, and local `OP_YIELD` mapped to 90 collides with authoritative `OP_GPU_CMD_PUSH_CONST` at 90).
+- **Opcode Alignment Regression**: As of the latest sync (2026-09-30), the authoritative `bytecode.h` has introduced `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), `BC_OP_GENERATOR_NEXT` (63), `BC_OP_AWAIT` (92), and `BC_OP_DEFINE_ASYNC_FUNCTION` (93). This has shifted the entire Phase 16 GPU instruction block to indices 64-91 and async opcodes to 92-93. SageVM maintains a legacy mapping (59-86 for GPU, 93-94 for async), resulting in a **5-opcode shift** across the entire GPU block and encoding divergence across local, generator, GPU, and async instructions.
 - **GPU Instruction Set (SRVM)**: The register-based VM (SRVM) utilizes a legacy 2D GPU instruction set that differs significantly from the Vulkan-aligned opcodes in the core spec.
 - **Raise Encoding**: Historically, the `sgvmc` compiler (SVM) expected an incorrect encoding (`0x44`) for `OP_RAISE` which conflicted with `OP_GPU_END_COMMANDS`. This was resolved in v0.9.7; `OP_RAISE` is now correctly mapped to 58. Note that `sgvmc` still contains a hazardous legacy remapping for `0x44` -> 58.
