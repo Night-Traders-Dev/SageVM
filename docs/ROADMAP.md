@@ -26,6 +26,7 @@ This document outlines the current status, supported features, and outstanding w
 
 - **SVM Generator Engine**: Full native VM implementation for `OP_CREATE_GENERATOR` (91), `OP_YIELD` (90), `OP_GENERATOR_NEXT` (92), and `next()` builtin.
 - **Opcode Hex Translation Alignment**: Host 0-based bytecode opcodes aligned with SageVM execution layout across compiler and runner.
+- **Async/Await Opcode Translation**: Translation plumbing for `OP_AWAIT` (93) and `OP_DEFINE_ASYNC` (94) in the SVM compiler and core opcode definitions.
 - **100% Coverage Pass Rate**: 113/113 coverage tests passing under Stack VM and RISC-V VM targets.
 
 ## 🟡 In Progress

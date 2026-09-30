@@ -1,4 +1,13 @@
 # Changelog
+
+## [1.2.2] - 2026-09-30
+
+### Added
+- **Async Opcode Support**: Synchronized opcode translation plumbing for `OP_AWAIT` (93 / host `0x5c`) and `OP_DEFINE_ASYNC` (94 / host `0x5d`) in the SVM compiler and core opcode definitions.
+
+### Changed
+- **Build System Submodule Resolution**: Updated `sagemake` build orchestrator to resolve SageLang via `$SAGELANG_DIR`, sibling directory `../SageLang`, or `.deps/SageLang`, eliminating cyclic submodule linkage and preventing recursive clone depth issues.
+
 ## [1.2.1] - 2026-09-23
 
 ### Security & Correctness
