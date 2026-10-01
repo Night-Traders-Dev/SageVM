@@ -62,7 +62,8 @@ class SRVM:
         self.trace = false
 
     proc is_truthy(self, val):
-        if val == nil or val == false or val == 0 or val == "" or val == 0.0:
+        # Performance: Short-circuit boolean true check before falsy checks
+        if val != true and (val == nil or val == false or val == 0 or val == "" or val == 0.0):
             return false
         return true
 

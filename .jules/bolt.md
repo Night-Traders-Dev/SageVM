@@ -1,5 +1,9 @@
 # Bolt's Performance Journal
 
+## 2026-10-01 - CLI Subcommand Dispatch & sys.args Offset Pattern
+**Learning:** In SageLang's C-compiled binary target, `sys.args()` skips `argv[0]` (the binary executable path). Consequently, `sys.args()[0]` is the first user-supplied CLI parameter (e.g. `run`, `compile`, or a file path) rather than `argv[0]`. Setting subcommand dispatch to `sys.args()[0]` ensures native CLI tools dispatch subcommands and flags correctly without "Unknown command" errors.
+**Action:** Always index `sys.args()[0]` as the primary subcommand/input parameter when parsing CLI arguments in SageLang-compiled host utilities.
+
 ## 2026-09-23 - Cold Opcode Relocation & Deferring Constant Lookups in Global Cache Hits
 **Learning:** In the SVM interpreter (`MetalVM.run` in `src/svm/sgvm_vm.sage`), `OP_DEFINE_GLOBAL` was positioned high in the opcode dispatch chain ahead of hot loop instructions (`OP_SET_LOCAL`, `OP_LESS`, `OP_ADD`, `OP_JUMP`, `OP_JUMP_IF_FALSE`, `OP_LOOP_BACK`), forcing every loop iteration to execute redundant `elif op == OP_DEFINE_GLOBAL` branch checks. Relocating startup-only opcodes like `OP_DEFINE_GLOBAL` below loop instructions and deferring `constants[idx]` list lookups and `safe_mode` string checks inside `OP_SET_GLOBAL` to execute only after cache-hit checks yielded a ~29.7% real-time speedup on 1M-iteration loop benchmarks (~11.49s down to ~7.91s).
 **Action:** Always position setup and declaration opcodes (such as `OP_DEFINE_GLOBAL`) below loop, arithmetic, and control flow opcodes in VM dispatch chains, and defer constant pool list lookups until after inline cache validity checks.
