@@ -84,7 +84,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-07-22**
+**Last Conformance Sync: 2026-10-01**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
@@ -94,6 +94,8 @@ The following opcodes are SageVM-specific extensions or legacy mappings:
 - `OP_YIELD` (90): Yield a value from generator (Collides with authoritative `BC_OP_GPU_CMD_PUSH_CONST` at 90).
 - `OP_CREATE_GENERATOR` (91): Create a generator function (Collides with authoritative `BC_OP_GPU_CMD_DISPATCH` at 91).
 - `OP_GENERATOR_NEXT` (92): Resume generator execution (No collision with GPU block, but shift is maintained).
+- `OP_AWAIT` (93): Await async execution (Translated from compiler opcode `0x5c` / host `92`).
+- `OP_DEFINE_ASYNC` (94): Define async function (Translated from compiler opcode `0x5d` / host `93`).
 - `OP_HALT` (255): Unconditional VM termination.
 
 ### 9.2 Known Incompatibilities

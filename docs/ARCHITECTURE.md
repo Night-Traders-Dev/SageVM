@@ -246,6 +246,13 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_GPU_CMD_PUSH_CONST | 85 | 90 | gpu.cmd_push_constants(...) [Collision: YIELD] |
 | OP_GPU_CMD_DISPATCH | 86 | 91 | gpu.cmd_dispatch(cmd, gx, gy, gz) [Collision: CREATE_GEN] |
 | OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: OP_GPU_WAIT_FENCE] |
+| OP_GET_LOCAL | 88 | 59 | Get local variable by stack frame index [Collision: OP_GPU_RESET_FENCE] |
+| OP_SET_LOCAL | 89 | 60 | Set local variable by stack frame index [Collision: OP_GPU_UPDATE_UNIFORM] |
+| OP_YIELD | 90 | 61 | Yield value from generator function [Collision: OP_GPU_CMD_PUSH_CONST] |
+| OP_CREATE_GENERATOR | 91 | 62 | Define generator function [Collision: OP_GPU_CMD_DISPATCH] |
+| OP_GENERATOR_NEXT | 92 | 63 | Resume generator execution |
+| OP_AWAIT | 93 | 0x5c | Await async execution (translated from compiler opcode 0x5c) |
+| OP_DEFINE_ASYNC | 94 | 0x5d | Define async function (translated from compiler opcode 0x5d) |
 | OP_HALT | 255 | - | Halt execution [SageVM Extension] |
 
 ## Native Bridge
