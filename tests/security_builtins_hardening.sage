@@ -34,7 +34,7 @@ var has_internal_val = false
 var j = 0
 while j < len(values):
     let v = values[j]
-    if type(v) == "string" and (v == "module" or startswith(v, "__")):
+    if type(v) == "string" and (v == "module" or startswith(v, "__host_")):
         has_internal_val = true
     j = j + 1
 print "dict_values contains internal value: " + str(has_internal_val)
