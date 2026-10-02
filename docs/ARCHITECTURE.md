@@ -246,6 +246,8 @@ The following opcodes are supported by `sgvm.sage` and emitted by `sgvmc.sage`.
 | OP_GPU_CMD_PUSH_CONST | 85 | 90 | gpu.cmd_push_constants(...) [Collision: YIELD] |
 | OP_GPU_CMD_DISPATCH | 86 | 91 | gpu.cmd_dispatch(cmd, gx, gy, gz) [Collision: CREATE_GEN] |
 | OP_MATH_PRINTM | 87 | - | math.printm(matrix) [Collision: OP_GPU_WAIT_FENCE] |
+| OP_AWAIT | 93 | 92 | Await async promise [SageVM Extension] |
+| OP_DEFINE_ASYNC | 94 | 93 | Define async function [SageVM Extension] |
 | OP_HALT | 255 | - | Halt execution [SageVM Extension] |
 
 ## Native Bridge

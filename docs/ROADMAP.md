@@ -25,6 +25,7 @@ This document outlines the current status, supported features, and outstanding w
 - **JIT/AOT Foundation**: Initial components (Memory Manager, RISC-V Emitter, Type Profiler) and OSR hooks implemented in `src/jit/` and `src/srvm/`.
 
 - **SVM Generator Engine**: Full native VM implementation for `OP_CREATE_GENERATOR` (91), `OP_YIELD` (90), `OP_GENERATOR_NEXT` (92), and `next()` builtin.
+- **Async Opcode Translation Plumbing**: Translation mapping and opcode constants for `OP_AWAIT` (93) and `OP_DEFINE_ASYNC` (94) in `sgvm_core.sage` and `sgvm_compiler.sage`.
 - **Opcode Hex Translation Alignment**: Host 0-based bytecode opcodes aligned with SageVM execution layout across compiler and runner.
 - **100% Coverage Pass Rate**: 113/113 coverage tests passing under Stack VM and RISC-V VM targets.
 

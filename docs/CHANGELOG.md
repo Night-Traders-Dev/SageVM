@@ -1,4 +1,16 @@
 # Changelog
+
+## [1.2.2] - 2026-10-02
+
+### Added
+- **Async Opcode Translation Plumbing**: Synchronized `src/svm/sgvm_core.sage` and `src/svm/sgvm_compiler.sage` to define and translate async opcodes `OP_AWAIT` (93, translated from host `BC_OP_AWAIT` 92) and `OP_DEFINE_ASYNC` (94, translated from host `BC_OP_DEFINE_ASYNC_FUNCTION` 93).
+
+### Changed
+- **Build Cycle Resolution in `sagemake`**: Updated `sagemake` submodule dependency resolution logic to resolve `SageLang` via environment `$SAGELANG_DIR`, sibling checkout `../SageLang`, or `.deps/SageLang`, eliminating nested recursive submodule clone build loops.
+
+### Documentation
+- Updated `docs/ARCHITECTURE.md` and `docs/SPEC.md` opcode reference tables and conformance specifications to document `OP_AWAIT` (93) and `OP_DEFINE_ASYNC` (94).
+
 ## [1.2.1] - 2026-09-23
 
 ### Security & Correctness
