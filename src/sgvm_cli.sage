@@ -437,9 +437,11 @@ class SGVMCLI:
                 sys_exec("clear")
             elif line == ":help":
                 print COLOR_BOLD + "SageVM REPL Commands:" + COLOR_RESET
-                print "  " + COLOR_CYAN + ":quit" + COLOR_RESET + "   Exit the interactive REPL"
-                print "  " + COLOR_CYAN + ":clear" + COLOR_RESET + "  Clear the terminal screen"
-                print "  " + COLOR_CYAN + ":help" + COLOR_RESET + "   Display this help dialog"
+                print "  " + COLOR_CYAN + ":quit" + COLOR_RESET + ", " + COLOR_CYAN + ":exit" + COLOR_RESET + "  Exit the interactive REPL"
+                print "  " + COLOR_CYAN + ":clear" + COLOR_RESET + ", " + COLOR_CYAN + ":cls" + COLOR_RESET + " Clear the terminal screen"
+                print "  " + COLOR_CYAN + ":help" + COLOR_RESET + "        Display this help dialog"
+            elif startswith(line, ":"):
+                print COLOR_YELLOW + "💡 Tip: Unknown REPL command '" + line + "'. Type " + COLOR_CYAN + ":help" + COLOR_RESET + COLOR_YELLOW + " for instructions." + COLOR_RESET
             else:
                 let trimmed = ut.trim(line)
                 if trimmed != "":
