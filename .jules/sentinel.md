@@ -127,3 +127,8 @@
 **Vulnerability:** In `MetalVM.execute_op` (`src/svm/sgvm_vm.sage`), `OP_CALL_METHOD` dispatched method calls on module wrappers without validating `self.safe_mode`. Guest code running in `safe_mode` could construct or resolve module objects containing host function references and invoke them via method call syntax (`m.f(...)`).
 **Learning:** Restricting module import or global resolution is insufficient if method dispatch (`OP_CALL_METHOD`) on module objects executes direct host functions without validating sandbox flags.
 **Prevention:** Always enforce `self.safe_mode` restrictions inside `OP_CALL_METHOD` across module receivers as well as general object receivers.
+
+## 2026-10-03 - Unbounded Tuple Allocation DoS in SRVM (RISC-V VM)
+**Vulnerability:** In the RISC-V VM (`src/srvm/srvm_vm.sage`), `OBJ_TUPLE_NEW` read allocation size directly from register `x10` without validating bounds (`size < 0 or size > max_array_size`). A malicious binary could pass negative or oversized dimensions to trigger host memory exhaustion or infinite loops.
+**Learning:** When porting collection allocation instructions across VM backends, resource limit enforcement must be mirrored across all collection type constructors (`OBJ_ARRAY_NEW`, `OBJ_TUPLE_NEW`).
+**Prevention:** Always validate size/dimension parameters against `max_array_size` before allocating memory or pushing elements in VM instructions.
