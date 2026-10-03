@@ -274,7 +274,7 @@ class MetalVM:
                     stack[stack_len] = val
                 else:
                     push(stack, val)
-                    physical_stack_len = len(stack)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_CONSTANT:
                 # Performance: Direct 16-bit big-endian index unpack, bounds check against pre-cached const_len, and stack slot re-use
@@ -286,7 +286,7 @@ class MetalVM:
                         stack[stack_len] = val
                     else:
                         push(stack, val)
-                        physical_stack_len = len(stack)
+                        physical_stack_len = physical_stack_len + 1
                     stack_len = stack_len + 1
                 else:
                     print "Error: Constant pool index out of bounds: " + str(idx)
@@ -311,7 +311,7 @@ class MetalVM:
                                 stack[stack_len] = nil
                             else:
                                 push(stack, nil)
-                                physical_stack_len = len(stack)
+                                physical_stack_len = physical_stack_len + 1
                             stack_len = stack_len + 1
                             continue
                     let val = global_cache_dict[idx][constants[idx]]
@@ -319,7 +319,7 @@ class MetalVM:
                         stack[stack_len] = val
                     else:
                         push(stack, val)
-                        physical_stack_len = len(stack)
+                        physical_stack_len = physical_stack_len + 1
                     stack_len = stack_len + 1
                     continue
 
@@ -330,7 +330,7 @@ class MetalVM:
                         stack[stack_len] = nil
                     else:
                         push(stack, nil)
-                        physical_stack_len = len(stack)
+                        physical_stack_len = physical_stack_len + 1
                     stack_len = stack_len + 1
                     continue
                 # Performance: Bypassing dict_has for direct lookup where possible
@@ -386,7 +386,7 @@ class MetalVM:
                     stack[stack_len] = val
                 else:
                     push(stack, val)
-                    physical_stack_len = len(stack)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
@@ -482,7 +482,7 @@ class MetalVM:
                             stack[stack_len] = nil
                         else:
                             push(stack, nil)
-                            physical_stack_len = len(stack)
+                            physical_stack_len = physical_stack_len + 1
                         stack_len = stack_len + 1
                     if halted: break
                     stack[target_idx] = val
@@ -667,21 +667,21 @@ class MetalVM:
                     stack[stack_len] = nil
                 else:
                     push(stack, nil)
-                    physical_stack_len = len(stack)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_TRUE:
                 if stack_len < physical_stack_len:
                     stack[stack_len] = true
                 else:
                     push(stack, true)
-                    physical_stack_len = len(stack)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_FALSE:
                 if stack_len < physical_stack_len:
                     stack[stack_len] = false
                 else:
                     push(stack, false)
-                    physical_stack_len = len(stack)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_DUP:
                 let distance = code_bytes[ip]
@@ -693,7 +693,7 @@ class MetalVM:
                     stack[stack_len] = val
                 else:
                     push(stack, val)
-                    physical_stack_len = len(stack)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = stack_len + 1
             elif op == OP_MOD:
                 let b = stack[stack_len-1]
@@ -931,7 +931,7 @@ class MetalVM:
                     stack[base] = arr
                 else:
                     push(stack, arr)
-                    physical_stack_len = len(stack)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = base + 1
             elif op == OP_TUPLE:
                 # Performance: Inline tuple construction in hot loop and bypass pop() calls via single-pass stack indexing
@@ -947,7 +947,7 @@ class MetalVM:
                     stack[base] = t
                 else:
                     push(stack, t)
-                    physical_stack_len = len(stack)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = base + 1
             elif op == OP_DICT:
                 # Performance: Inline dictionary construction in hot loop and bypass pop() calls via single-pass stack indexing
@@ -963,7 +963,7 @@ class MetalVM:
                     stack[base] = d
                 else:
                     push(stack, d)
-                    physical_stack_len = len(stack)
+                    physical_stack_len = physical_stack_len + 1
                 stack_len = base + 1
             else:
                 # Synchronize physical stack array capacity before fallback
