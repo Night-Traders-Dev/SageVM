@@ -1,0 +1,20 @@
+--- Boolean Truthiness & Logical NOT ---
+false
+true
+true
+--- Truthiness in Conditional Jumps ---
+true condition
+nil evaluated false
+zero evaluated false
+negative integer evaluated true
+float evaluated true
+empty string evaluated false
+non-empty string evaluated true
+empty array evaluated true
+dictionary evaluated true
+--- Double Negation ---
+true
+false
+false
+false
+true

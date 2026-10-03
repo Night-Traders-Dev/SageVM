@@ -1,3 +1,5 @@
 Testing FFI module...
 FFI module available
-ffi.open returned nil
+Opened libc
+FFI call returned: 123
+Closed libc
