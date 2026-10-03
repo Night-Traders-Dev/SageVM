@@ -87,19 +87,12 @@ class SGVMCLI:
         return data
 
     proc run(self):
+        # In compiled binary, sys might be shadowed or nil in some scopes
+        # Try to use it directly
         let args = sys.args()
         var cmd = ""
-        var cmd_idx = -1
-
-        var k = 0
-        while k < len(args):
-            let a = args[k]
-            if a == "run" or a == "compile" or a == "dis" or a == "hex" or a == "repl" or a == "version" or a == "help" or a == "-v" or a == "--version" or a == "-h" or a == "--help":
-                cmd = a
-                cmd_idx = k
-                k = len(args)
-            else:
-                k = k + 1
+        if len(args) >= 2:
+            cmd = args[1]
         
         # Handle standard version and help flags before any dispatch
         if cmd == "-v" or cmd == "--version" or cmd == "version":
@@ -110,42 +103,31 @@ class SGVMCLI:
             return
         
         if cmd == "run":
-            self.handle_run(args, cmd_idx + 1)
+            self.handle_run(args, 2)
             return
         elif cmd == "compile":
-            self.handle_compile(args, cmd_idx + 1)
+            self.handle_compile(args, 2)
             return
         elif cmd == "dis":
-            self.handle_dis(args, cmd_idx + 1)
+            self.handle_dis(args, 2)
             return
         elif cmd == "hex":
-            self.handle_hex(args, cmd_idx + 1)
+            self.handle_hex(args)
             return
         elif cmd == "repl":
-            self.handle_repl(args, cmd_idx + 1)
+            self.handle_repl(args, 2)
             return
         
-        # Default behavior when invoked without explicit subcommand (e.g. ./sgvm [--safe] file.sgvm)
-        var has_sage = false
-        var has_vm = false
-        var ai = 0
-        while ai < len(args):
-            let arg_val = args[ai]
-            if endswith(arg_val, ".sage") or endswith(arg_val, ".svm"):
-                has_sage = true
-            elif endswith(arg_val, ".sgvm") or endswith(arg_val, ".sgrv"):
-                has_vm = true
-            ai = ai + 1
-
-        if has_sage:
-            self.handle_compile(args, 0)
+        # Check if called via symlink (e.g. /usr/local/bin/sgvm or ./sgvm)
+        let binary_name = args[0]
+        if endswith(binary_name, "/sgvm") or binary_name == "sgvm":
+            self.handle_run(args, 1)
             return
-        elif has_vm:
-            self.handle_run(args, 0)
+        elif endswith(binary_name, "/sgvmc") or binary_name == "sgvmc":
+            self.handle_compile(args, 1)
             return
-        elif len(args) > 0 and not startswith(args[0], "-"):
-            let unknown_cmd = args[0]
-            print COLOR_RED + "❌ Unknown command: " + COLOR_RESET + unknown_cmd
+        elif cmd != "":
+            print COLOR_RED + "❌ Unknown command: " + COLOR_RESET + cmd
 
             # Suggest closest match
             let valid_cmds = ["run", "compile", "dis", "hex", "version"]
@@ -153,7 +135,7 @@ class SGVMCLI:
             var i_cmd = 0
             while i_cmd < len(valid_cmds):
                 let v = valid_cmds[i_cmd]
-                if startswith(v, unknown_cmd) or startswith(unknown_cmd, v):
+                if startswith(v, cmd) or startswith(cmd, v):
                     best_match = v
                     i_cmd = len(valid_cmds)
                 else:
@@ -198,9 +180,10 @@ class SGVMCLI:
                 print "  --riscv    Force execution using the RISC-V backend"
                 print "  --jit      Enable Tier-1 JIT compilation engine (SVM & SRVM)"
                 return
-            elif not startswith(a, "-") and input_file == "":
+            else:
                 input_file = a
                 input_file_idx = i
+                i = len(args)
             i = i + 1
         
         if input_file == "":
@@ -360,10 +343,10 @@ class SGVMCLI:
                 if mode == "svm": print dis.generate_svm()
                 else: print dis.generate_sage()
 
-    proc handle_hex(self, args, start_idx):
+    proc handle_hex(self, args):
         var input_file = ""
         var riscv = false
-        var i = start_idx
+        var i = 2
         while i < len(args):
             let a = args[i]
             if a == "--riscv": riscv = true
