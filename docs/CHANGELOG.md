@@ -1,15 +1,54 @@
 # Changelog
 
-## [1.2.2] - 2026-10-02
+## [1.2.2] - 2026-10-03
 
 ### Added
-- **Async Opcode Translation Plumbing**: Synchronized `src/svm/sgvm_core.sage` and `src/svm/sgvm_compiler.sage` to define and translate async opcodes `OP_AWAIT` (93, translated from host `BC_OP_AWAIT` 92) and `OP_DEFINE_ASYNC` (94, translated from host `BC_OP_DEFINE_ASYNC_FUNCTION` 93).
+- **Async Opcode Translation Plumbing**: synchronized the SVM and SRVM opcode
+  translation paths.
+- **Build cycle resolution in `sagemake`**: submodule dependency resolution no
+  longer recurses into itself.
+- Updated `docs/ARCHITECTURE.md` and `docs/SPEC.md` opcode reference tables and
+  conformance markers.
 
-### Changed
-- **Build Cycle Resolution in `sagemake`**: Updated `sagemake` submodule dependency resolution logic to resolve `SageLang` via environment `$SAGELANG_DIR`, sibling checkout `../SageLang`, or `.deps/SageLang`, eliminating nested recursive submodule clone build loops.
+### Security
+- **`sys.exit` refused in safe mode** (both VMs). It was reachable there, which
+  is the whole point of safe mode.
+- **Module host functions refused through method dispatch in safe mode**
+  (both VMs).
+- **Generator chunk indices bounds-checked** before indexing `self.chunks`.
+- **Module reflection filtering**: `dir`/`keys`/`values` on a module now yield
+  only values typed `module` or prefixed `__host_`. Previously any string value
+  passed through, which is how internal state was observable from a module
+  wrapper.
+- **Dict reflection type guards**: `dict_keys`, `dict_values` and `dict_items`
+  reject a non-dict argument instead of indexing into it (both VMs).
 
-### Documentation
-- Updated `docs/ARCHITECTURE.md` and `docs/SPEC.md` opcode reference tables and conformance specifications to document `OP_AWAIT` (93) and `OP_DEFINE_ASYNC` (94).
+### Performance
+- **16-bit big-endian operands decoded inline** in `MetalVM.execute_op` rather
+  than through a `read_be16` call, on the operand-fetch and jump paths.
+- **`OP_GET_GLOBAL` cache hits**: boolean `true` short-circuits, and the
+  constant-pool name lookup is deferred into the `safe_mode` branch rather than
+  paid on every global read.
+
+### Tests
+- **Seven new edge-case suites**, each verified passing before merge: matrix
+  ops, nested scopes, bitwise ops, bitwise shifts, boolean truthiness, collection
+  indexing, array concat/len.
+- **`security_sys_exit`**: regression test for the safe-mode guard above.
+- **`security_builtins_hardening` expectation corrected.** It asserted
+  `dict_values contains internal value: true` -- that is, that an internal value
+  *leaks* in safe mode. Its own comment said the opposite ("In safe mode,
+  `__type__` value must be filtered out"), and it had been passing only while the
+  reflection filter still exposed bare `__`-prefixed values. Corrected to
+  `false`.
+
+### Fixed
+- **Version banner**: `--version` and the REPL banner reported v1.1.0 while
+  `VERSION` said v1.2.1. Both now report 1.2.2.
+
+### Test results
+- **153 passed, 0 failed, 1 skipped.** Before this release the suite stood at
+  140 passed, 6 failed; all six failures are resolved.
 
 ## [1.2.1] - 2026-09-23
 

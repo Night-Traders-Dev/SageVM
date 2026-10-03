@@ -4,7 +4,7 @@
 
 SageVM is a high-performance, pure SageLang implementation of the Sage Virtual Machine. It provides a portable execution substrate for SageOS, supporting both a traditional stack-based architecture (SVM) and a modern RISC-V register-based architecture (SRVM).
 
-## Status (v1.2.1)
+## Status (v1.2.2)
 
 | Component | Compile | Execute | Self-Host | Coverage Suite |
 |-----------|---------|---------|-----------|----------------|
@@ -81,7 +81,41 @@ A modern, register-based architecture based on the **RV64I** specification.
 - **Type profiling**: `TypeProfiler` for register-level type hint analysis
 - **Performance**: Up to 30–40% faster interpretation for arithmetic-heavy code
 
-## Recent Changes (v1.2.1)
+## Recent Changes (v1.2.2)
+
+Full detail in [docs/CHANGELOG.md](docs/CHANGELOG.md).
+
+### Security
+- `sys.exit` is refused in safe mode, in both the SVM and the SRVM. It was
+  reachable there.
+- Module host functions called through method dispatch are refused in safe mode,
+  in both VMs.
+- Generator chunk indices are bounds-checked before indexing `self.chunks`.
+- Module reflection (`dir`/`keys`/`values`) yields only values typed `module` or
+  prefixed `__host_`, instead of any string value -- which is how internal state
+  was observable from a module wrapper.
+- `dict_keys`/`dict_values`/`dict_items` reject a non-dict argument rather than
+  indexing into it, in both VMs.
+
+### Performance
+- 16-bit big-endian operands are decoded inline in `MetalVM.execute_op` instead
+  of through a `read_be16` call, on the operand-fetch and jump paths.
+- `OP_GET_GLOBAL` cache hits short-circuit on boolean `true`, and the
+  constant-pool name lookup is deferred into the `safe_mode` branch rather than
+  paid on every global read.
+
+### Tests
+- Seven new edge-case suites, each verified passing before merge. Suite is now
+  **153 passed, 0 failed, 1 skipped**, up from 140 passed / 6 failed.
+- `security_builtins_hardening` had an expectation asserting that an internal
+  value *leaks* in safe mode, contradicting the comment beside it. Corrected.
+
+### Fixed
+- The version banner reported v1.1.0 while `VERSION` said v1.2.1; both now
+  report 1.2.2.
+
+### Previous
+
 
 ### Security & Correctness
 - **SRVM equality and uncallable handling**: Added explicit nil-aware equality and a defined nil result for uncallable return paths.

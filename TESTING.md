@@ -126,8 +126,22 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `global_redefine_edge.sage`: Tests global variable declarations (`OP_DEFINE_GLOBAL`), reassignments (`OP_SET_GLOBAL`), scope cache invalidation, global updates inside functions and loops, conditional reassignments, and global collection mutations.
 
 
-### Verification Status (September 2026)
-The modern SVM coverage suite passes cleanly: **145 passed, 0 failed, 1 skipped** after the v1.2.1 integration. The full SRVM suite is not green in the current checkout because the register backend still has broad compatibility gaps; see the command output and the SRVM-specific tests before relying on that backend.
+### Verification Status (October 2026)
+The modern SVM coverage suite passes cleanly: **153 passed, 0 failed, 1 skipped**
+
+One test is skipped: `generators.sage`, because `sage --emit-vm` does not
+emit VM bytecode for it.
+
+Note when adding tests: the harness compiles each test with the SageLang in
+`.deps/SageLang`, which is an unmanaged clone rather than a pinned submodule.
+If that clone is stale, a test can fail for reasons that have nothing to do
+with the VM. Check what it is pinned at before debugging a failure.
+
+Security tests are named `security_*.sage`; the harness passes `--safe` to
+those automatically.
+
+
+The full SRVM suite is not green in the current checkout: the register backend still has broad compatibility gaps. See docs/CHANGELOG.md.
 
 ## Adding Tests
 Add a `.sage` file to the `tests/` directory and a corresponding `.expected` file containing the expected stdout output.
