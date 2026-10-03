@@ -1,0 +1,2 @@
+Error: sys.exit is restricted in safe mode
+sys_exit result: nil

@@ -91,8 +91,8 @@ class SGVMCLI:
         # Try to use it directly
         let args = sys.args()
         var cmd = ""
-        if len(args) >= 2:
-            cmd = args[1]
+        if len(args) >= 1:
+            cmd = args[0]
         
         # Handle standard version and help flags before any dispatch
         if cmd == "-v" or cmd == "--version" or cmd == "version":
@@ -103,19 +103,19 @@ class SGVMCLI:
             return
         
         if cmd == "run":
-            self.handle_run(args, 2)
+            self.handle_run(args, 1)
             return
         elif cmd == "compile":
-            self.handle_compile(args, 2)
+            self.handle_compile(args, 1)
             return
         elif cmd == "dis":
-            self.handle_dis(args, 2)
+            self.handle_dis(args, 1)
             return
         elif cmd == "hex":
-            self.handle_hex(args)
+            self.handle_hex(args, 1)
             return
         elif cmd == "repl":
-            self.handle_repl(args, 2)
+            self.handle_repl(args, 1)
             return
         
         # Check if called via symlink (e.g. /usr/local/bin/sgvm or ./sgvm)
@@ -343,10 +343,10 @@ class SGVMCLI:
                 if mode == "svm": print dis.generate_svm()
                 else: print dis.generate_sage()
 
-    proc handle_hex(self, args):
+    proc handle_hex(self, args, start_idx):
         var input_file = ""
         var riscv = false
-        var i = 2
+        var i = start_idx
         while i < len(args):
             let a = args[i]
             if a == "--riscv": riscv = true
