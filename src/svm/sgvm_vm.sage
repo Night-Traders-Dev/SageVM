@@ -1019,13 +1019,13 @@ class MetalVM:
                 return pop(args[0])
             return nil
         elif callee == "__builtin_dict_has":
-            if len(args) < 2: return false
+            if len(args) < 2 or args[0] == nil or type(args[0]) != "dict": return false
             let key = args[1]
             if self.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
                 return false
             return dict_has(args[0], key)
         elif callee == "__builtin_dict_keys":
-            if len(args) == 0 or args[0] == nil: return []
+            if len(args) == 0 or args[0] == nil or type(args[0]) != "dict": return []
             let keys = dict_keys(args[0])
             if self.safe_mode:
                 let safe_keys = []
@@ -1038,7 +1038,7 @@ class MetalVM:
                 return safe_keys
             return keys
         elif callee == "__builtin_dict_values":
-            if len(args) == 0 or args[0] == nil: return []
+            if len(args) == 0 or args[0] == nil or type(args[0]) != "dict": return []
             let obj = args[0]
             if self.safe_mode:
                 let safe_vals = []

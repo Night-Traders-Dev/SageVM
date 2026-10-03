@@ -547,6 +547,10 @@ class SRVM:
                             self.state.x[10] = dict_has(obj, key)
                     elif b_name == "dict_keys":
                         let obj = self.state.x[10]
+                        ## The reflection builtins take a dict. A wrong-typed
+                        ## argument is a caller error, not something to index into.
+                        if type(obj) != "dict":
+                            self.state.x[10] = []
                         let keys = dict_keys(obj)
                         if self.state.safe_mode:
                             let safe_keys = []
@@ -561,6 +565,10 @@ class SRVM:
                             self.state.x[10] = keys
                     elif b_name == "dict_values":
                         let obj = self.state.x[10]
+                        ## The reflection builtins take a dict. A wrong-typed
+                        ## argument is a caller error, not something to index into.
+                        if type(obj) != "dict":
+                            self.state.x[10] = []
                         if self.state.safe_mode:
                             let safe_vals = []
                             let keys = dict_keys(obj)
