@@ -37,7 +37,7 @@ proc reflect_get_class(obj):
 
 proc is_truthy(val):
     # Performance: Non-allocating empty string check bypassing heap type(val) descriptor allocation
-    if val == nil or val == false or val == 0 or val == "":
+    if val != true and (val == nil or val == false or val == 0 or val == ""):
         return false
     return true
 
@@ -303,16 +303,18 @@ class MetalVM:
                     break
 
                 if global_cache_epoch_array[idx] == global_cache_epoch:
-                    let name = constants[idx]
-                    if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                        if stack_len < physical_stack_len:
-                            stack[stack_len] = nil
-                        else:
-                            push(stack, nil)
-                            physical_stack_len = len(stack)
-                        stack_len = stack_len + 1
-                        continue
-                    let val = global_cache_dict[idx][name]
+                    # Performance: Defer constants[idx] lookup and string checks behind safe_mode guard
+                    if safe_mode:
+                        let name = constants[idx]
+                        if type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                            if stack_len < physical_stack_len:
+                                stack[stack_len] = nil
+                            else:
+                                push(stack, nil)
+                                physical_stack_len = len(stack)
+                            stack_len = stack_len + 1
+                            continue
+                    let val = global_cache_dict[idx][constants[idx]]
                     if stack_len < physical_stack_len:
                         stack[stack_len] = val
                     else:
@@ -395,12 +397,13 @@ class MetalVM:
                     break
 
                 if global_cache_epoch_array[idx] == global_cache_epoch:
-                    let name = constants[idx]
-                    if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
-                        print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
-                        stack[stack_len-1] = nil
-                        continue
-                    global_cache_dict[idx][name] = stack[stack_len-1]
+                    if safe_mode:
+                        let name = constants[idx]
+                        if type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
+                            print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
+                            stack[stack_len-1] = nil
+                            continue
+                    global_cache_dict[idx][constants[idx]] = stack[stack_len-1]
                     continue
 
                 let name = constants[idx]
@@ -536,8 +539,8 @@ class MetalVM:
                 let target = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
                 let cond = stack[stack_len-1]
-                # Performance: Inline truthiness evaluation to bypass is_truthy function call overhead
-                if cond == nil or cond == false or cond == 0 or cond == "": ip = target
+                # Performance: Fast-path boolean true check before checking falsey values
+                if cond != true and (cond == nil or cond == false or cond == 0 or cond == ""): ip = target
             elif op == OP_LOOP_BACK:
                 # Performance: Backward control flow jumps do not grow the stack; stack overflow check removed
                 ip = ip - ((code_bytes[ip] << 8) | code_bytes[ip+1])
@@ -749,15 +752,15 @@ class MetalVM:
                 stack[stack_len-1] = a >> b_val
             elif op == OP_NOT:
                 let cond = stack[stack_len-1]
-                # Performance: Inline truthiness evaluation to bypass is_truthy function call overhead
-                if cond == nil or cond == false or cond == 0 or cond == "":
+                # Performance: Fast-path boolean true check before checking falsey values
+                if cond != true and (cond == nil or cond == false or cond == 0 or cond == ""):
                     stack[stack_len-1] = true
                 else:
                     stack[stack_len-1] = false
             elif op == OP_TRUTHY:
                 let cond = stack[stack_len-1]
-                # Performance: Inline truthiness evaluation to bypass is_truthy function call overhead
-                if cond == nil or cond == false or cond == 0 or cond == "":
+                # Performance: Fast-path boolean true check before checking falsey values
+                if cond != true and (cond == nil or cond == false or cond == 0 or cond == ""):
                     stack[stack_len-1] = false
                 else:
                     stack[stack_len-1] = true
