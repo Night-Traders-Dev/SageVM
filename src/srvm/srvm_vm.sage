@@ -901,6 +901,11 @@ class SRVM:
                 self.state.x[rd] = {}
             elif sub_op == OBJ_TUPLE_NEW:
                 let size = int(self.state.x[10])
+                # Security: Prevent memory exhaustion via large tuple allocation (DoS)
+                if size < 0 or size > self.state.max_array_size:
+                    print "Error: Array size limit exceeded: " + str(size)
+                    self.state.running = false
+                    return
                 var t_arr = []
                 var i = 0
                 while i < size:
