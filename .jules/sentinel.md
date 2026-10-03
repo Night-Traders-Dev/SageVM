@@ -122,3 +122,8 @@
 **Vulnerability:** In `MetalVM.execute_op` (`src/svm/sgvm_vm.sage`), `OP_CALL_METHOD` dispatched direct host native function calls (`type(val) == "function"` or `type(val) == "native fn"`) on non-module objects without validating `self.safe_mode`. Guest scripts in `safe_mode` could bypass the direct host function call restrictions enforced by `OP_CALL` by storing host function references in dictionaries and calling them as methods.
 **Learning:** Security checks applied to direct function invocation instructions (`OP_CALL`) must be mirrored across method call dispatchers (`OP_CALL_METHOD`). Method call resolution on arbitrary objects can resolve to host functions, requiring identical safe_mode restrictions.
 **Prevention:** Always mirror `self.safe_mode` direct function call restrictions across all function and method call opcodes regardless of object receiver type.
+
+## 2026-09-28 - Sandbox Bypass via Unhardened Module Method Dispatch in OP_CALL_METHOD
+**Vulnerability:** In `MetalVM.execute_op` (`src/svm/sgvm_vm.sage`), `OP_CALL_METHOD` dispatched method calls on module wrappers without validating `self.safe_mode`. Guest code running in `safe_mode` could construct or resolve module objects containing host function references and invoke them via method call syntax (`m.f(...)`).
+**Learning:** Restricting module import or global resolution is insufficient if method dispatch (`OP_CALL_METHOD`) on module objects executes direct host functions without validating sandbox flags.
+**Prevention:** Always enforce `self.safe_mode` restrictions inside `OP_CALL_METHOD` across module receivers as well as general object receivers.

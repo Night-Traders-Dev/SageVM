@@ -1,0 +1,3 @@
+Calling module host fn via method dispatch:
+Error: Direct host function call is restricted in safe mode
+done
