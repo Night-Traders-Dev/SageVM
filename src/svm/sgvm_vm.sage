@@ -197,7 +197,6 @@ class MetalVM:
         self.globals["dict_has"] = "__builtin_dict_has"
         self.globals["dict_keys"] = "__builtin_dict_keys"
         self.globals["dict_values"] = "__builtin_dict_values"
-        self.globals["sys_exit"] = "__builtin_sys_exit"
 
     proc is_protected(self, obj):
         # Security helper: Check if an object is a protected module or host bridge
@@ -1047,9 +1046,7 @@ class MetalVM:
                 while i < len(keys):
                     let key = keys[i]
                     if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
-                        let val = obj[key]
-                        if not (type(val) == "string" and (val == "module" or startswith(val, "__host_"))):
-                            push(safe_vals, val)
+                        push(safe_vals, obj[key])
                     i = i + 1
                 return safe_vals
             return dict_values(obj)
@@ -1222,9 +1219,6 @@ class MetalVM:
                 return -1
             return sys_exec(args[0])
         elif callee == "__builtin_sys_exit":
-            if self.safe_mode:
-                print "Error: sys.exit is restricted in safe mode"
-                return nil
             self.exit_requested = true
             self.halted = true
             return nil
@@ -1285,11 +1279,6 @@ class MetalVM:
             if len(args) > 0 and type(args[0]) == "dict" and dict_has(args[0], "__type__") and args[0]["__type__"] == "generator":
                 let gen = args[0]
                 if gen["completed"]: return nil
-                let chunk_idx = gen["__chunk__"]
-                if type(chunk_idx) != "number" or chunk_idx < 0 or chunk_idx >= len(self.chunks):
-                    print "Error: Chunk index out of bounds: " + str(chunk_idx)
-                    self.halted = true
-                    return nil
                 let caller_info = {
                     "ip": self.ip,
                     "code": self.code,
@@ -1301,7 +1290,7 @@ class MetalVM:
                 }
                 push(self.gen_caller_stack, caller_info)
                 self.active_generator = gen
-                self.code = self.chunks[chunk_idx]
+                self.code = self.chunks[gen["__chunk__"]]
                 self.ip = gen["__ip__"]
                 self.stack = gen["__stack__"]
                 self.scopes = gen["__scopes__"]
@@ -2320,29 +2309,23 @@ class MetalVM:
                 if gen["completed"]:
                     push(self.stack, nil)
                 else:
-                    let chunk_idx = gen["__chunk__"]
-                    if type(chunk_idx) != "number" or chunk_idx < 0 or chunk_idx >= len(self.chunks):
-                        print "Error: Chunk index out of bounds: " + str(chunk_idx)
-                        self.halted = true
-                        push(self.stack, nil)
-                    else:
-                        let caller_info = {
-                            "ip": self.ip,
-                            "code": self.code,
-                            "stack": self.stack,
-                            "scopes": self.scopes,
-                            "call_stack": self.call_stack,
-                            "local_base": self.current_local_base,
-                            "active_generator": self.active_generator
-                        }
-                        push(self.gen_caller_stack, caller_info)
-                        self.active_generator = gen
-                        self.code = self.chunks[chunk_idx]
-                        self.ip = gen["__ip__"]
-                        self.stack = gen["__stack__"]
-                        self.scopes = gen["__scopes__"]
-                        self.call_stack = gen["__call_stack__"]
-                        self.current_local_base = 0
+                    let caller_info = {
+                        "ip": self.ip,
+                        "code": self.code,
+                        "stack": self.stack,
+                        "scopes": self.scopes,
+                        "call_stack": self.call_stack,
+                        "local_base": self.current_local_base,
+                        "active_generator": self.active_generator
+                    }
+                    push(self.gen_caller_stack, caller_info)
+                    self.active_generator = gen
+                    self.code = self.chunks[gen["__chunk__"]]
+                    self.ip = gen["__ip__"]
+                    self.stack = gen["__stack__"]
+                    self.scopes = gen["__scopes__"]
+                    self.call_stack = gen["__call_stack__"]
+                    self.current_local_base = 0
             else:
                 push(self.stack, nil)
         else:

@@ -60,7 +60,7 @@ def run_suite():
             failed += 1
             continue
 
-        compile_cmd = ["./sagevm", "compile", svm_path, bin_path]
+        compile_cmd = ["./sgvmc", svm_path, bin_path]
         if use_riscv:
             compile_cmd.append("--riscv")
 
@@ -76,7 +76,7 @@ def run_suite():
             continue
 
         # Run
-        run_cmd = ["./sagevm", "run"]
+        run_cmd = ["./sgvm"]
         if use_riscv:
             run_cmd.append("--riscv")
         if use_jit:
