@@ -3,12 +3,12 @@ Writing bytes...
 Write result: true
 Reading bytes...
 Read bytes is not nil
-Type of read_bytes: unknown
+Type of read_bytes: bytes
 Read bytes length: 4
 Byte 0 indexing: nil
 Reading via readfile...
 Readfile is not nil
-Type of readfile: unknown
+Type of readfile: string
 Reading non-existent file...
 Result for non-existent: nil
 Writing with invalid arguments (nil path):
