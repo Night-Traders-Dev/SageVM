@@ -1,0 +1,24 @@
+--- Basic Array Mutation & Access ---
+Initial len:
+3
+arr[1] after assign:
+99
+--- Push and Pop Operations ---
+len after push(40):
+4
+arr[3]:
+40
+popped value:
+40
+len after pop:
+3
+--- Nested Array Mutation ---
+matrix[1][0] before:
+3
+matrix[1][0] after:
+77
+--- Edge Cases: OOB & Pop Empty ---
+pop empty array:
+nil
+OOB index access:
+nil

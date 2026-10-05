@@ -1,0 +1,20 @@
+--- Logical Expression Chaining ---
+r1:
+true
+r2:
+false
+r3:
+false
+--- Non-Boolean Truthiness in Conditionals ---
+0 is falsy
+100 is truthy
+empty string is falsy
+non-empty string is truthy
+nil is falsy
+empty array is truthy
+empty dict is truthy
+--- Logical Short-Circuit Value Returns ---
+Short-circuit OR (true or side_effect):
+OR passed
+Short-circuit AND (false and side_effect):
+AND short-circuited
