@@ -10,6 +10,44 @@ proc io_readfile(path):
 proc io_writebytes(path, bytes):
     return io.writebytes(path, bytes)
 
+## read_whole -- the whole file, in bounded chunks when a single read is refused.
+##
+## io.readbytes() refuses a read over SAGE_MAX_READ_SIZE (100 MiB) and returns nil
+## rather than reporting an error, so bytes_len() of the result is 0 and the caller
+## cannot distinguish a refused read from an empty file. Any .sgvm over the limit
+## therefore loaded as an empty image and failed with a bad magic number, which reads
+## as a malformed file rather than as a read that was never performed.
+##
+## The whole-file read is tried first because it is one read on the common path;
+## only when it comes back empty do we reassemble from io.readbytes_at() ranges.
+proc read_whole(path):
+    let direct = io.readbytes(path)
+    if bytes_len(direct) > 0:
+        return direct
+    ## An empty result is ambiguous: an empty file, or a refused read. One ranged
+    ## read tells the two apart.
+    let probe = io.readbytes_at(path, 0, 4194304)
+    if bytes_len(probe) <= 0:
+        return direct
+    let out: Bytes = bytes()
+    bytes_extend(out, probe)
+    var off = bytes_len(probe)
+    ## Stop on two consecutive empty reads so a truncated file ends the loop rather
+    ## than spinning.
+    var empty_reads = 0
+    while empty_reads < 2:
+        let piece = io.readbytes_at(path, off, 4194304)
+        if bytes_len(piece) <= 0:
+            empty_reads = empty_reads + 1
+            off = off + 4194304
+            continue
+        empty_reads = 0
+        ## One C-level copy per chunk: a per-byte loop is 150 million interpreted
+        ## calls for a 150 MiB file.
+        bytes_extend(out, piece)
+        off = off + bytes_len(piece)
+    return out
+
 import sgvm_core
 from sgvm_core import SGVMUtils
 from sgvm_core import OP_CONSTANT, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL

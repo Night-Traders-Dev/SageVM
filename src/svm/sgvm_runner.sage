@@ -8,7 +8,27 @@ class SGVMRunner:
         self.utils = SGVMUtils()
 
     proc run_file(self, input_file, debug, safe_mode=false, ffi_enabled=true, user_args=nil, jit_enabled=false, exec_enabled=true):
+        ## Load the whole image in bounded chunks.
+        ##
+        ## io.readbytes() refuses a read over SAGE_MAX_READ_SIZE (100 MiB) and returns nil
+        ## rather than reporting an error, so a 150 MiB .sgvm came back as length 0 and
+        ## the VM reported a bad magic number -- pointing at a malformed file rather
+        ## than at a refused read. io.readbytes_at() is the ranged primitive for this.
         var data = io.readbytes(input_file)
+        if bytes_len(data) <= 0:
+            data = bytes()
+            bytes_resize(data, 0)
+            var off = 0
+            var empty_reads = 0
+            while empty_reads < 2:
+                let piece = io.readbytes_at(input_file, off, 4194304)
+                if bytes_len(piece) <= 0:
+                    empty_reads = empty_reads + 1
+                    off = off + 4194304
+                    continue
+                empty_reads = 0
+                bytes_extend(data, piece)
+                off = off + bytes_len(piece)
         if data == nil:
             print "❌ Error: Could not read file: " + input_file
             return false

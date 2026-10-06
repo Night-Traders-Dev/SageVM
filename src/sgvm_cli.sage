@@ -9,7 +9,7 @@ import srvm_runner
 import srvm_compiler
 import srvm_disassembler_logic
 import srvm_hexdump_logic
-from sgvm_compiler import sys_exec, io_readfile, io_writebytes
+from sgvm_compiler import sys_exec, io_readfile, io_writebytes, read_whole
 
 var COLOR_RESET  = ""
 var COLOR_BOLD   = ""
@@ -51,7 +51,7 @@ class SGVMCLI:
         return nil
 
     proc verify_input(self, input_file, is_compile):
-        let data = io.readbytes(input_file)
+        let data = read_whole(input_file)
         if data == nil:
             print COLOR_RED + "❌ Error: Could not read file: " + COLOR_RESET + input_file
 
@@ -279,7 +279,7 @@ class SGVMCLI:
         if compiler.compile(input_file, output_file, use_shebang):
             if riscv:
                 # Post-process: Translate SVM to SRVM
-                let svm_data = io.readbytes(output_file)
+                let svm_data = read_whole(output_file)
                 let rv_compiler = srvm_compiler.SGRVCompiler()
                 rv_compiler.debug = debug
                 let sgrv_data = rv_compiler.compile(svm_data)
@@ -288,7 +288,7 @@ class SGVMCLI:
                     print COLOR_GREEN + "✨ RISC-V translation complete." + COLOR_RESET
                 else:
                     print COLOR_RED + "❌ RISC-V translation failed." + COLOR_RESET
-            let out_data = io.readbytes(output_file)
+            let out_data = read_whole(output_file)
             var size_str = ""
             if out_data != nil:
                 let sz = len(out_data)
