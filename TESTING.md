@@ -124,10 +124,13 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `loop_try_catch_edge.sage`: Tests `try-catch` exception handling inside loop bodies (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`), exceptions in sequential loops, and exceptions thrown and caught within nested loops.
 - `recursion_edge.sage`: Tests recursive function calls (`OP_CALL`, `OP_RETURN`), parameter binding across stack frames, mutual recursion (`is_even` / `is_odd`), accumulator recursion, and base conditions.
 - `global_redefine_edge.sage`: Tests global variable declarations (`OP_DEFINE_GLOBAL`), reassignments (`OP_SET_GLOBAL`), scope cache invalidation, global updates inside functions and loops, conditional reassignments, and global collection mutations.
+- `bitwise_expr_edge.sage`: Tests chained bitwise expressions (`OP_BIT_AND`, `OP_BIT_OR`, `OP_BIT_XOR`, `OP_SHIFT_LEFT`, `OP_SHIFT_RIGHT`), bitwise NOT (`~`) on zero and negative boundary values, and nil operand bitwise operations.
+- `logical_expr_edge.sage`: Tests logical expression chaining (`and`, `or`, `not`), non-boolean truthiness evaluation across primitive and collection types in conditionals, and short-circuit evaluation side-effect skipping.
+- `array_mutation_edge.sage`: Tests array element indexing (`OP_GET_INDEX`, `OP_SET_INDEX`), in-place array index mutations, nested matrix mutations, `push` and `pop` operations, and edge conditions (pop on empty array, out-of-bounds indexing).
 
 
 ### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **153 passed, 0 failed, 1 skipped**
+The modern SVM coverage suite passes cleanly: **156 passed, 0 failed, 1 skipped**
 
 One test is skipped: `generators.sage`, because `sage --emit-vm` does not
 emit VM bytecode for it.

@@ -1,0 +1,19 @@
+--- Bitwise Chained Expressions ---
+res1:
+85
+res2:
+660
+res3:
+18
+--- Bitwise NOT & Zero Boundaries ---
+~0:
+-1
+~(-1):
+0
+--- Bitwise Operations with Nil & Invalid Operands ---
+nil & 15:
+0
+15 | nil:
+15
+nil << 2:
+0
