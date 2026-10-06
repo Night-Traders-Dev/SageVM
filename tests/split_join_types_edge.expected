@@ -1,0 +1,18 @@
+--- Multi-character delimiter split ---
+Len: 3
+alpha
+beta
+gamma
+--- Empty string delimiter split ---
+Len empty sep: 3
+--- Join array with mixed types ---
+Joined mixed: item----end
+--- Join empty array ---
+Joined empty: ''
+--- Join single element array ---
+Joined single: solo
+--- Join with empty delimiter ---
+Joined empty sep: xyz
+--- Nil parameters ---
+split(nil, ','): <array>
+join(nil, '-'): nil
