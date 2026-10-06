@@ -1,0 +1,12 @@
+--- Multi-parameter constructor and self method calls ---
+Initial value: 10
+After add_step: 15
+--- Method chaining returning self ---
+After chain: 45
+--- Dynamic property addition and reassignment ---
+Label: counter_A
+Label after nil re-assignment == nil: true
+--- Missing property and missing method calls ---
+Missing property == nil: true
+Error: Method non_existent_method not found
+Missing method call result: nil

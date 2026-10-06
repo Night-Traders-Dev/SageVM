@@ -129,8 +129,12 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `array_mutation_edge.sage`: Tests array element indexing (`OP_GET_INDEX`, `OP_SET_INDEX`), in-place array index mutations, nested matrix mutations, `push` and `pop` operations, and edge conditions (pop on empty array, out-of-bounds indexing).
 
 
+### Coverage Expansion (October 2026 - Forge Daily)
+- `class_method_dispatch_edge.sage`: Tests OOP class constructors (`init(self, ...)`), method chaining returning `self`, `self` calling internal methods, multi-parameter method dispatch, dynamic property creation, and accessing/calling non-existent properties/methods on instances.
+- `chained_assignment_edge.sage`: Tests stack manipulation opcodes (`OP_DUP`, `OP_POP`) across chained variable assignments (`var a = var b = var c = 100`), arithmetic expression assignments, chained `nil` assignments, chained array index assignments, chained dictionary key assignments, and chained object property assignments.
+
 ### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **156 passed, 0 failed, 1 skipped**
+The modern SVM coverage suite passes cleanly: **158 passed, 0 failed, 1 skipped**
 
 One test is skipped: `generators.sage`, because `sage --emit-vm` does not
 emit VM bytecode for it.

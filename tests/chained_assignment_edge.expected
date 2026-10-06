@@ -1,0 +1,21 @@
+--- Chained variable assignments ---
+a: 100
+b: 100
+c: 100
+--- Chained variable assignment with arithmetic expression ---
+a after expr: 20
+b after expr: 20
+--- Chained variable assignment with nil ---
+a == nil: true
+b == nil: true
+c == nil: true
+--- Chained array index assignments ---
+arr[0]: 77
+arr[1]: 77
+arr[2]: 77
+--- Chained dictionary key assignments ---
+dict_obj['k1']: shared_value
+dict_obj['k2']: shared_value
+--- Chained object property assignments ---
+obj.p1: 9.99
+obj.p2: 9.99
