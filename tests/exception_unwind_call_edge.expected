@@ -1,0 +1,16 @@
+--- Case 1: Normal execution without raise ---
+Level 1 entering
+Level 2 entering
+Level 3 entering
+Level 2 exiting
+Level 1 res: Level 3 success
+Result 1: Level 1 done
+--- Case 2: Raise from level 3, caught in level 1, re-raised to main ---
+Level 1 entering
+Level 2 entering
+Level 3 entering
+Level 1 caught: <array>
+Main caught re-raised: <array>
+--- Case 3: Return inside try block ---
+positive_return
+caught_negative_val
