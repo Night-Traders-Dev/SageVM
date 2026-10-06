@@ -160,6 +160,33 @@ def run_suite():
                 if os.path.exists(p):
                     os.remove(p)
 
+    # Tests under tests/native/ run on the interpreter rather than the VM, because
+    # they read whole files from disk and assert on runtime behaviour that VM
+    # bytecode does not model. os.listdir above is not recursive, so they are not in
+    # the main loop; run them here so they are not orphaned.
+    native_dir = os.path.join(test_dir, "native")
+    if os.path.isdir(native_dir):
+        for nf in sorted(os.listdir(native_dir)):
+            if not nf.endswith(".sage"):
+                continue
+            npath = os.path.join(native_dir, nf)
+            nenv = os.environ.copy()
+            nenv["SAGE_PATH"] = os.pathsep.join([
+                "src", "src/svm", "src/srvm", "src/jit",
+                os.path.join(repo_root, ".deps", "SageLang", "core", "lib"),
+            ])
+            res = subprocess.run(["sage", "--runtime", "bytecode", npath],
+                                 capture_output=True, text=True, env=nenv, cwd=repo_root)
+            out = ansi_escape.sub("", res.stdout or "")
+            if res.returncode == 0 and "SOME TESTS FAILED" not in out:
+                print(f"[PASS] native/{nf}")
+                passed += 1
+            else:
+                print(f"[FAIL] native/{nf}")
+                print(out)
+                print(ansi_escape.sub("", res.stderr or ""))
+                failed += 1
+
     print("==================================================")
     print(f"Summary: {passed} passed, {failed} failed, {skipped} skipped")
     print("==================================================")
