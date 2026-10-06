@@ -119,6 +119,47 @@ def run_suite():
 
         if os.path.exists(bin_path): os.remove(bin_path)
 
+    # The loop above feeds sgvmc pre-emitted .svm files, so it never exercises the
+    # branch where sgvmc is handed a .sage source and has to shell out to
+    # `sage --emit-vm` itself. That branch was broken for as long as it existed:
+    # the command it built quoted its paths, and SageLang's sys.exec() rejects the
+    # quote character, so every call failed with "Unsafe characters in command"
+    # and "Failed to generate SVM" while all 158 tests stayed green. Check it
+    # directly.
+    if not use_riscv:
+        src_probe = os.path.join(test_dir, "source_compile_probe.sage")
+        probe_bin = os.path.join(test_dir, "source_compile_probe.sgvm")
+        probe_src = 'print "source compile probe"\n'
+        try:
+            with open(src_probe, "w") as f:
+                f.write(probe_src)
+            res = subprocess.run(["./sgvmc", src_probe, probe_bin],
+                                 capture_output=True, text=True, env=os.environ)
+            produced = os.path.exists(probe_bin) and os.path.getsize(probe_bin) > 0
+            if res.returncode == 0 and produced:
+                run = subprocess.run(["./sagevm", "run", probe_bin],
+                                     capture_output=True, text=True, env=os.environ)
+                if "source compile probe" in run.stdout:
+                    print("[PASS] source_compile_probe.sage")
+                    passed += 1
+                else:
+                    print("[FAIL] source_compile_probe.sage")
+                    print("--- compiled from source but did not run correctly ---")
+                    print(ansi_escape.sub("", run.stdout))
+                    print(ansi_escape.sub("", run.stderr))
+                    failed += 1
+            else:
+                print("[FAIL] source_compile_probe.sage")
+                print("--- sgvmc could not compile a .sage source ---")
+                print(ansi_escape.sub("", res.stdout))
+                print(ansi_escape.sub("", res.stderr))
+                failed += 1
+        finally:
+            for p in (src_probe, probe_bin, probe_bin + ".svm",
+                      src_probe + ".svm"):
+                if os.path.exists(p):
+                    os.remove(p)
+
     print("==================================================")
     print(f"Summary: {passed} passed, {failed} failed, {skipped} skipped")
     print("==================================================")

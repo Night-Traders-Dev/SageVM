@@ -119,14 +119,23 @@ class SGVMCLI:
             return
         
         # Check if called via symlink (e.g. /usr/local/bin/sgvm or ./sgvm)
-        let binary_name = args[0]
-        if endswith(binary_name, "/sgvm") or binary_name == "sgvm":
-            self.handle_run(args, 1)
-            return
-        elif endswith(binary_name, "/sgvmc") or binary_name == "sgvmc":
-            self.handle_compile(args, 1)
-            return
-        elif cmd != "":
+        if len(args) >= 1:
+            let binary_name = args[0]
+            if endswith(binary_name, "/sgvm") or binary_name == "sgvm":
+                self.handle_run(args, 1)
+                return
+            elif endswith(binary_name, "/sgvmc") or binary_name == "sgvmc":
+                self.handle_compile(args, 1)
+                return
+
+        # Reached when the subcommand was not recognised, or when the binary was
+        # invoked with no arguments at all. Bare `sagevm` used to print nothing:
+        # argv[0] did not match either symlink name and cmd was the empty string,
+        # so every branch was skipped and the function fell off its end. Show the
+        # usage either way -- an unrecognised command already gets help below,
+        # and silence for the bare invocation is the one case a user cannot
+        # interpret.
+        if cmd != "":
             print COLOR_RED + "❌ Unknown command: " + COLOR_RESET + cmd
 
             # Suggest closest match
@@ -145,7 +154,7 @@ class SGVMCLI:
                 print COLOR_YELLOW + "💡 Tip: Did you mean " + COLOR_CYAN + best_match + COLOR_YELLOW + "?" + COLOR_RESET
 
             print ""
-            print_help()
+        print_help()
 
     proc handle_run(self, args, start_idx):
         var input_file = ""

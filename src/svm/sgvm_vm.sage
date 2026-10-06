@@ -1238,6 +1238,26 @@ class MetalVM:
             if len(args) > 0 and type(args[0]) == "string":
                 return sys.getenv(args[0])
             return nil
+        elif callee == "__builtin_sys_args":
+            # sys.args() has to be a callable from the guest's point of view.
+            # The sys module used to bind "args" straight to a list value, so
+            # every guest program that called sys.args() got "Method args not
+            # found" and, where it checked the result, nil. The list is still
+            # what comes back -- it is now produced on demand instead of being
+            # captured when the module was built.
+            var argv: Array = []
+            if self.user_args != nil:
+                var i = 0
+                while i < len(self.user_args):
+                    push(argv, self.user_args[i])
+                    i = i + 1
+            else:
+                var host_args = sys.args()
+                var i = 0
+                while i < len(host_args):
+                    push(argv, host_args[i])
+                    i = i + 1
+            return argv
         elif callee == "__builtin_io_writebytes":
             if self.safe_mode:
                 print "Error: io.writebytes is restricted in safe mode"
@@ -2046,10 +2066,9 @@ class MetalVM:
                         iom["writefile"] = "__builtin_io_writefile"
                         push(self.stack, iom)
                     elif name == "sys":
-                        var sys_args_list = sys.args()
-                        if self.user_args != nil:
-                            sys_args_list = self.user_args
-                        let s = {"args": sys_args_list}
+                        ## "args" names a builtin rather than holding a list, so
+                        ## that sys.args() is a call the guest can actually make.
+                        let s = {"args": "__builtin_sys_args"}
                         s["__type__"] = "module"
                         s["exec"] = "__builtin_sys_exec"
                         s["system"] = "__builtin_sys_system"

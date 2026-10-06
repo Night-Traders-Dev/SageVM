@@ -443,10 +443,25 @@ class SGVMCompiler:
         if endswith(in_file, ".sage"):
             let ext = ".svm"
             svm_file = in_file + ext
-            var sage_bin = ".deps/SageLang/core/sage"
-            if io_readfile(sage_bin) == nil: sage_bin = "sage"
-            var cmd = sage_bin + " --emit-vm '" + in_file + "' -o '" + svm_file + "'"
-            
+            var sage_bin = "sage"
+            let override = sys.getenv("SAGELANG_DIR")
+            if override != nil:
+                let candidate = override + "/core/sage"
+                if io_readfile(candidate) != nil:
+                    sage_bin = candidate
+            # No shell quoting around the paths. SageLang's sys.exec() validates
+            # the whole command string against a whitelist that excludes the
+            # quote character, so quoting them made every one of these calls fail
+            # with "Security Error: Unsafe characters in command" and
+            # "Failed to generate SVM" -- compiling a .sage source was simply
+            # impossible, and the test suite did not catch it because run_tests.py
+            # feeds already-emitted .svm files and never takes this branch.
+            # Quoting buys nothing here anyway: both paths passed is_safe_path
+            # above, whose whitelist (alphanumerics and / . _ - and space) is a
+            # subset of what sys.exec() permits, so nothing that could be
+            # interpreted by the shell survives to need quoting.
+            var cmd = sage_bin + " --emit-vm " + in_file + " -o " + svm_file
+
             let status = sys_exec(cmd)
             if self.debug: print "DEBUG after sys_exec status=" + str(status)
             if status != 0:

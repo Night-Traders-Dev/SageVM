@@ -1,3 +1,4 @@
-sys.args type: array
-sys.args is array: true
-sys.args length >= 0: true
+sys.args() type: array
+sys.args() is array: true
+sys.args() length >= 1: true
+sys.args()[0] is a string: true
