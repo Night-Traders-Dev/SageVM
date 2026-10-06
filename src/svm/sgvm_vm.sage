@@ -297,11 +297,7 @@ class MetalVM:
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if idx >= const_len:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
-
+                # Performance: Defer constant pool bounds check to cache miss path; inline cache hit implies valid idx < const_len
                 if global_cache_epoch_array[idx] == global_cache_epoch:
                     # Performance: Defer constants[idx] lookup and string checks behind safe_mode guard
                     if safe_mode:
@@ -322,6 +318,11 @@ class MetalVM:
                         physical_stack_len = physical_stack_len + 1
                     stack_len = stack_len + 1
                     continue
+
+                if idx >= const_len:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
 
                 let name = constants[idx]
 
@@ -391,11 +392,7 @@ class MetalVM:
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if idx >= const_len:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
-
+                # Performance: Defer constant pool bounds check to cache miss path; inline cache hit implies valid idx < const_len
                 if global_cache_epoch_array[idx] == global_cache_epoch:
                     if safe_mode:
                         let name = constants[idx]
@@ -405,6 +402,11 @@ class MetalVM:
                             continue
                     global_cache_dict[idx][constants[idx]] = stack[stack_len-1]
                     continue
+
+                if idx >= const_len:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
 
                 let name = constants[idx]
 
