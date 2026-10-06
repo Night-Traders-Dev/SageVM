@@ -1024,7 +1024,7 @@ class MetalVM:
         elif callee == "__builtin_dict_has":
             if len(args) < 2 or args[0] == nil or type(args[0]) != "dict": return false
             let key = args[1]
-            if self.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+            if self.safe_mode and (self.is_protected(args[0]) or (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"))):
                 return false
             return dict_has(args[0], key)
         elif callee == "__builtin_dict_keys":

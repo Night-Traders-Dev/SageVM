@@ -541,7 +541,7 @@ class SRVM:
                     elif b_name == "dict_has":
                         let obj = self.state.x[10]
                         let key = self.state.x[11]
-                        if self.state.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+                        if self.state.safe_mode and (self.is_protected(obj) or (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"))):
                             self.state.x[10] = false
                         else:
                             self.state.x[10] = dict_has(obj, key)
