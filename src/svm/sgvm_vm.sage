@@ -243,12 +243,13 @@ class MetalVM:
         let const_len = len(constants)
         var scopes_len = len(scopes)
 
-        # Performance: Inline cache with O(1) epoch invalidation for global lookup and assignment
+        # Performance: Pre-allocated 65536-entry inline cache with O(1) epoch invalidation.
+        # Fixed 65536 capacity covers full 16-bit constant index space, eliminating bounds checking on cache hits.
         var global_cache_dict = []
         var global_cache_epoch_array = []
         var global_cache_epoch = 1
         var ci = 0
-        while ci < const_len:
+        while ci < 65536:
             push(global_cache_dict, nil)
             push(global_cache_epoch_array, 0)
             ci = ci + 1
@@ -297,11 +298,8 @@ class MetalVM:
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if idx >= const_len:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
 
+                # Performance: 65536 pre-allocated epoch array enables safe direct lookup without bounds check on cache hits
                 if global_cache_epoch_array[idx] == global_cache_epoch:
                     # Performance: Defer constants[idx] lookup and string checks behind safe_mode guard
                     if safe_mode:
@@ -322,6 +320,11 @@ class MetalVM:
                         physical_stack_len = physical_stack_len + 1
                     stack_len = stack_len + 1
                     continue
+
+                if idx >= const_len:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
 
                 let name = constants[idx]
 
@@ -391,11 +394,8 @@ class MetalVM:
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if idx >= const_len:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
 
+                # Performance: 65536 pre-allocated epoch array enables safe direct lookup without bounds check on cache hits
                 if global_cache_epoch_array[idx] == global_cache_epoch:
                     if safe_mode:
                         let name = constants[idx]
@@ -405,6 +405,11 @@ class MetalVM:
                             continue
                     global_cache_dict[idx][constants[idx]] = stack[stack_len-1]
                     continue
+
+                if idx >= const_len:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
 
                 let name = constants[idx]
 
