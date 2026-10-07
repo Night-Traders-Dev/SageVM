@@ -1,0 +1,18 @@
+--- Standard string repetition ---
+abcabcabc
+xyxyxyxy
+--- Zero and negative multipliers ---
+
+
+
+--- Float multiplier ---
+codecode
+--- Empty string repetition ---
+
+
+--- Chained repetition and expressions ---
+ababab
+xxxx
+--- Nil operands ---
+0
+0

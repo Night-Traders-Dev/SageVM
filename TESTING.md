@@ -132,9 +132,11 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 ### Coverage Expansion (October 2026 - Forge Daily)
 - `class_method_dispatch_edge.sage`: Tests OOP class constructors (`init(self, ...)`), method chaining returning `self`, `self` calling internal methods, multi-parameter method dispatch, dynamic property creation, and accessing/calling non-existent properties/methods on instances.
 - `chained_assignment_edge.sage`: Tests stack manipulation opcodes (`OP_DUP`, `OP_POP`) across chained variable assignments (`var a = var b = var c = 100`), arithmetic expression assignments, chained `nil` assignments, chained array index assignments, chained dictionary key assignments, and chained object property assignments.
+- `unary_negate_edge.sage`: Tests `OP_NEGATE` (unary `-x` operator) across positive and negative integers, floating point numbers, zero, arithmetic expressions, chained negations (`--x`, `---x`), `nil` (evaluates to `0` in SVM), booleans, strings, and array operands.
+- `string_repeat_edge.sage`: Tests string repetition (`OP_MUL` string * int and int * string) with positive counts, zero, negative multipliers, float multipliers, empty strings, chained expressions, and `nil` operands.
 
 ### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **158 passed, 0 failed, 1 skipped**
+The modern SVM coverage suite passes cleanly: **160 passed, 0 failed, 1 skipped**
 
 One test is skipped: `generators.sage`, because `sage --emit-vm` does not
 emit VM bytecode for it.
