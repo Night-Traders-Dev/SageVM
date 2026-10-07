@@ -1218,11 +1218,13 @@ class MetalVM:
             if self.safe_mode or not self.exec_enabled:
                 print "Error: sys.exec is restricted"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return sys_exec(args[0])
         elif callee == "__builtin_sys_system":
             if self.safe_mode or not self.exec_enabled:
                 print "Error: sys.system is restricted"
                 return -1
+            if len(args) == 0 or args[0] == nil: return -1
             return sys_exec(args[0])
         elif callee == "__builtin_sys_exit":
             if self.safe_mode:
