@@ -51,6 +51,7 @@ def run_suite():
         # Compile
         env = os.environ.copy()
         env["PATH"] = sage_dir + os.pathsep + env.get("PATH", "")
+        os.environ["PATH"] = sage_dir + os.pathsep + os.environ.get("PATH", "")
 
         svm_path = test_path.replace(".sage", ".svm")
         subprocess.run(["sage", "--emit-vm", test_path, "-o", svm_path], env=env, capture_output=True)
