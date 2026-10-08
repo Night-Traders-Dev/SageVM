@@ -132,3 +132,8 @@
 **Vulnerability:** The SRVM (RISC-V) interpreter (`src/srvm/srvm_vm.sage`) lacked bounds validation on the requested element count in `OBJ_TUPLE_NEW`. A malicious guest script could pass an arbitrary or negative size parameter to allocate massive host memory arrays, causing host memory exhaustion or process crash (CWE-770).
 **Learning:** Container object creation opcodes across all virtual machine backends must consistently enforce maximum allocation size boundaries before allocating host structures.
 **Prevention:** Always validate size parameters against `self.state.max_array_size` across all array and tuple allocation instruction handlers.
+
+## 2026-10-09 - Stack Underflow via Unchecked Collection Opcodes in SVM
+**Vulnerability:** The SVM interpreter (`src/svm/sgvm_vm.sage`) lacked stack size validation when executing collection construction opcodes `OP_ARRAY`, `OP_TUPLE`, and `OP_DICT`. Malformed bytecode with an element count exceeding the operand stack size caused `base` (`stack_len - count`) to become negative, leading to negative stack indexing and memory underflow (CWE-125/CWE-787).
+**Learning:** Opcodes that slice or gather elements off the operand stack must validate that the stack contains enough elements (`stack_len >= required`) before subtracting element counts from the stack index pointer.
+**Prevention:** Always validate stack length (`stack_len >= required`) prior to calculating offset base pointers in stack-pop or collection-gathering instruction handlers.
