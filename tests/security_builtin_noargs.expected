@@ -1,0 +1,11 @@
+str: nil
+type: nil
+upper: nil
+lower: nil
+strip: nil
+join:
+split len: 0
+replace:
+startswith: false
+slice:
+reflect len: 0
