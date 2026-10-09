@@ -132,3 +132,8 @@
 **Vulnerability:** The SRVM (RISC-V) interpreter (`src/srvm/srvm_vm.sage`) lacked bounds validation on the requested element count in `OBJ_TUPLE_NEW`. A malicious guest script could pass an arbitrary or negative size parameter to allocate massive host memory arrays, causing host memory exhaustion or process crash (CWE-770).
 **Learning:** Container object creation opcodes across all virtual machine backends must consistently enforce maximum allocation size boundaries before allocating host structures.
 **Prevention:** Always validate size parameters against `self.state.max_array_size` across all array and tuple allocation instruction handlers.
+
+## 2026-10-10 - Unhandled Host Out-of-Bounds Exceptions in SVM Builtin Call Dispatcher
+**Vulnerability:** Builtin function handlers in `MetalVM.call_builtin` (`src/svm/sgvm_vm.sage`) accessed argument list elements (`args[0]`, `args[1]`, `args[2]`) directly without verifying argument array length (`len(args)`). Calling builtins like `type()`, `str()`, `upper()`, `slice()`, `join()`, or reflection builtins with zero or missing arguments triggered host-level array index out-of-bounds exceptions, crashing the VM host process (DoS) or leaking reflection details on protected objects in `safe_mode`.
+**Learning:** Guest VM builtins that unpack positional argument lists must validate `len(args)` before accessing positional arguments. In dynamically typed VM host languages, an unhandled guest call with missing arguments translates directly into an unhandled host runtime crash.
+**Prevention:** Always validate `len(args)` and parameter types at the start of every builtin function handler before accessing positional argument array indices.
