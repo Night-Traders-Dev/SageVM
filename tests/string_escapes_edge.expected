@@ -1,0 +1,18 @@
+--- String Escape Sequences ---
+Hello
+World
+Col1	Col2	Col3
+Quote: "Slash: \
+--- String Length and Indexing with Escapes ---
+len(newline): 11
+newline[5] == \n: true
+ord(\n): 10
+ord(\t): 9
+chr(10) == \n: true
+--- String Split with Newline / Tab ---
+lines count: 2
+line 0: Hello
+line 1: World
+joined: Hello -> World
+--- Strip Whitespace and Newlines ---
+cleaned: [padded string]
