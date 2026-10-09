@@ -1,0 +1,14 @@
+d[str(1)]: one
+d[str(42)]: forty-two
+d[1]: nil
+d[3.14]: nil
+d[true]: nil
+d[false]: nil
+d[nil]: nil
+dict_has(d, 42): false
+dict_has(d, str(42)): true
+dict_has(d, 999): false
+dict_has(d, true): false
+dict_keys len: 2
+dict_values len: 2
+d["missing"] == nil: true

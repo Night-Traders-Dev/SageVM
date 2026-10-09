@@ -1,0 +1,8 @@
+return_from_nested_if(1, 1): both positive
+return_from_nested_if(1, -1): x positive
+return_from_nested_if(-1, 0): x non-positive
+return_from_while_loop(5): 5
+return_from_while_loop(200): -1
+success_in_try: 10
+caught_err: error_in_try
+Stack balance verification: A_B_both positive_3_success_in_try: 10
