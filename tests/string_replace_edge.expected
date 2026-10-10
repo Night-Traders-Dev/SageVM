@@ -1,0 +1,20 @@
+--- Normal replace ---
+hello sage
+--- Deletion replace (new is empty) ---
+foobarbaz
+--- Replace with multiple occurrences ---
+x b c x b c
+--- Replace entire string ---
+replaced
+--- Replace non-existent ---
+sample text
+--- Replace with escape characters ---
+line1 | line2
+--- Replace empty string target ---
+abc
+--- Replace in empty string ---
+
+--- Replace with nil arguments ---
+nil
+nil
+nil
