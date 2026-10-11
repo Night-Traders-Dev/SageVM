@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.2] - 2026-10-11
+
+### Fixed
+- **RISC-V ALU move nil handling**: Corrected `addi rd, rs1, 0` move instruction
+  semantics in the RISC-V ALU to preserve `nil` literals across register copies
+  when passing arguments to builtins. Arithmetic coercion of `nil` to `0` now
+  applies strictly to arithmetic operations, allowing `nil` values passed to
+  builtins like `type()` and `print()` to evaluate correctly as `"nil"`.
+- **SRVM test suite pass rate**: RISC-V backend test pass rate increased to 81
+  passing out of 79 core suites (SVM test suite unchanged at 160/160 passing).
+
 ## [1.2.2] - 2026-10-03
 
 ### Added
