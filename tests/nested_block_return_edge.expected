@@ -1,0 +1,3 @@
+return_from_try
+return_from_catch: err
+default_return

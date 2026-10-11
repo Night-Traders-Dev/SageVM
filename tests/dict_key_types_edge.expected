@@ -1,0 +1,12 @@
+--- Non-string Key Indexing (Suspected VM Constraint) ---
+d[1]: nil
+d[true]: nil
+dict_has(d, 1): false
+--- Explicit String Key Coercion ---
+d['1']: one_str
+d['true']: true_str
+dict_has(d, '1'): true
+dict_keys(d): <array>
+dict_values(d): <array>
+--- Missing Keys ---
+d['missing']: nil
