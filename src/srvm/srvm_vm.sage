@@ -300,11 +300,15 @@ class SRVM:
 
     proc handle_imm(self, rd, rs1, f3, f7, imm_i):
         let raw_val = self.state.x[rs1]
-        ## Same nil-is-zero rule as handle_reg: a literal nil arrives in a
-        ## register by way of OP_LDC, and this is the path `~nil` takes.
+        ## `addi rd, rs1, 0` is how the compiler spells a move, and argument
+        ## marshalling for a builtin is two of them. Those must carry the value
+        ## across untouched -- coercing here turned nil into 0 on the way to
+        ## type(), so type(nil) answered "number" and print(nil) answered 0.
+        ## Coercion belongs to the arithmetic below, not to the copy.
         var rs1_val = raw_val
-        if rs1_val == nil: rs1_val = 0
         let imm = imm_i
+        let is_move = (f3 == F3_ADDI and imm == 0)
+        if rs1_val == nil and not is_move: rs1_val = 0
         if f3 == F3_ADDI:
             if imm == 0: self.state.x[rd] = rs1_val
             else: self.state.x[rd] = rs1_val + imm
