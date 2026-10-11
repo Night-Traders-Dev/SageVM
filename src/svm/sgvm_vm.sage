@@ -1239,6 +1239,9 @@ class MetalVM:
                 return sys.getenv(args[0])
             return nil
         elif callee == "__builtin_sys_args":
+            if self.safe_mode:
+                print "Error: sys.args is restricted in safe mode"
+                return nil
             # sys.args() has to be a callable from the guest's point of view.
             # The sys module used to bind "args" straight to a list value, so
             # every guest program that called sys.args() got "Method args not
