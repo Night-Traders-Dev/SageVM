@@ -299,7 +299,11 @@ class SRVM:
             self.state.pc = self.state.pc + 4
 
     proc handle_imm(self, rd, rs1, f3, f7, imm_i):
-        let rs1_val = self.state.x[rs1]
+        let raw_val = self.state.x[rs1]
+        ## Same nil-is-zero rule as handle_reg: a literal nil arrives in a
+        ## register by way of OP_LDC, and this is the path `~nil` takes.
+        var rs1_val = raw_val
+        if rs1_val == nil: rs1_val = 0
         let imm = imm_i
         if f3 == F3_ADDI:
             if imm == 0: self.state.x[rd] = rs1_val
@@ -331,47 +335,60 @@ class SRVM:
         self.state.pc = self.state.pc + 4
 
     proc handle_reg(self, rd, rs1, rs2, f3, f7):
-        let rs1_val = self.state.x[rs1]
-        let rs2_val = self.state.x[rs2]
+        let rs1_raw = self.state.x[rs1]
+        let rs2_raw = self.state.x[rs2]
+
+        ## A register can hold nil: OP_LDC loads a constant by index straight out
+        ## of the pool, and the pool holds nil for a literal nil. The ALU below
+        ## then does native arithmetic on it, which raises "Operands must be
+        ## numbers" and takes the whole program down. The stack VM already reads
+        ## nil as zero in every arithmetic and bitwise position, so coercing here
+        ## is what makes the two agree -- `nil & 3` is 0, not a crash.
+        ## Equality is deliberately not affected: `nil == 0` is false there, and
+        ## that comparison never reaches this function.
+        var rs1_num = rs1_raw
+        var rs2_num = rs2_raw
+        if rs1_num == nil: rs1_num = 0
+        if rs2_num == nil: rs2_num = 0
 
         if f7 == 0x01: # M-extension
             if f3 == F3_ADD: # MUL
-                self.state.x[rd] = rs1_val * rs2_val
+                self.state.x[rd] = rs1_num * rs2_num
             elif f3 == F3_XOR: # DIV
-                if rs2_val != 0: self.state.x[rd] = rs1_val / rs2_val
+                if rs2_num != 0: self.state.x[rd] = rs1_num / rs2_num
                 else: self.state.x[rd] = 0
             elif f3 == F3_OR: # REM
-                if rs2_val != 0: self.state.x[rd] = rs1_val % rs2_val
+                if rs2_num != 0: self.state.x[rd] = rs1_num % rs2_num
                 else: self.state.x[rd] = 0
             self.state.pc = self.state.pc + 4
             return
 
         if f3 == F3_ADD:
             if f7 == 0x00: 
-                self.state.x[rd] = rs1_val + rs2_val
-            elif f7 == 0x20: self.state.x[rd] = rs1_val - rs2_val
-        elif f3 == F3_SLL: self.state.x[rd] = rs1_val << (rs2_val & 0x3F)
+                self.state.x[rd] = rs1_num + rs2_num
+            elif f7 == 0x20: self.state.x[rd] = rs1_num - rs2_num
+        elif f3 == F3_SLL: self.state.x[rd] = rs1_num << (rs2_num & 0x3F)
         elif f3 == F3_SLT:
-            if rs1_val < rs2_val: self.state.x[rd] = 1
+            if rs1_num < rs2_num: self.state.x[rd] = 1
             else: self.state.x[rd] = 0
         elif f3 == F3_SLTU:
-            if rs1_val < rs2_val: self.state.x[rd] = 1
+            if rs1_num < rs2_num: self.state.x[rd] = 1
             else: self.state.x[rd] = 0
-        elif f3 == F3_XOR: self.state.x[rd] = rs1_val ^ rs2_val
+        elif f3 == F3_XOR: self.state.x[rd] = rs1_num ^ rs2_num
         elif f3 == F3_SRL:
-            let shamt = rs2_val & 0x3F
+            let shamt = rs2_num & 0x3F
             if f7 == 0x20:
                 # SRA: arithmetic right shift
-                self.state.x[rd] = rs1_val >> shamt
+                self.state.x[rd] = rs1_num >> shamt
             else:
                 # SRL: logical right shift
-                if rs1_val < 0:
-                    let unsigned_val = rs1_val + (1 << 64)
+                if rs1_num < 0:
+                    let unsigned_val = rs1_num + (1 << 64)
                     self.state.x[rd] = unsigned_val >> shamt
                 else:
-                    self.state.x[rd] = rs1_val >> shamt
-        elif f3 == F3_OR: self.state.x[rd] = rs1_val | rs2_val
-        elif f3 == F3_AND: self.state.x[rd] = rs1_val & rs2_val
+                    self.state.x[rd] = rs1_num >> shamt
+        elif f3 == F3_OR: self.state.x[rd] = rs1_num | rs2_num
+        elif f3 == F3_AND: self.state.x[rd] = rs1_num & rs2_num
         self.state.pc = self.state.pc + 4
 
     proc handle_vmsys(self, rd, rs1, rs2, f3, f7, imm_i):
