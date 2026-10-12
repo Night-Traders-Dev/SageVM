@@ -1,0 +1,11 @@
+--- Bitwise NOT Integers ---
+-1
+-2
+0
+-101
+100
+--- Bitwise NOT Expressions & Double Negation ---
+-21
+15
+--- Bitwise NOT Edge Values ---
+0

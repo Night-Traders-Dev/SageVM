@@ -1,0 +1,22 @@
+--- Logical Not Primitives ---
+false
+true
+true
+true
+false
+false
+--- Logical Not Strings ---
+true
+false
+--- Logical Not Collections ---
+false
+false
+false
+false
+--- Logical Not Expressions & Chaining ---
+false
+true
+true
+false
+false
+true
