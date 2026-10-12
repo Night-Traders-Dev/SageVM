@@ -14,5 +14,5 @@ Joined single: solo
 --- Join with empty delimiter ---
 Joined empty sep: xyz
 --- Nil parameters ---
-split(nil, ','): <array>
+split(nil, ','): []
 join(nil, '-'): nil

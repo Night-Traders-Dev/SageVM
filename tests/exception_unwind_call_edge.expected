@@ -9,8 +9,8 @@ Result 1: Level 1 done
 Level 1 entering
 Level 2 entering
 Level 3 entering
-Level 1 caught: <array>
-Main caught re-raised: <array>
+Level 1 caught: [ERR_LVL3, 300]
+Main caught re-raised: [ERR_LVL1, <6>]
 --- Case 3: Return inside try block ---
 positive_return
 caught_negative_val
