@@ -12,6 +12,7 @@ let OP_STORE   = 0b0100011 # 0x23
 let OP_IMM     = 0b0010011 # 0x13
 let OP_REG     = 0b0110011 # 0x33
 let OP_LDC     = 0b1011011 # Custom-2 Opcode for Load Constant (U-type)
+let OP_LOCAL_DEF = 0b1011100 # Custom: read a local, binding it on first use
 let OP_VMSYS   = 0b1110011 # 0x73 (Standard SYSTEM opcode repurposed)
 
 # Funct3 for OP_BRANCH
@@ -63,6 +64,11 @@ let F3_GPU_OPS  = 0b001
 let F3_OBJ_OPS  = 0b010
 
 # VM Ops (funct7)
+## UNBOUND marks a frame slot that has never been written. A local that holds
+## nil is bound and must read back as nil; without a distinct marker the two
+## are indistinguishable and every nil local rebinds on each read.
+let UNBOUND = {"__sgvm_unbound__": true}
+
 let VMO_NOP      = 0x00
 let VMO_HALT     = 0x01
 let VMO_PUSH_ENV = 0x02

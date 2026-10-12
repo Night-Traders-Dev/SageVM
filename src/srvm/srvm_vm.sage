@@ -1,4 +1,4 @@
-from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS
+from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS, OP_LOCAL_DEF
 from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
 from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
 from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT, OBJ_METHOD_BIND, OBJ_GET_PROP, OBJ_SET_PROP, OBJ_NEW_FUNC, OBJ_ARRAY_NEW, OBJ_DICT_NEW, OBJ_TUPLE_NEW, OBJ_GET_INDEX, OBJ_SET_INDEX, SRVMUtils
@@ -222,6 +222,15 @@ class SRVM:
                     self.state.pc = frame[1]
                     self.state.x[1] = frame[2]
                     if len(frame) > 3: self.state.x[8] = frame[3]
+                    if len(frame) > 5:
+                        ## The snapshot skipped a0, so everything after the gap
+                        ## is one position further on than its index.
+                        var ri2 = 0
+                        while ri2 < len(frame[5]):
+                            let real: Int = ri2 + 1
+                            if real >= 10: real = ri2 + 2
+                            if real < 32: self.state.x[real] = frame[5][ri2]
+                            ri2 = ri2 + 1
                     if len(frame) > 4 and frame[4] < len(self.state.stack):
                         while len(self.state.stack) > frame[4]:
                             pop(self.state.stack)
@@ -243,6 +252,8 @@ class SRVM:
             self.state.pc = self.state.pc + 4
         elif op == OP_LDC:
             self.handle_ldc(rd, raw)
+        elif op == OP_LOCAL_DEF:
+            self.handle_local_def(rd, rs1, imm_i)
         elif op == OP_LOAD:
             self.handle_load(rd, rs1, imm_i)
         elif op == OP_STORE:
@@ -257,6 +268,29 @@ class SRVM:
     proc handle_ldc(self, rd, raw):
         let idx = (raw >> 12) & 0xFFFFF
         self.state.x[rd] = self.safe_get_constant(idx)
+        self.state.pc = self.state.pc + 4
+
+    ## handle_local_def -- bind a local on first use, read it thereafter.
+    ##
+    ## The host opcode behind `let y = 7` does both: the first occurrence defines
+    ## the slot from the value the expression already produced, and every later
+    ## occurrence reads it back. The stack VM decides that per execution; here it
+    ## has to be decided per instruction, because the register form has separate
+    ## load and store encodings and the translator cannot know which applies.
+    ## An explicit UNBOUND marker keeps a slot that holds nil distinct from one
+    ## that was never written -- overloading nil made every nil local rebind.
+    proc handle_local_def(self, rd, rs1, imm_i):
+        let base = self.state.x[8] + imm_i
+        if base >= 0 and base < self.state.max_stack_size:
+            while len(self.state.stack) <= base:
+                push(self.state.stack, srvm_core.UNBOUND)
+            if self.state.stack[base] == srvm_core.UNBOUND:
+                self.state.stack[base] = self.state.x[rs1]
+                self.state.x[rd] = self.state.stack[base]
+            else:
+                self.state.x[rd] = self.state.stack[base]
+        else:
+            self.state.x[rd] = self.state.x[rs1]
         self.state.pc = self.state.pc + 4
 
     proc handle_load(self, rd, rs1, imm_i):
@@ -779,9 +813,14 @@ class SRVM:
                     ## rides in rd; the call site had no way to say so before.
                     let argc: Int = rd
                     var frame_base: Int = len(self.state.stack)
-                    if argc > 0 and argc <= 16:
-                        while len(self.state.stack) < frame_base + argc * 8:
-                            push(self.state.stack, nil)
+                    ## Always open a frame, even for a call with no arguments:
+                    ## s0 has to point at this frame's slots or the callee's
+                    ## locals resolve against whatever the caller left behind.
+                    var slots: Int = argc
+                    if slots < 1: slots = 1
+                    if slots <= 16:
+                        while len(self.state.stack) < frame_base + slots * 8:
+                            push(self.state.stack, srvm_core.UNBOUND)
                         var k = 0
                         while k < argc:
                             self.state.stack[frame_base + k * 8] = self.state.x[10 + k]
@@ -792,11 +831,26 @@ class SRVM:
                     ## resumes reading its parameters out of the callee's frame --
                     ## which is why recursion returned a wrong answer and why a
                     ## callee's own locals came back as 1.
+                    ## Preserve the caller's registers across the call. The
+                    ## translator hands out the same register numbers at every
+                    ## level, so a callee overwrites its caller's live
+                    ## temporaries -- in a recursion like fact(n) = n *
+                    ## fact(n-1) the saved n came back as whatever the inner
+                    ## frame last left there, and every level multiplied by the
+                    ## same number. a0 is deliberately excluded: it is where the
+                    ## callee leaves its result, and the call site reads it right
+                    ## after the return.
+                    var saved_regs = []
+                    var ri = 1
+                    while ri < 32:
+                        if ri != 10: push(saved_regs, self.state.x[ri])
+                        ri = ri + 1
                     push(self.state.call_stack, [self.state.current_chunk_idx,
                                                  self.state.pc + 4,
                                                  self.state.x[1],
                                                  self.state.x[8],
-                                                 frame_base])
+                                                 frame_base,
+                                                 saved_regs])
                     self.state.current_chunk_idx = target_chunk
                     self.load_chunk(chunk)
                     self.state.pc = 0

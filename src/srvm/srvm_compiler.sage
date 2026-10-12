@@ -1,5 +1,5 @@
 from sgvm_core import OP_CONSTANT, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_LOAD_FUNCTION, OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT, OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY, OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM, OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_GET_LOCAL, OP_SET_LOCAL
-from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS
+from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_LOCAL_DEF, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS
 from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
 from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
 from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT, OBJ_METHOD_BIND, OBJ_GET_PROP, OBJ_SET_PROP, OBJ_NEW_FUNC, OBJ_ARRAY_NEW, OBJ_DICT_NEW, OBJ_TUPLE_NEW, OBJ_GET_INDEX, OBJ_SET_INDEX, SRVMUtils, RVEncoder
@@ -72,6 +72,9 @@ class StackToRiscVTranslator:
         
         self.output_bytes = []
         self.reg_stack = []
+        ## First mention of each local slot in this chunk. 0x3b is bind or read
+        ## depending on whether the slot has appeared before here.
+        self.bound_slots = {}
         self.next_reg = 13
         self.spill_slots = []
         self.spill_offset = 0
@@ -508,10 +511,34 @@ class StackToRiscVTranslator:
                 push(self.reg_stack, rd)
 
             elif op == OP_GET_LOCAL:
+                ## 0x3b is not a read. The host emits it for `let y = 7` and for
+                ## every later use of y, and the stack VM treats it as bind-on-
+                ## first-use: the value is on the stack and lands in the slot, or
+                ## the slot is already bound and its value is what the expression
+                ## means. A plain load read an unwritten slot and yielded nil,
+                ## which is why a callee's locals were 0 and why nested calls
+                ## returned an argument instead of a result.
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
                 let rd = self.alloc_reg()
-                self.emit_32(self.encoder.encode_i(OP_LOAD, F3_LD, rd, 8, idx * 8))
+                ## The host emits 0x3b both for `let x = ...` and for every later
+                ## mention of x, and the stack VM treats the first as a bind and
+                ## the rest as reads. Whether this is the first mention is
+                ## knowable here, per chunk, so each gets the value stack
+                ## discipline it needs: a bind consumes the expression it is
+                ## defining and puts it back, a read only pushes. Peeking for
+                ## both left a stale entry under every read; popping for both ate
+                ## the operand the next operator needed.
+                var cand: Int = 0
+                if self.bound_slots == nil: self.bound_slots = {}
+                ## String keys: dict_has and item assignment have to agree on
+                ## the key type, and an Int index makes one silently miss.
+                let slot_key: String = str(idx)
+                if not dict_has(self.bound_slots, slot_key):
+                    self.bound_slots[slot_key] = true
+                    if self.reg_stack != nil and len(self.reg_stack) > 0:
+                        cand = self.pop_reg()
+                self.emit_32(self.encoder.encode_i(OP_LOCAL_DEF, 0, rd, cand, idx * 8))
                 push(self.reg_stack, rd)
 
             elif op == OP_SET_LOCAL:
