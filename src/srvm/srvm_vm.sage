@@ -140,8 +140,14 @@ class SRVM:
             push(self.state.words, int(chunk[base]) | (int(chunk[base+1]) << 8) | (int(chunk[base+2]) << 16) | (int(chunk[base+3]) << 24))
             w = w + 1
 
-    proc run(self, bytecode):
-        # Initial chunk (0)
+    proc run(self, bytecode, chunk_index: Int = 0):
+        # The entry chunk is whichever one the runner handed us, which is not
+        # index 0: the runner walks the top-level chunks after the function
+        # bodies. Leaving current_chunk_idx at 0 made every frame record the
+        # wrong chunk, so returning from a call restored the wrong code and
+        # resumed at an out-of-range pc -- which is why a call produced no
+        # value and the program carried on from somewhere else entirely.
+        self.state.current_chunk_idx = chunk_index
         self.load_chunk(bytecode)
         if len(self.state.chunks) == 0:
             push(self.state.chunks, bytecode)
@@ -215,6 +221,10 @@ class SRVM:
                     self.load_chunk(self.state.chunks[self.state.current_chunk_idx])
                     self.state.pc = frame[1]
                     self.state.x[1] = frame[2]
+                    if len(frame) > 3: self.state.x[8] = frame[3]
+                    if len(frame) > 4 and frame[4] < len(self.state.stack):
+                        while len(self.state.stack) > frame[4]:
+                            pop(self.state.stack)
                     return # Skip standard PC update
                 else:
                     self.state.running = false
@@ -360,10 +370,10 @@ class SRVM:
                 self.state.x[rd] = rs1_num * rs2_num
             elif f3 == F3_XOR: # DIV
                 if rs2_num != 0: self.state.x[rd] = rs1_num / rs2_num
-                else: self.state.x[rd] = 0
+                else: self.state.x[rd] = nil
             elif f3 == F3_OR: # REM
                 if rs2_num != 0: self.state.x[rd] = rs1_num % rs2_num
-                else: self.state.x[rd] = 0
+                else: self.state.x[rd] = nil
             self.state.pc = self.state.pc + 4
             return
 
@@ -562,7 +572,7 @@ class SRVM:
                     elif b_name == "dict_has":
                         let obj = self.state.x[10]
                         let key = self.state.x[11]
-                        if self.state.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+                        if self.state.safe_mode and (self.is_protected(obj) or (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"))):
                             self.state.x[10] = false
                         else:
                             self.state.x[10] = dict_has(obj, key)
@@ -642,7 +652,13 @@ class SRVM:
                     elif b_name == "strip":
                         self.state.x[10] = strip(self.state.x[10])
                     elif b_name == "print":
-                        print str(self.state.x[10])
+                        ## Native print, not print(str(...)). Under the SageVM
+                        ## compiler str() renders a list as "<array>" where the
+                        ## interpreter renders it as its contents, so wrapping
+                        ## the value turned every array, dict and struct print
+                        ## into a placeholder. The stack VM prints the value
+                        ## directly here; this now does the same.
+                        print self.state.x[10]
                         self.state.x[10] = nil
                     elif b_name == "sys_exec":
                         if self.state.safe_mode or not self.state.exec_enabled:
@@ -754,7 +770,33 @@ class SRVM:
                 if target_chunk >= 0:
                     let chunk = self.safe_get_chunk(target_chunk)
                     if not self.state.running: return
-                    push(self.state.call_stack, [self.state.current_chunk_idx, self.state.pc + 4, self.state.x[1]])
+                    ## The callee reads its parameters out of the frame rather
+                    ## than out of a0.., one cell every eight slots: the compiler
+                    ## emits `ld a3, 0(s0)` and `ld a4, 8(s0)` for add(a, b).
+                    ## Nothing was ever stored there, so a call read whatever
+                    ## happened to occupy those cells. Spill the arguments now,
+                    ## and point s0 at the frame so nested calls nest. argc
+                    ## rides in rd; the call site had no way to say so before.
+                    let argc: Int = rd
+                    var frame_base: Int = len(self.state.stack)
+                    if argc > 0 and argc <= 16:
+                        while len(self.state.stack) < frame_base + argc * 8:
+                            push(self.state.stack, nil)
+                        var k = 0
+                        while k < argc:
+                            self.state.stack[frame_base + k * 8] = self.state.x[10 + k]
+                            k = k + 1
+                        self.state.x[8] = frame_base
+                    ## The frame carries the caller's s0 and its stack depth as well. A nested
+                    ## call overwrites both, and without restoring them the caller
+                    ## resumes reading its parameters out of the callee's frame --
+                    ## which is why recursion returned a wrong answer and why a
+                    ## callee's own locals came back as 1.
+                    push(self.state.call_stack, [self.state.current_chunk_idx,
+                                                 self.state.pc + 4,
+                                                 self.state.x[1],
+                                                 self.state.x[8],
+                                                 frame_base])
                     self.state.current_chunk_idx = target_chunk
                     self.load_chunk(chunk)
                     self.state.pc = 0
