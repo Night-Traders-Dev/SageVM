@@ -921,6 +921,10 @@ class MetalVM:
                 # Performance: Inline collection construction in hot loop and bypass pop() calls via single-pass stack indexing
                 let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                if stack_len < count:
+                    print "Error: Stack underflow"
+                    halted = true
+                    break
                 let arr = []
                 var j = 0
                 let base = stack_len - count
@@ -937,6 +941,10 @@ class MetalVM:
                 # Performance: Inline tuple construction in hot loop and bypass pop() calls via single-pass stack indexing
                 let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                if stack_len < count:
+                    print "Error: Stack underflow"
+                    halted = true
+                    break
                 let t = []
                 var j = 0
                 let base = stack_len - count
@@ -953,6 +961,10 @@ class MetalVM:
                 # Performance: Inline dictionary construction in hot loop and bypass pop() calls via single-pass stack indexing
                 let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                if stack_len < 2 * count:
+                    print "Error: Stack underflow"
+                    halted = true
+                    break
                 let d = {}
                 var j = 0
                 let base = stack_len - 2 * count
@@ -1598,9 +1610,13 @@ class MetalVM:
             # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
             let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
+            let st_len = len(self.stack)
+            if st_len < count:
+                print "Error: Stack underflow"
+                self.halted = true
+                return false
             let arr = []
             var j = 0
-            let st_len = len(self.stack)
             let base = st_len - count
             while j < count:
                 push(arr, self.stack[base + j])
@@ -1612,9 +1628,13 @@ class MetalVM:
             # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
             let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
+            let st_len = len(self.stack)
+            if st_len < count:
+                print "Error: Stack underflow"
+                self.halted = true
+                return false
             let t = []
             var j = 0
-            let st_len = len(self.stack)
             let base = st_len - count
             while j < count:
                 push(t, self.stack[base + j])
@@ -1626,9 +1646,13 @@ class MetalVM:
             # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
             let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
+            let st_len = len(self.stack)
+            if st_len < 2 * count:
+                print "Error: Stack underflow"
+                self.halted = true
+                return false
             let d = {}
             var j = 0
-            let st_len = len(self.stack)
             let base = st_len - 2 * count
             while j < count:
                 d[self.stack[base + j * 2]] = self.stack[base + j * 2 + 1]
