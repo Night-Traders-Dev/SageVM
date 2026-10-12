@@ -648,7 +648,13 @@ class SRVM:
                     elif b_name == "strip":
                         self.state.x[10] = strip(self.state.x[10])
                     elif b_name == "print":
-                        print str(self.state.x[10])
+                        ## Native print, not print(str(...)). Under the SageVM
+                        ## compiler str() renders a list as "<array>" where the
+                        ## interpreter renders it as its contents, so wrapping
+                        ## the value turned every array, dict and struct print
+                        ## into a placeholder. The stack VM prints the value
+                        ## directly here; this now does the same.
+                        print self.state.x[10]
                         self.state.x[10] = nil
                     elif b_name == "sys_exec":
                         if self.state.safe_mode or not self.state.exec_enabled:
