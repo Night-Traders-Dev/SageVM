@@ -366,10 +366,10 @@ class SRVM:
                 self.state.x[rd] = rs1_num * rs2_num
             elif f3 == F3_XOR: # DIV
                 if rs2_num != 0: self.state.x[rd] = rs1_num / rs2_num
-                else: self.state.x[rd] = 0
+                else: self.state.x[rd] = nil
             elif f3 == F3_OR: # REM
                 if rs2_num != 0: self.state.x[rd] = rs1_num % rs2_num
-                else: self.state.x[rd] = 0
+                else: self.state.x[rd] = nil
             self.state.pc = self.state.pc + 4
             return
 
