@@ -921,6 +921,10 @@ class MetalVM:
                 # Performance: Inline collection construction in hot loop and bypass pop() calls via single-pass stack indexing
                 let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                if stack_len < count:
+                    print "Error: Stack underflow"
+                    halted = true
+                    break
                 let arr = []
                 var j = 0
                 let base = stack_len - count
@@ -937,6 +941,10 @@ class MetalVM:
                 # Performance: Inline tuple construction in hot loop and bypass pop() calls via single-pass stack indexing
                 let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                if stack_len < count:
+                    print "Error: Stack underflow"
+                    halted = true
+                    break
                 let t = []
                 var j = 0
                 let base = stack_len - count
@@ -953,6 +961,10 @@ class MetalVM:
                 # Performance: Inline dictionary construction in hot loop and bypass pop() calls via single-pass stack indexing
                 let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                if stack_len < 2 * count:
+                    print "Error: Stack underflow"
+                    halted = true
+                    break
                 let d = {}
                 var j = 0
                 let base = stack_len - 2 * count
@@ -1024,7 +1036,7 @@ class MetalVM:
         elif callee == "__builtin_dict_has":
             if len(args) < 2 or args[0] == nil or type(args[0]) != "dict": return false
             let key = args[1]
-            if self.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+            if self.safe_mode and (self.is_protected(args[0]) or (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"))):
                 return false
             return dict_has(args[0], key)
         elif callee == "__builtin_dict_keys":
@@ -1057,6 +1069,7 @@ class MetalVM:
                 return safe_vals
             return dict_values(obj)
         elif callee == "__builtin_str":
+            if len(args) == 0: return nil
             return str(args[0])
         elif callee == "__builtin_int":
             if len(args) == 0 or args[0] == nil:
@@ -1070,6 +1083,7 @@ class MetalVM:
             if len(args) == 0 or args[0] == nil: return nil
             return tonumber(args[0])
         elif callee == "__builtin_type":
+            if len(args) == 0: return "nil"
             return type(args[0])
         elif callee == "__builtin_chr":
             if len(args) == 0 or args[0] == nil: return ""
@@ -1078,42 +1092,54 @@ class MetalVM:
             if len(args) == 0 or args[0] == nil or type(args[0]) != "string" or len(args[0]) == 0: return 0
             return ord(args[0])
         elif callee == "__builtin_upper":
+            if len(args) == 0: return nil
+            if args[0] == nil: return nil
             return upper(args[0])
         elif callee == "__builtin_lower":
+            if len(args) == 0: return nil
+            if args[0] == nil: return nil
             return lower(args[0])
         elif callee == "__builtin_strip":
+            if len(args) == 0: return nil
+            if args[0] == nil: return nil
             return strip(args[0])
         elif callee == "__builtin_join":
+            if len(args) < 2: return ""
+            if args[0] == nil or args[1] == nil: return nil
             return join(args[0], args[1])
         elif callee == "__builtin_split":
+            if len(args) < 2 or args[0] == nil or args[1] == nil: return []
             return split(args[0], args[1])
         elif callee == "__builtin_replace":
+            if len(args) < 3 or args[0] == nil or args[1] == nil or args[2] == nil: return ""
             return replace(args[0], args[1], args[2])
         elif callee == "__builtin_startswith":
-            if args[0] == nil or args[1] == nil: return false
+            if len(args) < 2 or args[0] == nil or args[1] == nil: return false
             return startswith(args[0], args[1])
         elif callee == "__builtin_endswith":
-            if args[0] == nil or args[1] == nil: return false
+            if len(args) < 2 or args[0] == nil or args[1] == nil: return false
             return endswith(args[0], args[1])
         elif callee == "__builtin_contains":
-            if args[0] == nil or args[1] == nil: return false
+            if len(args) < 2 or args[0] == nil or args[1] == nil: return false
             return contains(args[0], args[1])
         elif callee == "__builtin_slice":
+            if len(args) == 0 or args[0] == nil: return ""
             var s0 = args[0]
-            var s1 = args[1]
-            var s2 = args[2]
-            if s0 == nil: return ""
-            if s1 == nil: s1 = 0
-            if s2 == nil: s2 = len(s0)
+            var s1 = 0
+            if len(args) > 1 and args[1] != nil: s1 = args[1]
+            var s2 = len(s0)
+            if len(args) > 2 and args[2] != nil: s2 = args[2]
             return slice(s0, s1, s2)
         elif callee == "__builtin_clock":
             return clock()
         elif callee == "__builtin_print":
-            print args[0]
+            if len(args) > 0 and args[0] != nil: print args[0]
             return nil
         elif callee == "__builtin_range":
+            if len(args) == 0: return []
             return range(args[0])
         elif callee == "__builtin_math_printm":
+            if len(args) == 0: return nil
             let matrix = args[0]
             if type(matrix) != "array":
                 print "Error: math.printm() expects an array"
@@ -1218,11 +1244,13 @@ class MetalVM:
             if self.safe_mode or not self.exec_enabled:
                 print "Error: sys.exec is restricted"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return sys_exec(args[0])
         elif callee == "__builtin_sys_system":
             if self.safe_mode or not self.exec_enabled:
                 print "Error: sys.system is restricted"
                 return -1
+            if len(args) == 0 or args[0] == nil: return -1
             return sys_exec(args[0])
         elif callee == "__builtin_sys_exit":
             if self.safe_mode:
@@ -1239,6 +1267,9 @@ class MetalVM:
                 return sys.getenv(args[0])
             return nil
         elif callee == "__builtin_sys_args":
+            if self.safe_mode:
+                print "Error: sys.args is restricted in safe mode"
+                return nil
             # sys.args() has to be a callable from the guest's point of view.
             # The sys module used to bind "args" straight to a list value, so
             # every guest program that called sys.args() got "Method args not
@@ -1302,8 +1333,14 @@ class MetalVM:
                 print "Error: gc_disable is restricted in safe mode"
                 return nil
             return nil
-        elif callee == "__builtin_reflect_get_methods": return reflect_get_methods(args[0])
-        elif callee == "__builtin_reflect_get_class": return reflect_get_class(args[0])
+        elif callee == "__builtin_reflect_get_methods":
+            if len(args) == 0 or args[0] == nil: return []
+            if self.safe_mode and self.is_protected(args[0]): return []
+            return reflect_get_methods(args[0])
+        elif callee == "__builtin_reflect_get_class":
+            if len(args) == 0 or args[0] == nil: return nil
+            if self.safe_mode and self.is_protected(args[0]): return nil
+            return reflect_get_class(args[0])
         elif callee == "__builtin_next":
             if len(args) > 0 and type(args[0]) == "dict" and dict_has(args[0], "__type__") and args[0]["__type__"] == "generator":
                 let gen = args[0]
@@ -1598,9 +1635,13 @@ class MetalVM:
             # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
             let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
+            let st_len = len(self.stack)
+            if st_len < count:
+                print "Error: Stack underflow"
+                self.halted = true
+                return false
             let arr = []
             var j = 0
-            let st_len = len(self.stack)
             let base = st_len - count
             while j < count:
                 push(arr, self.stack[base + j])
@@ -1612,9 +1653,13 @@ class MetalVM:
             # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
             let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
+            let st_len = len(self.stack)
+            if st_len < count:
+                print "Error: Stack underflow"
+                self.halted = true
+                return false
             let t = []
             var j = 0
-            let st_len = len(self.stack)
             let base = st_len - count
             while j < count:
                 push(t, self.stack[base + j])
@@ -1626,9 +1671,13 @@ class MetalVM:
             # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
             let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
+            let st_len = len(self.stack)
+            if st_len < 2 * count:
+                print "Error: Stack underflow"
+                self.halted = true
+                return false
             let d = {}
             var j = 0
-            let st_len = len(self.stack)
             let base = st_len - 2 * count
             while j < count:
                 d[self.stack[base + j * 2]] = self.stack[base + j * 2 + 1]

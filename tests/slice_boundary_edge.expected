@@ -1,0 +1,17 @@
+--- Array slice exact full copy ---
+Full len: 5
+100
+500
+--- Array slice zero length (same start and end) ---
+Zero len: 0
+--- Array slice clamping extreme start/end ---
+Clamp len: 5
+100
+500
+--- String slice zero length ---
+Str zero len: ''
+--- String slice clamping extreme start/end ---
+Str clamp: SageLang
+--- Empty collection slicing ---
+Empty arr slice len: 0
+Empty str slice: ''

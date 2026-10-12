@@ -1,0 +1,17 @@
+--- Escape Sequences ---
+hello
+world
+len s1: 11
+a	b	c
+11
+path\to\file
+say "hello"
+--- String Functions with Escapes ---
+split len: 2
+part 0: hello
+part 1: world
+joined: hello -- world
+stripped: hello
+ord newline: 10
+ord tab: 9
+chr 10 == newline: true
