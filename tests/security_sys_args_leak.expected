@@ -1,0 +1,2 @@
+Error: sys.args is restricted in safe mode
+sys.args safe mode result: nil

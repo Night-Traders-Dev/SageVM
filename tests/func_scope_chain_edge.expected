@@ -1,0 +1,8 @@
+--- Nested Unbound Scope Resolution ---
+inner outer_var: nil
+inner global_val: I am global
+--- Explicit Parameter Passing to Nested Function ---
+param: passed value
+--- Parameter Shadowing Global ---
+shadowed param: local param value
+global_val after call: I am global

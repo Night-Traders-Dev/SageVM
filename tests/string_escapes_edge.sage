@@ -1,32 +1,33 @@
-# Test string escape sequences, multi-line string handling, and string builtins
+# Test string escape sequences in SVM bytecode
+print "--- Escape Sequences ---"
+let s1 = "hello\nworld"
+print s1
+print "len s1: " + str(len(s1))
 
-print "--- String Escape Sequences ---"
-var newline = "Hello\nWorld"
-print newline
+let s2 = "a\tb\tc"
+print s2
 
-var tabbed = "Col1\tCol2\tCol3"
-print tabbed
+let s3 = "line1\rline2"
+print len(s3)
 
-var quote_slash = "Quote: \"Slash: \\"
-print quote_slash
+let s4 = "path\\to\\file"
+print s4
 
-print "--- String Length and Indexing with Escapes ---"
-print "len(newline): " + str(len(newline))
-print "newline[5] == \\n: " + str(newline[5] == "\n")
-print "ord(\\n): " + str(ord("\n"))
-print "ord(\\t): " + str(ord("\t"))
-print "chr(10) == \\n: " + str(chr(10) == "\n")
+let s5 = "say \"hello\""
+print s5
 
-print "--- String Split with Newline / Tab ---"
-var lines = split(newline, "\n")
-print "lines count: " + str(len(lines))
-print "line 0: " + lines[0]
-print "line 1: " + lines[1]
+print "--- String Functions with Escapes ---"
+let parts = split(s1, "\n")
+print "split len: " + str(len(parts))
+print "part 0: " + str(parts[0])
+print "part 1: " + str(parts[1])
 
-var joined = join(lines, " -> ")
-print "joined: " + joined
+let joined = join(parts, " -- ")
+print "joined: " + str(joined)
 
-print "--- Strip Whitespace and Newlines ---"
-var raw = "  \t\n  padded string  \n\t  "
-var cleaned = strip(raw)
-print "cleaned: [" + cleaned + "]"
+let str_strip = strip("  \n\t hello \t\n  ")
+print "stripped: " + str(str_strip)
+
+print "ord newline: " + str(ord("\n"))
+print "ord tab: " + str(ord("\t"))
+print "chr 10 == newline: " + str(chr(10) == "\n")

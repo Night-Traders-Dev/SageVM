@@ -1,0 +1,20 @@
+--- Initial Array Push & Pop ---
+len initial: 0
+len after pushes: 4
+pop 1 (array):
+1
+2
+pop 2 (nil):
+nil
+pop 3 (string):
+hello
+pop 4 (int):
+100
+len after pops: 0
+--- Pop on Empty Array ---
+pop on empty: nil
+len after empty pop: 0
+--- Interleaved Push/Pop in Loop ---
+stack len: 5
+popped sum: 100
+final len: 0

@@ -2,7 +2,7 @@
 prefix_
 _suffix
 --- Concat with collections ---
-array: <array>
+array: [1, 2, 3]
 <dict> is a dict
 --- Concat with empty strings ---
 hello

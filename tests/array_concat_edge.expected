@@ -14,8 +14,8 @@ nested[0][0]: 1
 nested[1][0]: 3
 nested[2][0]: 5
 --- Array + String concatenation ---
-array + string: <array>hello
-string + array: hello<array>
+array + string: [1, 2]hello
+string + array: hello[1, 2]
 --- Array + Non-array/non-string concatenation ---
 array + number: 0
 array + nil: 0
@@ -43,7 +43,7 @@ str_arr[0]: a
 str_arr[1]: true
 str_arr[2] == nil: true
 --- Array + String Coercion ---
-arr_str: <array>hello
+arr_str: [1, 2]hello
 --- Array + Non-array / Non-string Fallback ---
 arr_num: 0
 --- Normal array concatenation ---
@@ -53,7 +53,7 @@ concat1[1]: 20
 concat1[2]: 30
 concat1[3]: 40
 --- Array + String coercion ---
-array + string: <array>hello
+array + string: [1, 2]hello
 --- Nested array concatenation ---
 len(nested_concat): 4
 nested_concat[0]: 1

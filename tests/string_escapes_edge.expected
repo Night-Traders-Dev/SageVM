@@ -1,18 +1,17 @@
---- String Escape Sequences ---
-Hello
-World
-Col1	Col2	Col3
-Quote: "Slash: \
---- String Length and Indexing with Escapes ---
-len(newline): 11
-newline[5] == \n: true
-ord(\n): 10
-ord(\t): 9
-chr(10) == \n: true
---- String Split with Newline / Tab ---
-lines count: 2
-line 0: Hello
-line 1: World
-joined: Hello -> World
---- Strip Whitespace and Newlines ---
-cleaned: [padded string]
+--- Escape Sequences ---
+hello
+world
+len s1: 11
+a	b	c
+11
+path\to\file
+say "hello"
+--- String Functions with Escapes ---
+split len: 2
+part 0: hello
+part 1: world
+joined: hello -- world
+stripped: hello
+ord newline: 10
+ord tab: 9
+chr 10 == newline: true

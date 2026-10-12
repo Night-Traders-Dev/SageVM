@@ -551,6 +551,16 @@ class StackToRiscVTranslator:
                 push(self.jump_patches, [patch_pc, target_ip])
 
             elif op == OP_RETURN:
+                ## a0 is the result register: the call site copies it out with
+                ## `addi rd, a0, 0` straight after VMO_CALL. Without this the
+                ## expression the function returns is computed into whatever
+                ## register the translator happened to allocate and then
+                ## discarded, so every call read back its first argument instead
+                ## of its result -- add(5, 3) produced 5, not 8.
+                if self.reg_stack != nil and len(self.reg_stack) > 0:
+                    let ret_reg = pop(self.reg_stack)
+                    if ret_reg != 10:
+                        self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, ret_reg, 0))
                 self.emit_32(self.encoder.encode_i(OP_JALR, 0, 0, 1, 0))
 
             elif op == OP_DEFINE_FUNCTION:
@@ -593,7 +603,7 @@ class StackToRiscVTranslator:
                         self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, dest, src, 0))
                     k = k - 1
                 # Call via t0 (x5), which holds the preserved callee.
-                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_CALL, 5))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, argc, VMO_CALL, 5))
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 10, 0))
                 push(self.reg_stack, rd)
