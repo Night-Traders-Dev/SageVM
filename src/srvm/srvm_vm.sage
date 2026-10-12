@@ -221,6 +221,10 @@ class SRVM:
                     self.load_chunk(self.state.chunks[self.state.current_chunk_idx])
                     self.state.pc = frame[1]
                     self.state.x[1] = frame[2]
+                    if len(frame) > 3: self.state.x[8] = frame[3]
+                    if len(frame) > 4 and frame[4] < len(self.state.stack):
+                        while len(self.state.stack) > frame[4]:
+                            pop(self.state.stack)
                     return # Skip standard PC update
                 else:
                     self.state.running = false
@@ -768,8 +772,8 @@ class SRVM:
                     ## and point s0 at the frame so nested calls nest. argc
                     ## rides in rd; the call site had no way to say so before.
                     let argc: Int = rd
+                    var frame_base: Int = len(self.state.stack)
                     if argc > 0 and argc <= 16:
-                        var frame_base: Int = len(self.state.stack)
                         while len(self.state.stack) < frame_base + argc * 8:
                             push(self.state.stack, nil)
                         var k = 0
@@ -777,7 +781,16 @@ class SRVM:
                             self.state.stack[frame_base + k * 8] = self.state.x[10 + k]
                             k = k + 1
                         self.state.x[8] = frame_base
-                    push(self.state.call_stack, [self.state.current_chunk_idx, self.state.pc + 4, self.state.x[1]])
+                    ## The frame carries the caller's s0 and its stack depth as well. A nested
+                    ## call overwrites both, and without restoring them the caller
+                    ## resumes reading its parameters out of the callee's frame --
+                    ## which is why recursion returned a wrong answer and why a
+                    ## callee's own locals came back as 1.
+                    push(self.state.call_stack, [self.state.current_chunk_idx,
+                                                 self.state.pc + 4,
+                                                 self.state.x[1],
+                                                 self.state.x[8],
+                                                 frame_base])
                     self.state.current_chunk_idx = target_chunk
                     self.load_chunk(chunk)
                     self.state.pc = 0
