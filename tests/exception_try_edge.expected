@@ -6,8 +6,8 @@ Caught int exception: 404
 Caught bool exception: false
 Caught nil exception: nil
 --- Nested try re-raise with array ---
-Inner caught array: <array>
-Outer caught re-raised: <array>
+Inner caught array: [ERR_CODE, 101]
+Outer caught re-raised: [ERR_CODE, 101]
 --- Clean Try Block ---
 normal execution without raise
 after try
@@ -40,8 +40,8 @@ Caught nil exception: nil
 --- Nested try-catch blocks ---
 Outer try start
 Inner try start
-Inner catch: <array>
-Outer catch: <array>
+Inner catch: [nested_error, 100]
+Outer catch: [nested_error, 100]
 --- Done exception tests ---
 --- Try without exception ---
 Clean execution: 200
