@@ -133,6 +133,13 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `class_method_dispatch_edge.sage`: Tests OOP class constructors (`init(self, ...)`), method chaining returning `self`, `self` calling internal methods, multi-parameter method dispatch, dynamic property creation, and accessing/calling non-existent properties/methods on instances.
 - `chained_assignment_edge.sage`: Tests stack manipulation opcodes (`OP_DUP`, `OP_POP`) across chained variable assignments (`var a = var b = var c = 100`), arithmetic expression assignments, chained `nil` assignments, chained array index assignments, chained dictionary key assignments, and chained object property assignments.
 <<<<<<< HEAD
+- `unary_negate_edge.sage`: Tests `OP_NEGATE` (unary `-x` operator) across positive and negative integers, floating point numbers, zero, arithmetic expressions, chained negations (`--x`, `---x`), `nil` (evaluates to `0` in SVM), booleans, strings, and array operands.
+- `string_repeat_edge.sage`: Tests string repetition (`OP_MUL` string * int and int * string) with positive counts, zero, negative multipliers, float multipliers, empty strings, chained expressions, and `nil` operands.
+
+### Verification Status (October 2026)
+The modern SVM coverage suite passes cleanly: **160 passed, 0 failed, 1 skipped**
+=======
+<<<<<<< HEAD
 - `dict_key_types_edge.sage`: Tests dictionary indexing (`OP_GET_INDEX`, `OP_SET_INDEX`) with non-string keys (integers, floats, booleans, nil), string conversion via `str()`, dictionary reflection builtins (`dict_has`, `dict_keys`, `dict_values`), and missing key evaluation behavior.
 - `nested_block_return_edge.sage`: Tests early function returns (`OP_RETURN`) from deep nested block scopes (`OP_PUSH_ENV`), nested conditionals, nested loops, and `try-catch` blocks inside functions while verifying environment scope stack balance.
 - `string_escapes_edge.sage`: Tests string escape sequences (`\n`, `\t`, `\\`, `\"`), string indexing and length on multi-line strings, character conversions (`ord`, `chr`), splitting/joining on newline delimiters, and `strip` functionality.
@@ -161,6 +168,7 @@ The modern SVM coverage suite passes cleanly: **162 passed, 0 failed, 1 skipped*
 
 ### Verification Status (October 2026)
 The modern SVM coverage suite passes cleanly: **163 passed, 0 failed, 1 skipped**
+>>>>>>> origin/main
 >>>>>>> origin/main
 >>>>>>> origin/main
 >>>>>>> origin/main

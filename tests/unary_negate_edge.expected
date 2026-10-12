@@ -1,0 +1,16 @@
+--- Unary negation on positive and negative integers ---
+-42
+42
+--- Unary negation on floating point numbers ---
+-3.14159
+3.14159
+--- Unary negation on zero ---
+0
+--- Unary negation on arithmetic expressions ---
+-30
+-5
+--- Unary negation on non-numeric types (SVM fallback to 0) ---
+0
+0
+0
+0
