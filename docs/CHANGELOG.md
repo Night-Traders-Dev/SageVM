@@ -8,8 +8,9 @@
   when passing arguments to builtins. Arithmetic coercion of `nil` to `0` now
   applies strictly to arithmetic operations, allowing `nil` values passed to
   builtins like `type()` and `print()` to evaluate correctly as `"nil"`.
-- **SRVM test suite pass rate**: RISC-V backend test pass rate increased to 81
-  passing out of 79 core suites (SVM test suite unchanged at 160/160 passing).
+- **SRVM test suite pass rate**: RISC-V backend passes 98 of 174 (SVM 174/174).
+  The RISC-V gaps are concentrated in function locals and recursion, where a
+  nested call still does not return its value.
 
 ## [1.2.2] - 2026-10-03
 
