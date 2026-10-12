@@ -61,8 +61,11 @@ The SRVM implementation in `src/srvm/srvm_vm.sage`. It maps guest execution to a
 - **Handler Depth**: 1,024 levels.
 - **Max Array Size**: 1,000,000 entries.
 - **Optimized Builtins**: Provides native implementations for string and collection utilities.
-- **Performance Optimizations**:
+- **Performance & Correctness Optimizations**:
   - **Lean Interpreter**: Removed legacy JIT hot-path detection stubs and string concatenations from the fetch-decode loop, yielding ~60% speedup in arithmetic-heavy code.
+  - **Local Variable Read-or-Bind Instruction (`OP_LOCAL_DEF`)**: Implemented major opcode `OP_LOCAL_DEF` (`0x5c` / `0b1011100`) to resolve local variable access at runtime against an explicit `UNBOUND` (`{"__sgvm_unbound__": true}`) frame slot marker, distinguishing unwritten local slots from slots explicitly holding `nil`.
+  - **Call Frame Register Snapshotting**: Call frames snapshot and preserve the general-purpose register file across function call boundaries (excluding `a0`/`x10` return register), preventing callees from overwriting caller live temporary registers during nested and recursive calls.
+  - **Zero-Argument Call Frame Scoping**: Call frames are opened even for zero-argument function calls to ensure frame pointer `s0` (`x8`) resolves local variable offsets against the current call frame instead of caller frame state.
 
 (Refer to `SPEC.md` for the complete opcode table.)
 
@@ -141,7 +144,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-22**
+**Last Conformance Sync: 2026-10-12**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists. The authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63). This shifts the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions (e.g., local `OP_GPU_POLL_EVENTS` mapped to 59 collides with authoritative `BC_OP_GET_LOCAL` at 59, and local `OP_YIELD` mapped to 90 collides with authoritative `OP_GPU_CMD_PUSH_CONST` at 90).
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.2] - 2026-10-12
+
+### Fixed
+- **SRVM Local Variable Read-or-Bind Instruction (`OP_LOCAL_DEF`)**: Introduced major opcode `OP_LOCAL_DEF` (`0x5c` / `0b1011100`) and explicit `UNBOUND` (`{"__sgvm_unbound__": true}`) frame slot marker to resolve local variable accesses at runtime. The host emits `0x3b` for both `let` bindings and subsequent references; `OP_LOCAL_DEF` distinguishes first-time binds (consuming expression) from reads (pushing value) without corrupting stack shapes or misinterpreting `nil` variable values.
+- **SRVM Call Frame Register Preservation**: Updated call frames in the RISC-V interpreter to snapshot and preserve the 32 general-purpose registers across function calls (excluding `a0`/`x10` return register). This prevents callees from overwriting caller live temporary registers during nested and recursive calls (e.g., `fact(n) = n * fact(n-1)`).
+- **SRVM Zero-Argument Frame Scoping**: Ensured call frames are opened even for zero-argument function calls so frame pointer `s0` (`x8`) resolves local variable offsets against the new frame instead of inheriting caller state.
+- **SRVM Test Suite Pass Rate**: SRVM pass rate improved from 98/174 (78 failures) to 101/175 (75 failures) (SVM 176/176 clean).
+
 ## [1.2.2] - 2026-10-11
 
 ### Fixed

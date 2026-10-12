@@ -22,6 +22,7 @@ This document outlines the current status, supported features, and outstanding w
 - **MetalVM Spec Conformance**: Truthiness (only `nil`/`false`/`0` falsy), deep equality, string repetition, division-by-zero → `nil`.
 - **Local Variable Opcodes**: `OP_GET_LOCAL` (88) and `OP_SET_LOCAL` (89) implemented in SVM interpreter.
 - **SRVM Sandboxing**: `safe_mode`, `no_ffi`, and `exec_enabled` enforcement for the RISC-V backend, including `sys.exec`/`sys.system`/AST-execution restriction handlers.
+- **SRVM Local Variable Resolution & Register Preservation**: `OP_LOCAL_DEF` (0x5c) read-or-bind resolution against `UNBOUND` markers and 32-register call frame snapshotting across nested/recursive function calls.
 - **JIT/AOT Foundation**: Initial components (Memory Manager, RISC-V Emitter, Type Profiler) and OSR hooks implemented in `src/jit/` and `src/srvm/`.
 
 - **SVM Generator Engine**: Full native VM implementation for `OP_CREATE_GENERATOR` (91), `OP_YIELD` (90), `OP_GENERATOR_NEXT` (92), and `next()` builtin.
