@@ -279,6 +279,47 @@ class SRVM:
     ## load and store encodings and the translator cannot know which applies.
     ## An explicit UNBOUND marker keeps a slot that holds nil distinct from one
     ## that was never written -- overloading nil made every nil local rebind.
+    ## int_value / number_value -- the conversions this guest cannot get from
+    ## int() or tonumber(). Both of those resolve to something that does not
+    ## truncate here: int("12.5") came back as 12.5 and tonumber("-45.2") as
+    ## -45.2, so every numeric conversion that ran through them was a no-op on a
+    ## string. nil and an unparsable string give 0 for int and nil for tonumber,
+    ## which is what the stack VM does.
+    proc number_value(self, v):
+        if v == nil: return nil
+        let t = type(v)
+        if t == "number": return v
+        if t == "string":
+            var n = tonumber(v)
+            if n == nil: return nil
+            return n
+        return nil
+
+    proc int_value(self, v):
+        if v == nil: return 0
+        let t = type(v)
+        if t == "bool":
+            if v: return 1
+            return 0
+        let n = self.number_value(v)
+        if n == nil: return 0
+        return self.trunc_num(n)
+
+    proc trunc_num(self, n):
+        ## Truncate toward zero with arithmetic only: this guest has no floor,
+        ## ceil or trunc, and calling int() from here would land back in this
+        ## same handler.
+        var t = 0
+        var step = 1
+        var mag = n
+        if mag < 0: mag = 0 - mag
+        while step * 2 <= mag: step = step * 2
+        while step >= 1:
+            if t + step <= mag: t = t + step
+            step = step / 2
+        if n < 0: return 0 - t
+        return t
+
     proc handle_local_def(self, rd, rs1, imm_i):
         let base = self.state.x[8] + imm_i
         if base >= 0 and base < self.state.max_stack_size:
@@ -573,7 +614,12 @@ class SRVM:
                     if b_name == "str":
                         self.state.x[10] = str(self.state.x[10]) # Result in a0
                     elif b_name == "int":
-                        self.state.x[10] = int(self.state.x[10])
+                        ## Not int(). This file runs as a guest of the stack VM,
+                        ## where int() does not truncate: int("12.5") came back
+                        ## as 12.5, so every numeric conversion reached through it
+                        ## was silently a no-op on a string. The arithmetic below
+                        ## is exact for the magnitudes a script can write.
+                        self.state.x[10] = self.int_value(self.state.x[10])
                     elif b_name == "slice":
                         self.state.x[10] = slice(self.state.x[10], self.state.x[11], self.state.x[12])
                     elif b_name == "len":
@@ -585,7 +631,14 @@ class SRVM:
                     elif b_name == "clock":
                         self.state.x[10] = clock()
                     elif b_name == "tonumber":
-                        self.state.x[10] = tonumber(self.state.x[10])
+                        ## Same shadowing as int(): tonumber() from inside this
+                        ## guest returns the parsed float rather than the
+                        ## truncated integer, so tonumber("-45.2") was -45.2.
+                        ## tonumber() parses; it does not truncate. 45.67 stays
+                        ## 45.67 -- only int() cuts to an integer, and truncating
+                        ## here turned tonumber("456.78") into 456.
+                        let tn = self.number_value(self.state.x[10])
+                        self.state.x[10] = tn
                     elif b_name == "push":
                         if self.is_protected(self.state.x[10]):
                             print "Error: Modification of protected object is restricted in safe mode"
