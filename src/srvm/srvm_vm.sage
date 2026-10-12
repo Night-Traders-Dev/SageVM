@@ -140,8 +140,14 @@ class SRVM:
             push(self.state.words, int(chunk[base]) | (int(chunk[base+1]) << 8) | (int(chunk[base+2]) << 16) | (int(chunk[base+3]) << 24))
             w = w + 1
 
-    proc run(self, bytecode):
-        # Initial chunk (0)
+    proc run(self, bytecode, chunk_index: Int = 0):
+        # The entry chunk is whichever one the runner handed us, which is not
+        # index 0: the runner walks the top-level chunks after the function
+        # bodies. Leaving current_chunk_idx at 0 made every frame record the
+        # wrong chunk, so returning from a call restored the wrong code and
+        # resumed at an out-of-range pc -- which is why a call produced no
+        # value and the program carried on from somewhere else entirely.
+        self.state.current_chunk_idx = chunk_index
         self.load_chunk(bytecode)
         if len(self.state.chunks) == 0:
             push(self.state.chunks, bytecode)
@@ -748,6 +754,23 @@ class SRVM:
                 if target_chunk >= 0:
                     let chunk = self.safe_get_chunk(target_chunk)
                     if not self.state.running: return
+                    ## The callee reads its parameters out of the frame rather
+                    ## than out of a0.., one cell every eight slots: the compiler
+                    ## emits `ld a3, 0(s0)` and `ld a4, 8(s0)` for add(a, b).
+                    ## Nothing was ever stored there, so a call read whatever
+                    ## happened to occupy those cells. Spill the arguments now,
+                    ## and point s0 at the frame so nested calls nest. argc
+                    ## rides in rd; the call site had no way to say so before.
+                    let argc: Int = rd
+                    if argc > 0 and argc <= 16:
+                        var frame_base: Int = len(self.state.stack)
+                        while len(self.state.stack) < frame_base + argc * 8:
+                            push(self.state.stack, nil)
+                        var k = 0
+                        while k < argc:
+                            self.state.stack[frame_base + k * 8] = self.state.x[10 + k]
+                            k = k + 1
+                        self.state.x[8] = frame_base
                     push(self.state.call_stack, [self.state.current_chunk_idx, self.state.pc + 4, self.state.x[1]])
                     self.state.current_chunk_idx = target_chunk
                     self.load_chunk(chunk)
