@@ -8,7 +8,7 @@ false is status
 Value: 
  item
 --- String + Array / Dict ---
-Array: <array>
+Array: [1, 2]
 Dict: <dict>
 --- Multiple Concat Chain ---
 Val: 10 / true / 
