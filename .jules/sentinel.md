@@ -132,3 +132,8 @@
 **Vulnerability:** The SRVM (RISC-V) interpreter (`src/srvm/srvm_vm.sage`) lacked bounds validation on the requested element count in `OBJ_TUPLE_NEW`. A malicious guest script could pass an arbitrary or negative size parameter to allocate massive host memory arrays, causing host memory exhaustion or process crash (CWE-770).
 **Learning:** Container object creation opcodes across all virtual machine backends must consistently enforce maximum allocation size boundaries before allocating host structures.
 **Prevention:** Always validate size parameters against `self.state.max_array_size` across all array and tuple allocation instruction handlers.
+
+## 2026-10-06 - Sandbox Probing via Unhardened dict_has Builtin on Protected Objects
+**Vulnerability:** The reflection builtin `dict_has` (`__builtin_dict_has`) in both `src/svm/sgvm_vm.sage` and `src/srvm/srvm_vm.sage` checked if property keys started with `__` in `safe_mode`, but failed to evaluate whether the dictionary object itself was a protected host module or bridge (`is_protected(obj)`). This allowed sandboxed guest programs to probe for the presence of host functions or internal attributes on protected module dictionaries.
+**Learning:** Reflection builtins must enforce both target object protection checks (`is_protected`) and key-prefix filters (`__`) under `safe_mode` to prevent guest scripts from discovering internal host structure details.
+**Prevention:** Always incorporate `is_protected(obj)` checks inside reflection and container query builtins (`dict_has`, `dict_keys`, `dict_values`).
