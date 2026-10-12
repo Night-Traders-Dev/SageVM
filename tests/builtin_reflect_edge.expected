@@ -1,11 +1,11 @@
 Testing reflect builtins...
 cat methods type: array
 cat class type: nil
-int methods: <array>
+int methods: []
 int class: nil
-string methods: <array>
+string methods: []
 string class: nil
-nil methods: <array>
+nil methods: []
 nil class: nil
-array methods: <array>
-dict methods: <array>
+array methods: []
+dict methods: []
