@@ -921,6 +921,10 @@ class MetalVM:
                 # Performance: Inline collection construction in hot loop and bypass pop() calls via single-pass stack indexing
                 let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                if stack_len < count:
+                    print "Error: Stack underflow"
+                    halted = true
+                    break
                 let arr = []
                 var j = 0
                 let base = stack_len - count
@@ -937,6 +941,10 @@ class MetalVM:
                 # Performance: Inline tuple construction in hot loop and bypass pop() calls via single-pass stack indexing
                 let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                if stack_len < count:
+                    print "Error: Stack underflow"
+                    halted = true
+                    break
                 let t = []
                 var j = 0
                 let base = stack_len - count
@@ -953,6 +961,10 @@ class MetalVM:
                 # Performance: Inline dictionary construction in hot loop and bypass pop() calls via single-pass stack indexing
                 let count = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
+                if stack_len < 2 * count:
+                    print "Error: Stack underflow"
+                    halted = true
+                    break
                 let d = {}
                 var j = 0
                 let base = stack_len - 2 * count
@@ -1024,7 +1036,7 @@ class MetalVM:
         elif callee == "__builtin_dict_has":
             if len(args) < 2 or args[0] == nil or type(args[0]) != "dict": return false
             let key = args[1]
-            if self.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+            if self.safe_mode and (self.is_protected(args[0]) or (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"))):
                 return false
             return dict_has(args[0], key)
         elif callee == "__builtin_dict_keys":
@@ -1232,11 +1244,13 @@ class MetalVM:
             if self.safe_mode or not self.exec_enabled:
                 print "Error: sys.exec is restricted"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return sys_exec(args[0])
         elif callee == "__builtin_sys_system":
             if self.safe_mode or not self.exec_enabled:
                 print "Error: sys.system is restricted"
                 return -1
+            if len(args) == 0 or args[0] == nil: return -1
             return sys_exec(args[0])
         elif callee == "__builtin_sys_exit":
             if self.safe_mode:
@@ -1618,9 +1632,13 @@ class MetalVM:
             # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
             let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
+            let st_len = len(self.stack)
+            if st_len < count:
+                print "Error: Stack underflow"
+                self.halted = true
+                return false
             let arr = []
             var j = 0
-            let st_len = len(self.stack)
             let base = st_len - count
             while j < count:
                 push(arr, self.stack[base + j])
@@ -1632,9 +1650,13 @@ class MetalVM:
             # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
             let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
+            let st_len = len(self.stack)
+            if st_len < count:
+                print "Error: Stack underflow"
+                self.halted = true
+                return false
             let t = []
             var j = 0
-            let st_len = len(self.stack)
             let base = st_len - count
             while j < count:
                 push(t, self.stack[base + j])
@@ -1646,9 +1668,13 @@ class MetalVM:
             # Performance: Direct 16-bit big-endian count unpack in execute_op fallback to bypass method call dispatch
             let count = (self.code[self.ip] << 8) | self.code[self.ip+1]
             self.ip = self.ip + 2
+            let st_len = len(self.stack)
+            if st_len < 2 * count:
+                print "Error: Stack underflow"
+                self.halted = true
+                return false
             let d = {}
             var j = 0
-            let st_len = len(self.stack)
             let base = st_len - 2 * count
             while j < count:
                 d[self.stack[base + j * 2]] = self.stack[base + j * 2 + 1]

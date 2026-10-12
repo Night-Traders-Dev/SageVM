@@ -140,8 +140,14 @@ class SRVM:
             push(self.state.words, int(chunk[base]) | (int(chunk[base+1]) << 8) | (int(chunk[base+2]) << 16) | (int(chunk[base+3]) << 24))
             w = w + 1
 
-    proc run(self, bytecode):
-        # Initial chunk (0)
+    proc run(self, bytecode, chunk_index: Int = 0):
+        # The entry chunk is whichever one the runner handed us, which is not
+        # index 0: the runner walks the top-level chunks after the function
+        # bodies. Leaving current_chunk_idx at 0 made every frame record the
+        # wrong chunk, so returning from a call restored the wrong code and
+        # resumed at an out-of-range pc -- which is why a call produced no
+        # value and the program carried on from somewhere else entirely.
+        self.state.current_chunk_idx = chunk_index
         self.load_chunk(bytecode)
         if len(self.state.chunks) == 0:
             push(self.state.chunks, bytecode)
@@ -215,6 +221,10 @@ class SRVM:
                     self.load_chunk(self.state.chunks[self.state.current_chunk_idx])
                     self.state.pc = frame[1]
                     self.state.x[1] = frame[2]
+                    if len(frame) > 3: self.state.x[8] = frame[3]
+                    if len(frame) > 4 and frame[4] < len(self.state.stack):
+                        while len(self.state.stack) > frame[4]:
+                            pop(self.state.stack)
                     return # Skip standard PC update
                 else:
                     self.state.running = false
@@ -299,8 +309,16 @@ class SRVM:
             self.state.pc = self.state.pc + 4
 
     proc handle_imm(self, rd, rs1, f3, f7, imm_i):
-        let rs1_val = self.state.x[rs1]
+        let raw_val = self.state.x[rs1]
+        ## `addi rd, rs1, 0` is how the compiler spells a move, and argument
+        ## marshalling for a builtin is two of them. Those must carry the value
+        ## across untouched -- coercing here turned nil into 0 on the way to
+        ## type(), so type(nil) answered "number" and print(nil) answered 0.
+        ## Coercion belongs to the arithmetic below, not to the copy.
+        var rs1_val = raw_val
         let imm = imm_i
+        let is_move = (f3 == F3_ADDI and imm == 0)
+        if rs1_val == nil and not is_move: rs1_val = 0
         if f3 == F3_ADDI:
             if imm == 0: self.state.x[rd] = rs1_val
             else: self.state.x[rd] = rs1_val + imm
@@ -331,47 +349,60 @@ class SRVM:
         self.state.pc = self.state.pc + 4
 
     proc handle_reg(self, rd, rs1, rs2, f3, f7):
-        let rs1_val = self.state.x[rs1]
-        let rs2_val = self.state.x[rs2]
+        let rs1_raw = self.state.x[rs1]
+        let rs2_raw = self.state.x[rs2]
+
+        ## A register can hold nil: OP_LDC loads a constant by index straight out
+        ## of the pool, and the pool holds nil for a literal nil. The ALU below
+        ## then does native arithmetic on it, which raises "Operands must be
+        ## numbers" and takes the whole program down. The stack VM already reads
+        ## nil as zero in every arithmetic and bitwise position, so coercing here
+        ## is what makes the two agree -- `nil & 3` is 0, not a crash.
+        ## Equality is deliberately not affected: `nil == 0` is false there, and
+        ## that comparison never reaches this function.
+        var rs1_num = rs1_raw
+        var rs2_num = rs2_raw
+        if rs1_num == nil: rs1_num = 0
+        if rs2_num == nil: rs2_num = 0
 
         if f7 == 0x01: # M-extension
             if f3 == F3_ADD: # MUL
-                self.state.x[rd] = rs1_val * rs2_val
+                self.state.x[rd] = rs1_num * rs2_num
             elif f3 == F3_XOR: # DIV
-                if rs2_val != 0: self.state.x[rd] = rs1_val / rs2_val
-                else: self.state.x[rd] = 0
+                if rs2_num != 0: self.state.x[rd] = rs1_num / rs2_num
+                else: self.state.x[rd] = nil
             elif f3 == F3_OR: # REM
-                if rs2_val != 0: self.state.x[rd] = rs1_val % rs2_val
-                else: self.state.x[rd] = 0
+                if rs2_num != 0: self.state.x[rd] = rs1_num % rs2_num
+                else: self.state.x[rd] = nil
             self.state.pc = self.state.pc + 4
             return
 
         if f3 == F3_ADD:
             if f7 == 0x00: 
-                self.state.x[rd] = rs1_val + rs2_val
-            elif f7 == 0x20: self.state.x[rd] = rs1_val - rs2_val
-        elif f3 == F3_SLL: self.state.x[rd] = rs1_val << (rs2_val & 0x3F)
+                self.state.x[rd] = rs1_num + rs2_num
+            elif f7 == 0x20: self.state.x[rd] = rs1_num - rs2_num
+        elif f3 == F3_SLL: self.state.x[rd] = rs1_num << (rs2_num & 0x3F)
         elif f3 == F3_SLT:
-            if rs1_val < rs2_val: self.state.x[rd] = 1
+            if rs1_num < rs2_num: self.state.x[rd] = 1
             else: self.state.x[rd] = 0
         elif f3 == F3_SLTU:
-            if rs1_val < rs2_val: self.state.x[rd] = 1
+            if rs1_num < rs2_num: self.state.x[rd] = 1
             else: self.state.x[rd] = 0
-        elif f3 == F3_XOR: self.state.x[rd] = rs1_val ^ rs2_val
+        elif f3 == F3_XOR: self.state.x[rd] = rs1_num ^ rs2_num
         elif f3 == F3_SRL:
-            let shamt = rs2_val & 0x3F
+            let shamt = rs2_num & 0x3F
             if f7 == 0x20:
                 # SRA: arithmetic right shift
-                self.state.x[rd] = rs1_val >> shamt
+                self.state.x[rd] = rs1_num >> shamt
             else:
                 # SRL: logical right shift
-                if rs1_val < 0:
-                    let unsigned_val = rs1_val + (1 << 64)
+                if rs1_num < 0:
+                    let unsigned_val = rs1_num + (1 << 64)
                     self.state.x[rd] = unsigned_val >> shamt
                 else:
-                    self.state.x[rd] = rs1_val >> shamt
-        elif f3 == F3_OR: self.state.x[rd] = rs1_val | rs2_val
-        elif f3 == F3_AND: self.state.x[rd] = rs1_val & rs2_val
+                    self.state.x[rd] = rs1_num >> shamt
+        elif f3 == F3_OR: self.state.x[rd] = rs1_num | rs2_num
+        elif f3 == F3_AND: self.state.x[rd] = rs1_num & rs2_num
         self.state.pc = self.state.pc + 4
 
     proc handle_vmsys(self, rd, rs1, rs2, f3, f7, imm_i):
@@ -541,7 +572,7 @@ class SRVM:
                     elif b_name == "dict_has":
                         let obj = self.state.x[10]
                         let key = self.state.x[11]
-                        if self.state.safe_mode and type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"):
+                        if self.state.safe_mode and (self.is_protected(obj) or (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg"))):
                             self.state.x[10] = false
                         else:
                             self.state.x[10] = dict_has(obj, key)
@@ -621,7 +652,13 @@ class SRVM:
                     elif b_name == "strip":
                         self.state.x[10] = strip(self.state.x[10])
                     elif b_name == "print":
-                        print str(self.state.x[10])
+                        ## Native print, not print(str(...)). Under the SageVM
+                        ## compiler str() renders a list as "<array>" where the
+                        ## interpreter renders it as its contents, so wrapping
+                        ## the value turned every array, dict and struct print
+                        ## into a placeholder. The stack VM prints the value
+                        ## directly here; this now does the same.
+                        print self.state.x[10]
                         self.state.x[10] = nil
                     elif b_name == "sys_exec":
                         if self.state.safe_mode or not self.state.exec_enabled:
@@ -727,7 +764,33 @@ class SRVM:
                 if target_chunk >= 0:
                     let chunk = self.safe_get_chunk(target_chunk)
                     if not self.state.running: return
-                    push(self.state.call_stack, [self.state.current_chunk_idx, self.state.pc + 4, self.state.x[1]])
+                    ## The callee reads its parameters out of the frame rather
+                    ## than out of a0.., one cell every eight slots: the compiler
+                    ## emits `ld a3, 0(s0)` and `ld a4, 8(s0)` for add(a, b).
+                    ## Nothing was ever stored there, so a call read whatever
+                    ## happened to occupy those cells. Spill the arguments now,
+                    ## and point s0 at the frame so nested calls nest. argc
+                    ## rides in rd; the call site had no way to say so before.
+                    let argc: Int = rd
+                    var frame_base: Int = len(self.state.stack)
+                    if argc > 0 and argc <= 16:
+                        while len(self.state.stack) < frame_base + argc * 8:
+                            push(self.state.stack, nil)
+                        var k = 0
+                        while k < argc:
+                            self.state.stack[frame_base + k * 8] = self.state.x[10 + k]
+                            k = k + 1
+                        self.state.x[8] = frame_base
+                    ## The frame carries the caller's s0 and its stack depth as well. A nested
+                    ## call overwrites both, and without restoring them the caller
+                    ## resumes reading its parameters out of the callee's frame --
+                    ## which is why recursion returned a wrong answer and why a
+                    ## callee's own locals came back as 1.
+                    push(self.state.call_stack, [self.state.current_chunk_idx,
+                                                 self.state.pc + 4,
+                                                 self.state.x[1],
+                                                 self.state.x[8],
+                                                 frame_base])
                     self.state.current_chunk_idx = target_chunk
                     self.load_chunk(chunk)
                     self.state.pc = 0

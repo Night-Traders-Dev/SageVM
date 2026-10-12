@@ -3,9 +3,9 @@ type: nil
 upper: nil
 lower: nil
 strip: nil
-join:
+join: 
 split len: 0
-replace:
+replace: 
 startswith: false
-slice:
+slice: 
 reflect len: 0

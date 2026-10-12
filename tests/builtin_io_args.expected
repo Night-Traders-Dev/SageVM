@@ -1,0 +1,16 @@
+Testing __builtin_io_readfile with no args:
+nil
+Testing __builtin_io_readfile with nil:
+nil
+Testing __builtin_io_readbytes with no args:
+nil
+Testing __builtin_io_writefile with missing args:
+false
+false
+Testing __builtin_io_writebytes with missing args:
+false
+false
+Testing __builtin_sys_exec with no args:
+nil
+Testing __builtin_sys_system with no args:
+-1
