@@ -1,0 +1,17 @@
+--- Nested Dictionary Creation & Index Mutation ---
+Alice
+superadmin
+true
+--- Dictionary Property Access vs Indexing ---
+dark
+light
+--- Keys with Spaces and Special Characters ---
+John
+42
+/tmp/a.txt
+--- Missing Nested Key Access ---
+nil
+nil
+--- Loop Mutations on Dictionary Values ---
+15
+40
