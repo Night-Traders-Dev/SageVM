@@ -1,0 +1,13 @@
+--- Chained strip and case conversion ---
+clean_upper: 'HELLO SAGEVM WORLD!'
+clean_lower: '  hello sagevm community!  '
+--- Split and re-join with new delimiter ---
+fruits count: 3
+joined_str: apple | banana | cherry
+--- ASCII char manipulation loop ---
+shifted 'ABC' + 1: BCD
+--- Empty string boundary cases ---
+upper(''): ''
+lower(''): ''
+strip(''): ''
+join([], ','): ''

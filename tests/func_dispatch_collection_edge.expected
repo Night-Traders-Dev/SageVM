@@ -1,0 +1,14 @@
+--- Function references in array ---
+funcs len: 3
+funcs[0](10, 5): 15
+funcs[1](10, 5): 5
+funcs[2](10, 5): 50
+--- Function references in dictionary via index lookup ---
+ops['add_op'](20, 30): 50
+ops['sub_op'](50, 15): 35
+--- Reassigning function in dictionary ---
+ops['calc'](6, 7): 42
+--- Higher order function with collection lookup ---
+apply_op(funcs, 2, 8, 9): 72
+--- Invoking nil / missing function entry ---
+missing_fn == nil: true
