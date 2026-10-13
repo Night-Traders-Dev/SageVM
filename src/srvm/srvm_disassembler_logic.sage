@@ -260,35 +260,54 @@ class SRVMDisassembler:
             return res
         elif op == srvm_core.OP_VMSYS:
             let f3 = instr.funct3
+            ## The sub-op lives in rs1, not funct7. encode_r puts it there and
+            ## handle_vmsys reads it from there; decoding funct7 instead named
+            ## every VM and object op vm_nop and printed a register number where
+            ## the sub-op was, which reads as plausible code while describing a
+            ## different instruction. Two wrong diagnoses came off this output
+            ## before the disassembly turned out to be the unreliable part.
+            let sub_op = int(instr.rs1)
             if f3 == srvm_core.F3_VM_OPS:
-                var vop = "vm_nop"
-                let f7 = instr.funct7
-                if f7 == srvm_core.VMO_HALT: vop = "halt"
-                elif f7 == srvm_core.VMO_PUSH_ENV: vop = "push_env"
-                elif f7 == srvm_core.VMO_POP_ENV: vop = "pop_env"
-                elif f7 == srvm_core.VMO_CALL: vop = "call"
-                elif f7 == srvm_core.VMO_SETUP_TRY: vop = "setup_try"
-                elif f7 == srvm_core.VMO_END_TRY: vop = "end_try"
-                elif f7 == srvm_core.VMO_RAISE: vop = "raise"
-                elif f7 == srvm_core.VMO_IMPORT: vop = "import"
-                elif f7 == srvm_core.VMO_PRINT: vop = "print"
-                elif f7 == srvm_core.VMO_ARRAY_LEN: vop = "len"
-                elif f7 == srvm_core.VMO_PRINTM: vop = "printm"
-                elif f7 == srvm_core.VMO_EXEC_AST: vop = "exec_ast"
-                res = self.pad_right(vop, 8) + " rd=" + reg_names[int(instr.rd)]
-                res = res + " rs1=" + reg_names[int(instr.rs1)]
-                res = res + " rs2=" + reg_names[int(instr.rs2)]
-                return res
+                var vop = "vm_op"
+                if sub_op == srvm_core.VMO_NOP: vop = "vm_nop"
+                elif sub_op == srvm_core.VMO_HALT: vop = "halt"
+                elif sub_op == srvm_core.VMO_PUSH_ENV: vop = "push_env"
+                elif sub_op == srvm_core.VMO_POP_ENV: vop = "pop_env"
+                elif sub_op == srvm_core.VMO_CALL: vop = "call"
+                elif sub_op == srvm_core.VMO_SETUP_TRY: vop = "setup_try"
+                elif sub_op == srvm_core.VMO_END_TRY: vop = "end_try"
+                elif sub_op == srvm_core.VMO_RAISE: vop = "raise"
+                elif sub_op == srvm_core.VMO_IMPORT: vop = "import"
+                elif sub_op == srvm_core.VMO_PRINT: vop = "print"
+                elif sub_op == srvm_core.VMO_ARRAY_LEN: vop = "len"
+                elif sub_op == srvm_core.VMO_PRINTM: vop = "printm"
+                elif sub_op == srvm_core.VMO_EXEC_AST: vop = "exec_ast"
+                elif sub_op == srvm_core.VMO_CMP_BINARY: vop = "cmp"
+                elif sub_op == srvm_core.VMO_NIL: vop = "nil"
+                elif sub_op == srvm_core.VMO_TRUE: vop = "true"
+                elif sub_op == srvm_core.VMO_FALSE: vop = "false"
+                elif sub_op == srvm_core.VMO_NOT: vop = "not"
+                elif sub_op == srvm_core.VMO_TRUTHY: vop = "truthy"
+                return self.pad_right(vop, 8) + " rd=" + reg_names[int(instr.rd)] + " rs2=" + reg_names[int(instr.rs2)] + " imm=" + str(int(instr.imm))
             elif f3 == srvm_core.F3_OBJ_OPS:
                 var oop = "obj_op"
-                res = self.pad_right(oop, 8) + " f7=" + str(instr.funct7)
-                res = res + " rd=" + reg_names[int(instr.rd)]
-                return res
+                if sub_op == srvm_core.OBJ_GET_GLOBAL: oop = "get_global"
+                elif sub_op == srvm_core.OBJ_SET_GLOBAL: oop = "set_global"
+                elif sub_op == srvm_core.OBJ_NEW_CLASS: oop = "new_class"
+                elif sub_op == srvm_core.OBJ_NEW_FUNC: oop = "new_func"
+                elif sub_op == srvm_core.OBJ_GET_PROP: oop = "get_prop"
+                elif sub_op == srvm_core.OBJ_SET_PROP: oop = "set_prop"
+                elif sub_op == srvm_core.OBJ_ARRAY_NEW: oop = "array_new"
+                elif sub_op == srvm_core.OBJ_DICT_NEW: oop = "dict_new"
+                elif sub_op == srvm_core.OBJ_TUPLE_NEW: oop = "tuple_new"
+                elif sub_op == srvm_core.OBJ_GET_INDEX: oop = "get_index"
+                elif sub_op == srvm_core.OBJ_SET_INDEX: oop = "set_index"
+                elif sub_op == srvm_core.OBJ_DICT_PUT: oop = "dict_put"
+                elif sub_op == srvm_core.OBJ_SLICE: oop = "slice"
+                return self.pad_right(oop, 8) + " rd=" + reg_names[int(instr.rd)] + " obj=" + reg_names[int(instr.rs2)]
             elif f3 == srvm_core.F3_GPU_OPS:
-                res = self.pad_right("gpu_op", 8) + " f7=" + str(instr.funct7)
-                res = res + " rd=" + reg_names[int(instr.rd)]
-                return res
-        
+                return self.pad_right("gpu_op", 8) + " sub=" + str(sub_op) + " rd=" + reg_names[int(instr.rd)]
+
         return "unknown  op=" + str(op)
 
     proc pad_left(self, s, width, char):
