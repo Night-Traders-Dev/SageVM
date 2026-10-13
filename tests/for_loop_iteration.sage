@@ -32,6 +32,21 @@ for i in range(3):
     seen = i
     print seen
 
+print "--- Accumulate ---"
+# A `for` loop wraps its body in push_env/pop_env, and those used to swap the
+# globals dict. So the total was wiped on entry and restored to its pre-loop
+# value on the way out, and each iteration read it back as zero.
+var total = 0
+for i in range(5):
+    total = total + i
+print total
+
+print "--- Global Survives The Loop ---"
+var seed = 7
+for i in range(3):
+    print seed
+print seed
+
 print "--- While Still Works ---"
 var k = 0
 while k < 3:

@@ -40,7 +40,8 @@ class SageVMState:
             i = i + 1
         self.max_stack_size = 65536
         
-        self.heap = {} 
+        self.heap = {} # Globals only. Locals live in registers.
+        self.env_depth = 0 # push_env/pop_env nesting; bounds nesting, stores nothing
         self.call_stack = [] # Stack of [chunk_idx, pc, ra]
         self.try_stack = [] # Stack of [catch_pc, call_stack_depth]
 
@@ -585,16 +586,31 @@ class SRVM:
             elif sub_op == VMO_TRUTHY:
                 self.state.x[rd] = self.is_truthy(self.state.x[10])
             elif sub_op == VMO_PUSH_ENV:
-                # Security: Prevent environment stack exhaustion (DoS)
-                if len(self.state.call_stack) >= self.state.max_call_depth:
+                ## A `for` loop wraps its whole body in push_env/pop_env, and
+                ## these used to swap `heap`, which is the globals dict. So
+                ## entering any loop wiped every global -- a total accumulated
+                ## inside the body was gone before the first iteration read it --
+                ## and pop_env restored the pre-loop snapshot, discarding what the
+                ## body had assigned.
+                ##
+                ## There was nothing to scope: locals are kept in registers here
+                ## (OP_LOCAL_DEF binds a slot to a register, OP_STORE writes
+                ## memory), so the swap only ever destroyed globals.
+                ##
+                ## They also shared call_stack with function calls, so a pop_env
+                ## inside a function popped a call frame.
+                ##
+                ## The SVM pushes an empty scope here and pops it on the way out,
+                ## leaving globals untouched. Keep only the depth, which is what
+                ## the nesting limit is for.
+                if self.state.env_depth >= self.state.max_call_depth:
                     print "Error: Call depth limit exceeded"
                     self.state.running = false
                     return
-                push(self.state.call_stack, self.state.heap)
-                self.state.heap = {}
+                self.state.env_depth = self.state.env_depth + 1
             elif sub_op == VMO_POP_ENV:
-                if len(self.state.call_stack) > 0:
-                    self.state.heap = pop(self.state.call_stack)
+                if self.state.env_depth > 0:
+                    self.state.env_depth = self.state.env_depth - 1
             elif sub_op == VMO_CALL:
                 # Security: Prevent infinite recursion from exhausting host resources (DoS)
                 if len(self.state.call_stack) >= self.state.max_call_depth:
