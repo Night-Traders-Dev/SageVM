@@ -25,6 +25,14 @@ class StackToRiscVTranslator:
         self.label_map = {} # SVM IP -> SRVM PC
         self.jump_patches = [] # (SRVM PC to patch, target SVM IP)
         self.debug = false
+        ## t4 (x29) is used by neither the VM nor the compiler, and sits above
+        ## the allocator's range, so alloc_reg can never hand it out. It holds
+        ## the result of a short-circuit expression at the point where its two
+        ## arms meet.
+        self.merge_reg = 29
+        self.merge_labels = {} # SVM IP where two arms converge
+        self.found_merges = {}
+        self.collect_merges = false
 
     proc emit_32(self, val):
         push(self.output_bytes, val & 0xFF)
@@ -68,6 +76,23 @@ class StackToRiscVTranslator:
         return r
 
     proc translate(self, svm_bytecode):
+          ## Two passes. The first finds the IPs a forward jump lands on with a
+          ## value still on the register stack -- the point where two arms meet.
+          ## The second emits the code and names the merge register there, so
+          ## both arms agree on where the result lives.
+          ##
+          ## One pass cannot do this. The register a merge has to name is chosen
+          ## by whichever arm is translated second, and that is not known until
+          ## the first arm has been translated.
+          self.found_merges = {}
+          self.collect_merges = true
+          self.merge_labels = {}
+          self._pass(svm_bytecode)
+          self.merge_labels = self.found_merges
+          self.collect_merges = false
+          return self._pass(svm_bytecode)
+
+    proc _pass(self, svm_bytecode):
         # Speculative type analysis
         let speculative_types = self.profiler.analyze(svm_bytecode)
         
@@ -106,8 +131,24 @@ class StackToRiscVTranslator:
             
             # If this is a catch block start, the VM will have pushed the exception object
             if dict_has(catch_labels, str(ip)):
-                self.reg_stack = [10] # Exception is in a0 (x10)
-                self.next_reg = 11
+                  self.reg_stack = [10] # Exception is in a0 (x10)
+                  self.next_reg = 11
+
+            ## A short-circuit expression arrives here from two arms, each
+            ## having put its result in its own register. Name the merge
+            ## register instead, so the continuation reads the same register
+            ## whichever arm ran. Only the top is renamed: values below it
+            ## were live before the branch and are still live after the merge.
+            if dict_has(self.merge_labels, str(ip)) and len(self.reg_stack) > 0:
+                ## The arm that falls through to here copies its result in as
+                ## it reaches the merge. The other arm copied before jumping.
+                ## Both then read the merge register at the continuation.
+                ## label_map is assigned just below, after this copy, so a jump
+                ## to this IP lands past it and does not redo the copy.
+                let top = self.reg_stack[len(self.reg_stack) - 1]
+                if top != self.merge_reg:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, self.merge_reg, top, 0))
+                self.reg_stack[len(self.reg_stack) - 1] = self.merge_reg
             
             self.label_map[str(ip)] = len(self.output_bytes)
             let op = int(svm_bytecode[i])
@@ -368,6 +409,14 @@ class StackToRiscVTranslator:
             elif op == OP_JUMP:
                 let target_ip = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
+                if self.collect_merges:
+                    ## A forward jump out of a value is the end of one arm.
+                    if target_ip > ip and len(self.reg_stack) > 0:
+                        self.found_merges[str(target_ip)] = true
+                elif dict_has(self.merge_labels, str(target_ip)) and len(self.reg_stack) > 0:
+                    let top = self.reg_stack[len(self.reg_stack) - 1]
+                    if top != self.merge_reg:
+                        self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, self.merge_reg, top, 0))
                 let patch_pc = len(self.output_bytes)
                 self.emit_32(self.encoder.encode_j(OP_JAL, 0, 0)) 
                 push(self.jump_patches, [patch_pc, target_ip])
@@ -761,6 +810,8 @@ class StackToRiscVTranslator:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, addr, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, 0, 6, 0))
         
+        if self.collect_merges:
+            return self.output_bytes
         var p = 0
         while p < len(self.jump_patches):
             let patch = self.jump_patches[p]
