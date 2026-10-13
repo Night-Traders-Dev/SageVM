@@ -622,7 +622,17 @@ class StackToRiscVTranslator:
             elif op == OP_JUMP_IF_FALSE:
                 let target_ip = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                let cond = self.pop_reg()
+                ## Peek, do not pop. The SVM reads stack[stack_len-1] and
+                ## leaves the condition for the bytecode to consume; popping here
+                ## left the translator's view of the stack one short afterwards.
+                ##
+                ## Where a POP follows the branch the two errors cancelled, so
+                ## ordinary `if` worked by accident. A `for` loop reaches past the
+                ## condition instead -- it dups the counter and the iterable
+                ## around the bound test -- so the missing entry was real there.
+                var cond = 10
+                if len(self.reg_stack) > 0:
+                    cond = self.reg_stack[len(self.reg_stack) - 1]
                 let patch_pc = len(self.output_bytes)
                 self.emit_32(self.encoder.encode_b(OP_BRANCH, F3_BEQ, cond, 0, 0)) 
                 push(self.jump_patches, [patch_pc, target_ip])
