@@ -112,6 +112,12 @@ let OBJ_TUPLE_NEW  = 0x0A
 let OBJ_GET_INDEX  = 0x0B
 let OBJ_SET_INDEX  = 0x0C
 let OBJ_SLICE      = 0x0D
+## Building a dict literal is not the same act as assigning into one.
+## Construction went through OBJ_SET_INDEX, so a literal containing a
+## __-prefixed key was refused in safe mode before the script had done
+## anything -- security_indexing.sage never got as far as the assignment
+## it was written to check.
+let OBJ_DICT_PUT   = 0x0E
 
 # GPU Ops (funct7)
 let GPU_POLL_EVENTS         = 0x00
