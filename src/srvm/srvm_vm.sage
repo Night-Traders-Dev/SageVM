@@ -953,6 +953,42 @@ class SRVM:
                     self.state.x[rd] = nil
                 elif dict_has(self.state.heap, name):
                     self.state.x[rd] = self.state.heap[name]
+                elif name == "gc":
+                    ## The stack VM predefines these modules in its globals, so a script
+                    ## can reach mem.alloc or gc.collect without importing anything
+                    ## first. Only the import path knew about them here, so a bare module
+                    ## reference resolved to nil.
+                    self.state.x[rd] = {"__host_mod__": "gc",
+                                         "collect": "__builtin_gc_collect",
+                                         "stats": "__builtin_gc_stats",
+                                         "enable": "__builtin_gc_enable",
+                                         "disable": "__builtin_gc_disable"}
+                elif name == "mem":
+                    self.state.x[rd] = {"__host_mod__": "mem",
+                                        "alloc": "__builtin_mem_alloc",
+                                        "free": "__builtin_mem_free",
+                                        "read": "__builtin_mem_read",
+                                        "write": "__builtin_mem_write",
+                                        "copy": "__builtin_mem_copy",
+                                        "size": "__builtin_mem_size"}
+                elif name == "ffi":
+                    if self.state.ffi_enabled:
+                        self.state.x[rd] = {"__host_mod__": "ffi",
+                                            "open": "__builtin_ffi_open",
+                                            "call": "__builtin_ffi_call",
+                                            "close": "__builtin_ffi_close"}
+                    else:
+                        self.state.x[rd] = nil
+                elif name == "struct":
+                    self.state.x[rd] = {"__host_mod__": "struct",
+                                        "def": "__builtin_struct_def",
+                                        "size": "__builtin_struct_size",
+                                        "get": "__builtin_struct_get",
+                                        "set": "__builtin_struct_set"}
+                elif name == "reflect":
+                    self.state.x[rd] = {"__host_mod__": "reflect",
+                                        "get_methods": "__builtin_reflect_get_methods",
+                                        "get_class": "__builtin_reflect_get_class"}
                 elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or (type(name) == "string" and startswith(name, "__builtin_")):
                     self.state.x[rd] = {"__builtin__": name}
                 else:
