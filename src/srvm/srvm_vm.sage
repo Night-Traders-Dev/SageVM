@@ -914,8 +914,13 @@ class SRVM:
                     self.state.x[10] = nil
             elif sub_op == VMO_ARRAY_LEN:
                 let obj = self.state.x[rs2]
-                if type(obj) == "list": self.state.x[rd] = len(obj)
+                ## "array" is what range() produces here, and this handled only
+                ## list and dict, so every ranged loop got a bound of 0 and ran
+                ## no iterations.
+                if type(obj) == "list" or type(obj) == "array":
+                    self.state.x[rd] = len(obj)
                 elif type(obj) == "dict": self.state.x[rd] = len(obj)
+                elif type(obj) == "string": self.state.x[rd] = len(obj)
                 else: self.state.x[rd] = 0
             elif sub_op == VMO_SETUP_TRY:
                 # Security: Prevent nested handlers from exhausting VM memory (DoS)

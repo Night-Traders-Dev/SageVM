@@ -1,0 +1,26 @@
+--- For Over range ---
+0
+1
+2
+--- For Over A Literal ---
+10
+20
+30
+--- Body Arithmetic ---
+0
+3
+6
+9
+--- Strings ---
+a
+b
+--- Empty Body ---
+done
+--- Statement Inside The Body ---
+0
+1
+2
+--- While Still Works ---
+0
+1
+2

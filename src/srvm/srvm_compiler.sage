@@ -1,7 +1,7 @@
 from sgvm_core import OP_CONSTANT, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_LOAD_FUNCTION, OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT, OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY, OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM, OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_GET_LOCAL, OP_SET_LOCAL
-from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_LOCAL_DEF, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS
+from srvm_core import OP_ARRAY_LEN, OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_LOCAL_DEF, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS
 from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
-from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
+from srvm_core import VMO_ARRAY_LEN, VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
 from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT, OBJ_METHOD_BIND
 from srvm_core import OBJ_DICT_PUT, OBJ_GET_PROP, OBJ_SET_PROP, OBJ_NEW_FUNC, OBJ_ARRAY_NEW, OBJ_DICT_NEW, OBJ_TUPLE_NEW, OBJ_GET_INDEX, OBJ_SET_INDEX, SRVMUtils, RVEncoder
 # Sage SVM to SRVM (RISC-V) Translator
@@ -171,7 +171,18 @@ class StackToRiscVTranslator:
             elif op == OP_ADD:
                 let rs2 = self.pop_reg()
                 let rs1 = self.pop_reg()
-                let rd = self.alloc_reg()
+                ## Two-address: the result lands in rs1's own register.
+                ## Both operands were just popped, so that register is dead --
+                ## except when a loop carried the value, which is exactly the
+                ## case that needs it: `for` leaves its counter on the operand
+                ## stack and the loop head is translated once, so allocating a
+                ## fresh register each iteration left the head re-reading the
+                ## register the increment never wrote to, and the loop indexed
+                ## the iterable at 0 forever. x5, x10 and x11 are the VM's own
+                ## scratch, so those still need a register of their own.
+                var rd = rs1
+                if rs1 == 5 or rs1 == 10 or rs1 == 11:
+                    rd = self.alloc_reg()
                 
                 # Check speculative type
                 # Simple lookup: use current instruction index to get speculative type
@@ -188,49 +199,126 @@ class StackToRiscVTranslator:
             elif op == OP_SUB:
                 let rs2 = self.pop_reg()
                 let rs1 = self.pop_reg()
-                let rd = self.alloc_reg()
+                ## Two-address: the result lands in rs1's own register.
+                ## Both operands were just popped, so that register is dead --
+                ## except when a loop carried the value, which is exactly the
+                ## case that needs it: `for` leaves its counter on the operand
+                ## stack and the loop head is translated once, so allocating a
+                ## fresh register each iteration left the head re-reading the
+                ## register the increment never wrote to, and the loop indexed
+                ## the iterable at 0 forever. x5, x10 and x11 are the VM's own
+                ## scratch, so those still need a register of their own.
+                var rd = rs1
+                if rs1 == 5 or rs1 == 10 or rs1 == 11:
+                    rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_ADD, 0x20, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
             elif op == OP_MUL:
                 let rs2 = self.pop_reg()
                 let rs1 = self.pop_reg()
-                let rd = self.alloc_reg()
+                ## Two-address: the result lands in rs1's own register.
+                ## Both operands were just popped, so that register is dead --
+                ## except when a loop carried the value, which is exactly the
+                ## case that needs it: `for` leaves its counter on the operand
+                ## stack and the loop head is translated once, so allocating a
+                ## fresh register each iteration left the head re-reading the
+                ## register the increment never wrote to, and the loop indexed
+                ## the iterable at 0 forever. x5, x10 and x11 are the VM's own
+                ## scratch, so those still need a register of their own.
+                var rd = rs1
+                if rs1 == 5 or rs1 == 10 or rs1 == 11:
+                    rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_ADD, 0x01, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
             elif op == OP_DIV:
                 let rs2 = self.pop_reg()
                 let rs1 = self.pop_reg()
-                let rd = self.alloc_reg()
+                ## Two-address: the result lands in rs1's own register.
+                ## Both operands were just popped, so that register is dead --
+                ## except when a loop carried the value, which is exactly the
+                ## case that needs it: `for` leaves its counter on the operand
+                ## stack and the loop head is translated once, so allocating a
+                ## fresh register each iteration left the head re-reading the
+                ## register the increment never wrote to, and the loop indexed
+                ## the iterable at 0 forever. x5, x10 and x11 are the VM's own
+                ## scratch, so those still need a register of their own.
+                var rd = rs1
+                if rs1 == 5 or rs1 == 10 or rs1 == 11:
+                    rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_XOR, 0x01, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
             elif op == OP_MOD:
                 let rs2 = self.pop_reg()
                 let rs1 = self.pop_reg()
-                let rd = self.alloc_reg()
+                ## Two-address: the result lands in rs1's own register.
+                ## Both operands were just popped, so that register is dead --
+                ## except when a loop carried the value, which is exactly the
+                ## case that needs it: `for` leaves its counter on the operand
+                ## stack and the loop head is translated once, so allocating a
+                ## fresh register each iteration left the head re-reading the
+                ## register the increment never wrote to, and the loop indexed
+                ## the iterable at 0 forever. x5, x10 and x11 are the VM's own
+                ## scratch, so those still need a register of their own.
+                var rd = rs1
+                if rs1 == 5 or rs1 == 10 or rs1 == 11:
+                    rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_OR, 0x01, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
             elif op == OP_BIT_AND:
                 let rs2 = self.pop_reg()
                 let rs1 = self.pop_reg()
-                let rd = self.alloc_reg()
+                ## Two-address: the result lands in rs1's own register.
+                ## Both operands were just popped, so that register is dead --
+                ## except when a loop carried the value, which is exactly the
+                ## case that needs it: `for` leaves its counter on the operand
+                ## stack and the loop head is translated once, so allocating a
+                ## fresh register each iteration left the head re-reading the
+                ## register the increment never wrote to, and the loop indexed
+                ## the iterable at 0 forever. x5, x10 and x11 are the VM's own
+                ## scratch, so those still need a register of their own.
+                var rd = rs1
+                if rs1 == 5 or rs1 == 10 or rs1 == 11:
+                    rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_AND, 0, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
             elif op == OP_BIT_OR:
                 let rs2 = self.pop_reg()
                 let rs1 = self.pop_reg()
-                let rd = self.alloc_reg()
+                ## Two-address: the result lands in rs1's own register.
+                ## Both operands were just popped, so that register is dead --
+                ## except when a loop carried the value, which is exactly the
+                ## case that needs it: `for` leaves its counter on the operand
+                ## stack and the loop head is translated once, so allocating a
+                ## fresh register each iteration left the head re-reading the
+                ## register the increment never wrote to, and the loop indexed
+                ## the iterable at 0 forever. x5, x10 and x11 are the VM's own
+                ## scratch, so those still need a register of their own.
+                var rd = rs1
+                if rs1 == 5 or rs1 == 10 or rs1 == 11:
+                    rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_OR, 0, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
             elif op == OP_BIT_XOR:
                 let rs2 = self.pop_reg()
                 let rs1 = self.pop_reg()
-                let rd = self.alloc_reg()
+                ## Two-address: the result lands in rs1's own register.
+                ## Both operands were just popped, so that register is dead --
+                ## except when a loop carried the value, which is exactly the
+                ## case that needs it: `for` leaves its counter on the operand
+                ## stack and the loop head is translated once, so allocating a
+                ## fresh register each iteration left the head re-reading the
+                ## register the increment never wrote to, and the loop indexed
+                ## the iterable at 0 forever. x5, x10 and x11 are the VM's own
+                ## scratch, so those still need a register of their own.
+                var rd = rs1
+                if rs1 == 5 or rs1 == 10 or rs1 == 11:
+                    rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_XOR, 0, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
@@ -243,14 +331,36 @@ class StackToRiscVTranslator:
             elif op == OP_SHIFT_LEFT:
                 let rs2 = self.pop_reg()
                 let rs1 = self.pop_reg()
-                let rd = self.alloc_reg()
+                ## Two-address: the result lands in rs1's own register.
+                ## Both operands were just popped, so that register is dead --
+                ## except when a loop carried the value, which is exactly the
+                ## case that needs it: `for` leaves its counter on the operand
+                ## stack and the loop head is translated once, so allocating a
+                ## fresh register each iteration left the head re-reading the
+                ## register the increment never wrote to, and the loop indexed
+                ## the iterable at 0 forever. x5, x10 and x11 are the VM's own
+                ## scratch, so those still need a register of their own.
+                var rd = rs1
+                if rs1 == 5 or rs1 == 10 or rs1 == 11:
+                    rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_SLL, 0, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
             elif op == OP_SHIFT_RIGHT:
                 let rs2 = self.pop_reg()
                 let rs1 = self.pop_reg()
-                let rd = self.alloc_reg()
+                ## Two-address: the result lands in rs1's own register.
+                ## Both operands were just popped, so that register is dead --
+                ## except when a loop carried the value, which is exactly the
+                ## case that needs it: `for` leaves its counter on the operand
+                ## stack and the loop head is translated once, so allocating a
+                ## fresh register each iteration left the head re-reading the
+                ## register the increment never wrote to, and the loop indexed
+                ## the iterable at 0 forever. x5, x10 and x11 are the VM's own
+                ## scratch, so those still need a register of their own.
+                var rd = rs1
+                if rs1 == 5 or rs1 == 10 or rs1 == 11:
+                    rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_SRL, 0, rd, rs1, rs2))
                 push(self.reg_stack, rd)
 
@@ -333,6 +443,16 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 6, 0))
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, 7, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_INDEX, obj_reg))
+
+            elif op == OP_ARRAY_LEN:
+                ## A `for` loop computes its bound with this: it dups the
+                ## iterable, takes its length, compares that against the counter.
+                ## Nothing was emitted here, so the length never reached a
+                ## register and the bound comparison read the iterable itself.
+                let obj = self.pop_reg()
+                let rd = self.alloc_reg()
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_ARRAY_LEN, obj))
+                push(self.reg_stack, rd)
 
             elif op == OP_ARRAY:
                 let size = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -546,7 +666,21 @@ class StackToRiscVTranslator:
             elif op == OP_SET_GLOBAL:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                let val = self.pop_reg()
+                ## Peek. The SVM writes stack[stack_len-1] and continues without
+                ## decrementing stack_len, which is why the bytecode carries a
+                ## pop() straight after every set_global. Popping here too made
+                ## the translator consume the value twice: one pop short in the
+                ## translator's view, one too many on the real stack.
+                ##
+                ## Inside a `for` loop that is fatal rather than cosmetic. The
+                ## loop counter rides on the operand stack for the whole loop,
+                ## so eating an extra entry per statement walked the translator
+                ## off the counter and into the iterable -- the increment wrote
+                ## into the register holding the iterable, and the next bound
+                ## test failed with "Operands must be numbers".
+                var val = 11
+                if len(self.reg_stack) > 0:
+                    val = self.reg_stack[len(self.reg_stack) - 1]
                 if val != 11:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, val, 0))
                 self.emit_load_imm(10, idx)
