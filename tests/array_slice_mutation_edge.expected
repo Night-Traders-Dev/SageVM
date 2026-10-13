@@ -1,0 +1,15 @@
+--- Matrix row slicing and element mutation ---
+slice1 len: 2
+slice1[0]: 10
+slice1[1]: 20
+--- Verify slice copy independence ---
+slice1[0] after mutation: 999
+matrix[1][0] original value: 10
+--- Slice beyond length bounds ---
+over_slice len: 2
+over_slice[0]: 10
+over_slice[1]: 15
+--- Zero-length slice (start == end) ---
+zero_slice len: 0
+--- Slicing empty array ---
+empty_slice len: 0
