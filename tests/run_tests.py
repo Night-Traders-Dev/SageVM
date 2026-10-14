@@ -6,6 +6,11 @@ import re
 def run_suite():
     os.environ["TEST_ENV_VAR"] = "SageVM-Testing"
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+    # Ensure sage binary directory is on PATH
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sage_dir = os.path.join(repo_root, ".deps", "SageLang", "core")
+    os.environ["PATH"] = sage_dir + os.pathsep + os.environ.get("PATH", "")
     test_dir = "tests"
     if not os.path.exists(test_dir):
         print(f"Error: {test_dir} directory not found.")
