@@ -1,0 +1,16 @@
+1. Chained string transformations:
+HELLO, SAGEVM WORLD!
+HELLO, SAGEVM UNIVERSE!
+2. Split and Join chaining:
+[HELLO,, SAGEVM, UNIVERSE!]
+HELLO,---SAGEVM---UNIVERSE!
+3. Ord and Chr conversions:
+A
+65
+83
+4. Empty string boundary cases:
+
+
+
+
+[]

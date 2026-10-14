@@ -1,0 +1,21 @@
+1. 1D Array slicing & independence:
+Original:
+[10, 20, 30, 40, 50]
+Slice:
+[20, 30, 40]
+After slice mutation - Original:
+[10, 20, 30, 40, 50]
+After slice mutation - Slice:
+[999, 30, 40]
+2. 2D Matrix row slicing:
+Matrix row slice:
+[[1, 2], [3, 4]]
+After inner element mutation on matrix:
+[777, 2]
+3. Boundary & zero-length slicing:
+Empty array slice:
+[]
+Zero length slice:
+[]
+Start greater than end:
+[]
