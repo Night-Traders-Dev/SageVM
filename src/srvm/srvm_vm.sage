@@ -686,25 +686,30 @@ class SRVM:
                         ## argument is a caller error, not something to index into.
                         if type(obj) != "dict":
                             self.state.x[10] = []
-                        let keys = dict_keys(obj)
-                        if self.state.safe_mode:
-                            let safe_keys = []
-                            var i = 0
-                            while i < len(keys):
-                                let key = keys[i]
-                                if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
-                                    push(safe_keys, key)
-                                i = i + 1
-                            self.state.x[10] = safe_keys
+                        elif self.state.safe_mode and self.is_protected(obj):
+                            self.state.x[10] = []
                         else:
-                            self.state.x[10] = keys
+                            let keys = dict_keys(obj)
+                            if self.state.safe_mode:
+                                let safe_keys = []
+                                var i = 0
+                                while i < len(keys):
+                                    let key = keys[i]
+                                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                                        push(safe_keys, key)
+                                    i = i + 1
+                                self.state.x[10] = safe_keys
+                            else:
+                                self.state.x[10] = keys
                     elif b_name == "dict_values":
                         let obj = self.state.x[10]
                         ## The reflection builtins take a dict. A wrong-typed
                         ## argument is a caller error, not something to index into.
                         if type(obj) != "dict":
                             self.state.x[10] = []
-                        if self.state.safe_mode:
+                        elif self.state.safe_mode and self.is_protected(obj):
+                            self.state.x[10] = []
+                        elif self.state.safe_mode:
                             let safe_vals = []
                             let keys = dict_keys(obj)
                             var i = 0

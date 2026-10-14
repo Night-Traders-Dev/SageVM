@@ -141,3 +141,8 @@
 **Vulnerability:** The reflection builtin `dict_has` (`__builtin_dict_has`) in both `src/svm/sgvm_vm.sage` and `src/srvm/srvm_vm.sage` checked if property keys started with `__` in `safe_mode`, but failed to evaluate whether the dictionary object itself was a protected host module or bridge (`is_protected(obj)`). This allowed sandboxed guest programs to probe for the presence of host functions or internal attributes on protected module dictionaries.
 **Learning:** Reflection builtins must enforce both target object protection checks (`is_protected`) and key-prefix filters (`__`) under `safe_mode` to prevent guest scripts from discovering internal host structure details.
 **Prevention:** Always incorporate `is_protected(obj)` checks inside reflection and container query builtins (`dict_has`, `dict_keys`, `dict_values`).
+
+## 2026-10-14 - Sandbox Reflection Leak via Unhardened dict_keys and dict_values Builtins
+**Vulnerability:** In both SVM (`src/svm/sgvm_vm.sage`) and SRVM (`src/srvm/srvm_vm.sage`), `dict_keys` and `dict_values` filtered `__`-prefixed key strings in `safe_mode`, but failed to check `is_protected(obj)`. Sandboxed guest scripts could pass protected host modules (e.g. `math`) to `dict_keys` or `dict_values` to discover exported module functions or metadata properties.
+**Learning:** Standard container reflection builtins must check object-level protection status (`is_protected(obj)`) prior to retrieving or exposing property key/value lists under sandboxed execution modes.
+**Prevention:** Return an empty list `[]` for protected objects and host module dictionaries across all reflection and container builtins in `safe_mode`.
