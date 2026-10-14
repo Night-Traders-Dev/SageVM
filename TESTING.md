@@ -128,53 +128,20 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `logical_expr_edge.sage`: Tests logical expression chaining (`and`, `or`, `not`), non-boolean truthiness evaluation across primitive and collection types in conditionals, and short-circuit evaluation side-effect skipping.
 - `array_mutation_edge.sage`: Tests array element indexing (`OP_GET_INDEX`, `OP_SET_INDEX`), in-place array index mutations, nested matrix mutations, `push` and `pop` operations, and edge conditions (pop on empty array, out-of-bounds indexing).
 
-
 ### Coverage Expansion (October 2026 - Forge Daily)
 - `class_method_dispatch_edge.sage`: Tests OOP class constructors (`init(self, ...)`), method chaining returning `self`, `self` calling internal methods, multi-parameter method dispatch, dynamic property creation, and accessing/calling non-existent properties/methods on instances.
 - `chained_assignment_edge.sage`: Tests stack manipulation opcodes (`OP_DUP`, `OP_POP`) across chained variable assignments (`var a = var b = var c = 100`), arithmetic expression assignments, chained `nil` assignments, chained array index assignments, chained dictionary key assignments, and chained object property assignments.
-<<<<<<< HEAD
-- `unary_negate_edge.sage`: Tests `OP_NEGATE` (unary `-x` operator) across positive and negative integers, floating point numbers, zero, arithmetic expressions, chained negations (`--x`, `---x`), `nil` (evaluates to `0` in SVM), booleans, strings, and array operands.
-- `string_repeat_edge.sage`: Tests string repetition (`OP_MUL` string * int and int * string) with positive counts, zero, negative multipliers, float multipliers, empty strings, chained expressions, and `nil` operands.
-
-### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **160 passed, 0 failed, 1 skipped**
-=======
-<<<<<<< HEAD
-- `dict_key_types_edge.sage`: Tests dictionary indexing (`OP_GET_INDEX`, `OP_SET_INDEX`) with non-string keys (integers, floats, booleans, nil), string conversion via `str()`, dictionary reflection builtins (`dict_has`, `dict_keys`, `dict_values`), and missing key evaluation behavior.
-- `nested_block_return_edge.sage`: Tests early function returns (`OP_RETURN`) from deep nested block scopes (`OP_PUSH_ENV`), nested conditionals, nested loops, and `try-catch` blocks inside functions while verifying environment scope stack balance.
-- `string_escapes_edge.sage`: Tests string escape sequences (`\n`, `\t`, `\\`, `\"`), string indexing and length on multi-line strings, character conversions (`ord`, `chr`), splitting/joining on newline delimiters, and `strip` functionality.
-
-### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **163 passed, 0 failed, 1 skipped**
-=======
-<<<<<<< HEAD
-- `string_replace_edge.sage`: Tests `replace()` string builtin across deletion, empty target strings, multiple pattern occurrences, escape characters (`\n`), whole string replacements, and nil arguments.
-- `dict_nested_mutation_edge.sage`: Tests nested dictionary creation, deep property/index mutation (`d["a"]["b"]` and `d.a.b`), keys with spaces and symbols (`special["first name"]`), missing nested key access, and dictionary mutations in loops.
-- `array_pop_push_boundary_edge.sage`: Tests array stack operations (`push()` and `pop()`), popping on empty arrays returning `nil`, pushing heterogeneous types (arrays, strings, nil, ints), and interleaved push/pop in loops with `len()` tracking.
-
-### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **160 passed, 0 failed, 1 skipped**
-=======
-<<<<<<< HEAD
-- `string_escapes_edge.sage`: Tests string escape sequences (`\n`, `\t`, `\r`, `\\`, `\"`), string utilities with escape characters (`split()`, `join()`, `strip()`, `len()`), ASCII conversion functions (`ord()`, `chr()`), and formatted multi-line string outputs.
-- `func_scope_chain_edge.sage`: Tests nested function definitions, non-lexical closure scope resolution (unbound outer local variables resolving to `nil`), global scope fallback, explicit parameter passing to inner functions, and parameter shadowing global variables.
-
-### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **162 passed, 0 failed, 1 skipped**
-=======
 - `exception_unwind_call_edge.sage`: Tests exception unwinding across multi-level nested function call frames, re-raising exceptions across try-catch blocks, and return statements executed inside try blocks.
 - `split_join_types_edge.sage`: Tests `split()` and `join()` builtins with multi-character delimiters, empty string delimiters, mixed-type arrays, empty arrays, single-element arrays, empty delimiters, and nil parameters.
 - `slice_boundary_edge.sage`: Tests `slice()` builtin and slice operator with boundary clamping values, exact full copies, zero-length slices, and empty collections.
+- `func_dispatch_collection_edge.sage`: Tests storing function references in arrays and dictionaries, dispatching via collection index lookups, function handle reassignments in collections, higher-order function collection dispatch, and missing key lookups evaluating to `nil`.
+- `array_slice_mutation_edge.sage`: Tests array slicing via `slice()` and slice operator on 2D matrices and 1D arrays, verifying slice copy independence when elements/indices are mutated, zero-length slices, start > end, out-of-bounds indices, and empty array slicing.
+- `string_format_method_edge.sage`: Tests chained string transformation builtins (`upper`, `lower`, `strip`, `replace`, `split`, `join`), character code conversions (`ord`, `chr`), and empty string boundary cases.
 
 ### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **163 passed, 0 failed, 1 skipped**
->>>>>>> origin/main
->>>>>>> origin/main
->>>>>>> origin/main
->>>>>>> origin/main
+The modern SVM coverage suite passes cleanly: **180 passed, 0 failed, 2 skipped**
 
-One test is skipped: `generators.sage`, because `sage --emit-vm` does not
-emit VM bytecode for it.
+Two tests are skipped: `generators.sage` (because `sage --emit-vm` does not emit VM bytecode for yield statements) and `short_circuit_merge.sage` (legacy helper file with no `.expected` file).
 
 Note when adding tests: the harness compiles each test with the SageLang in
 `.deps/SageLang`, which is an unmanaged clone rather than a pinned submodule.

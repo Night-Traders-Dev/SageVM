@@ -1,0 +1,14 @@
+1. Array function dispatch:
+15
+5
+50
+2. Dict function dispatch:
+24
+16
+80
+3. Function reassignment in collection:
+15
+4. Higher-order collection dispatch:
+18
+5. Missing key lookup:
+nil
