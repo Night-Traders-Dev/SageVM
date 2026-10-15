@@ -444,7 +444,20 @@ class SRVM:
 
         if f7 == 0x01: # M-extension
             if f3 == F3_ADD: # MUL
-                self.state.x[rd] = rs1_num * rs2_num
+                ## `*` is overloaded: "abc" * 3 repeats the string, and 3 * "x"
+                ## repeats it the other way round. The ALU below is numeric, so a
+                ## string reached it as arithmetic and raised "Operands must be
+                ## numbers". Only multiplications pay for this -- every other ALU
+                ## op keeps its straight numeric path. Mirrors the stack VM so the
+                ## two backends agree on the mixed cases.
+                let ta = type(rs1_raw)
+                let tb = type(rs2_raw)
+                if ta == "string" and tb == "number":
+                    self.state.x[rd] = str_repeat(rs1_raw, int(rs2_num))
+                elif ta == "number" and tb == "string":
+                    self.state.x[rd] = str_repeat(rs2_raw, int(rs1_num))
+                else:
+                    self.state.x[rd] = rs1_num * rs2_num
             elif f3 == F3_XOR: # DIV
                 if rs2_num != 0: self.state.x[rd] = rs1_num / rs2_num
                 else: self.state.x[rd] = nil
@@ -455,8 +468,36 @@ class SRVM:
             return
 
         if f3 == F3_ADD:
-            if f7 == 0x00: 
-                self.state.x[rd] = rs1_num + rs2_num
+            if f7 == 0x00:
+                ## `+` is overloaded the way `*` now is. The ALU below is numeric,
+                ## so a string, nil, array or dict arrived as arithmetic and raised
+                ## "Operands must be numbers, strings, or arrays" -- which took the
+                ## whole program down on a line as ordinary as `"prefix_" + nil`.
+                ## Numbers take the fast path first so plain addition pays only
+                ## what it already paid. Mirrors the stack VM.
+                let ta = type(rs1_raw)
+                let tb = type(rs2_raw)
+                if ta == "number" and tb == "number":
+                    self.state.x[rd] = rs1_num + rs2_num
+                elif ta == "string" or tb == "string":
+                    var a_str = rs1_raw
+                    if a_str == nil: a_str = ""
+                    var b_str = rs2_raw
+                    if b_str == nil: b_str = ""
+                    self.state.x[rd] = str(a_str) + str(b_str)
+                elif ta == "array" and tb == "array":
+                    var res = []
+                    var ai = 0
+                    while ai < len(rs1_raw):
+                        push(res, rs1_raw[ai])
+                        ai = ai + 1
+                    ai = 0
+                    while ai < len(rs2_raw):
+                        push(res, rs2_raw[ai])
+                        ai = ai + 1
+                    self.state.x[rd] = res
+                else:
+                    self.state.x[rd] = 0
             elif f7 == 0x20: self.state.x[rd] = rs1_num - rs2_num
         elif f3 == F3_SLL: self.state.x[rd] = rs1_num << (rs2_num & 0x3F)
         elif f3 == F3_SLT:
