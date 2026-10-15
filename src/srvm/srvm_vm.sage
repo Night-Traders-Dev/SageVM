@@ -619,10 +619,68 @@ class SRVM:
                     return
 
                 let func_obj = self.state.x[rs2] 
+                ## OBJ_METHOD_BIND leaves x28 saying where it found the callee. A value
+                ## read straight out of a dict is a module member, so the receiver in x10
+                ## belongs to the callee and must not become an argument; a method off a
+                ## __methods__ table wants it. rd is only five bits wide, so this cannot ride
+                ## along in it.
+                let call_has_receiver = self.state.x[28] == 2
                 var target_chunk = -1
                 if type(func_obj) == "number": target_chunk = int(func_obj)
                 elif type(func_obj) == "dict" and dict_has(func_obj, "chunk_idx"): target_chunk = int(func_obj["chunk_idx"])
+                elif type(func_obj) == "function" or type(func_obj) == "native fn":
+                    ## A host function reached as a value -- `math.sin` bound off
+                    ## the module dict by OBJ_METHOD_BIND. None of the paths above
+                    ## can run one: no chunk index, no __builtin__ name, so the
+                    ## call fell through with target_chunk still -1 and left whatever
+                    ## x10 happened to hold. That is why every native module call
+                    ## came back nil. The receiver is x10 and the arguments follow,
+                    ## which is the layout the instance block sets up.
+                    var hargs = []
+                    ## Arguments follow the receiver when there is one, and start
+                    ## at x10 when the callee came through a method table.
+                    let base = 10
+                    if call_has_receiver:
+                        base = 11
+                    var k = 0
+                    var limit = rd
+                    if call_has_receiver:
+                        limit = rd - 1
+                    while k < limit:
+                        push(hargs, self.state.x[base + k])
+                        k = k + 1
+                    if self.state.safe_mode:
+                        print "Error: Direct host function call is restricted in safe mode"
+                        self.state.x[10] = nil
+                    else:
+                        ## Splat, do not pass the list itself: sys.call(f, xs)
+                        ## hands the callee one argument, the array, and a native
+                        ## reading argv[0].as.number off it got garbage.
+                        let n = len(hargs)
+                        if n == 0:
+                            self.state.x[10] = sys.call(func_obj)
+                        elif n == 1:
+                            self.state.x[10] = sys.call(func_obj, hargs[0])
+                        elif n == 2:
+                            self.state.x[10] = sys.call(func_obj, hargs[0], hargs[1])
+                        elif n == 3:
+                            self.state.x[10] = sys.call(func_obj, hargs[0], hargs[1], hargs[2])
+                        elif n == 4:
+                            self.state.x[10] = sys.call(func_obj, hargs[0], hargs[1], hargs[2], hargs[3])
+                        else:
+                            self.state.x[10] = sys.call(func_obj, hargs)
+                    self.state.pc = self.state.pc + 4
+                    return
+
                 elif type(func_obj) == "string" or (type(func_obj) == "dict" and dict_has(func_obj, "__builtin__")):
+                    ## Same receiver offset as above, fixed by moving the arguments
+                    ## down rather than by touching every builtin that reads a0..a2.
+                    if call_has_receiver:
+                        var s = 0
+                        while s < rd - 1:
+                            self.state.x[10 + s] = self.state.x[11 + s]
+                            s = s + 1
+
                     var b_name = func_obj
                     if type(func_obj) == "dict":
                         b_name = func_obj["__builtin__"]
@@ -862,6 +920,29 @@ class SRVM:
                             self.state.x[10] = nil
                         else:
                             self.state.x[10] = nil
+                    elif b_name == "math_printm":
+                        ## math.printm had no case here, so a module call that was not a
+                        ## plain function silently printed nothing. Same rendering as the
+                        ## stack VM so both backends agree.
+                        let matrix = self.state.x[10]
+                        if type(matrix) != "array":
+                            print "Error: math.printm() expects an array"
+                        else:
+                            print "["
+                            var mi = 0
+                            while mi < len(matrix):
+                                let row = matrix[mi]
+                                if type(row) == "array":
+                                    var parts = []
+                                    var mj = 0
+                                    while mj < len(row):
+                                        push(parts, str(row[mj]))
+                                        mj = mj + 1
+                                    print "  [" + join(parts, ", ") + "]"
+                                else:
+                                    print "  " + str(row)
+                                mi = mi + 1
+                            print "]"
                     elif startswith(b_name, "struct_"):
                         if self.state.safe_mode:
                             print "Error: " + b_name + " is restricted in safe mode"
@@ -1100,7 +1181,7 @@ class SRVM:
                 elif type(obj) == "dict":
                     if dict_has(obj, name):
                         self.state.x[rd] = obj[name]
-                        self.state.x[28] = 1
+                        self.state.x[28] = 2
                     elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
                         self.state.x[rd] = obj["__methods__"][name]
                         self.state.x[28] = 1

@@ -824,6 +824,9 @@ class StackToRiscVTranslator:
                         self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, dest, src, 0))
                     k = k - 1
                 # Call via t0 (x5), which holds the preserved callee.
+                ## x28 carries "this call has a receiver" from the bind; clear it so a
+                ## plain call cannot inherit the previous one.
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 28, 0, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, argc, VMO_CALL, 5))
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 10, 0))
@@ -868,7 +871,7 @@ class StackToRiscVTranslator:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11 + k, 19 + k, 0))
                     k = k + 1
                 # Do call: VMO_CALL(x29)
-                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_CALL, 29))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, argc + 1, VMO_CALL, 29))
                 # JUMP over class_call block.
                 # Offset is (argc + 2) * 4 bytes.
                 self.emit_32(self.encoder.encode_j(OP_JAL, 0, (argc + 2) * 4))
@@ -881,7 +884,7 @@ class StackToRiscVTranslator:
                     k = k + 1
                 
                 # Do call: VMO_CALL(x29)
-                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_CALL, 29))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, argc, VMO_CALL, 29))
                 # Get return value: rd = x10
                 let rd_ret = self.alloc_reg()
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd_ret, 10, 0))
