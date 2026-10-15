@@ -1,0 +1,20 @@
+--- String Transformation Builtins & Chaining ---
+Hello, SageVM World!
+HELLO, SAGEVM WORLD!
+hello, sagevm world!
+hello, sagevm universe!
+--- Split and Join Operations ---
+3
+hello,
+sagevm
+universe!
+hello,---sagevm---universe!
+--- Character Ord/Chr Conversions ---
+65
+A
+a
+--- Empty String Boundaries ---
+
+
+
+1
