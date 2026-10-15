@@ -485,6 +485,9 @@ class StackToRiscVTranslator:
                 if obj == 10 or obj == 11 or obj == 6 or obj == 7:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, obj, 0))
                     obj_reg = 5
+                ## s6/s7 and a0/a1 all go through VM scratch here, and a1 is a register the
+                ## translator does hand out -- the comparisons above already lost values to it.
+                self.stage_protect(10, 11)
                 if idx != 6:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 6, idx, 0))
                 if val != 7:
@@ -492,6 +495,7 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 6, 0))
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, 7, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_INDEX, obj_reg))
+                self.stage_restore()
 
             elif op == OP_ARRAY_LEN:
                 ## A `for` loop computes its bound with this: it dups the
