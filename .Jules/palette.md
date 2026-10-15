@@ -101,3 +101,7 @@
 ## 2026-09-13 - [Accessible Playground Interactive Controls & Keyboard Navigation]
 **Learning:** Interactive VM playgrounds featuring custom action buttons, range sliders, file upload inputs, and collapsible status panels require explicit ARIA properties (`role="tablist"`, `role="tab"`, `aria-selected`, `aria-label`, `aria-expanded`), keyboard event handlers (`Enter`/`Space`), and focus-visible ring styles (`focus-visible:ring-2 focus-visible:ring-sage-mid focus-visible:outline-none`) to ensure seamless accessibility for keyboard and screen-reader users.
 **Action:** Always enrich playground control headers, range inputs, file upload labels, and action buttons with semantic ARIA roles, focus-visible indicators, and keydown listeners.
+
+## 2026-10-14 - [Animated Character-Split Text Accessibility]
+**Learning:** Paragraphs dynamically split into character or word `<span>` elements by animation libraries (like GSAP) break continuous screen-reader reading. Adding `aria-label` with the full text on the parent paragraph container preserves text continuity for assistive technologies, while marking decorative dividers with `aria-hidden="true"` prevents screen-reader noise.
+**Action:** Always add `aria-label` with the full string text to text containers undergoing character-level DOM splitting for animations, and mark surrounding decorative visuals with `aria-hidden="true"`.
