@@ -223,7 +223,6 @@ class SRVM:
                     self.load_chunk(self.state.chunks[self.state.current_chunk_idx])
                     self.state.pc = frame[1]
                     self.state.x[1] = frame[2]
-                    if len(frame) > 3: self.state.x[8] = frame[3]
                     ## init returns whatever its body ends on; a constructor returns
                     ## the object it just built.
                     if len(frame) > 6 and frame[6] != nil: self.state.x[10] = frame[6]
@@ -236,6 +235,7 @@ class SRVM:
                             if real >= 10: real = ri2 + 2
                             if real < 32: self.state.x[real] = frame[5][ri2]
                             ri2 = ri2 + 1
+                    if len(frame) > 3: self.state.x[8] = frame[3]
                     if len(frame) > 4 and frame[4] < len(self.state.stack):
                         while len(self.state.stack) > frame[4]:
                             pop(self.state.stack)
@@ -1070,6 +1070,7 @@ class SRVM:
                     ## locals resolve against whatever the caller left behind.
                     var slots: Int = argc
                     if slots < 1: slots = 1
+                    let caller_s0: Int = self.state.x[8]
                     if slots <= 16:
                         while len(self.state.stack) < frame_base + slots * 8:
                             push(self.state.stack, srvm_core.UNBOUND)
@@ -1100,7 +1101,7 @@ class SRVM:
                     push(self.state.call_stack, [self.state.current_chunk_idx,
                                                  self.state.pc + 4,
                                                  self.state.x[1],
-                                                 self.state.x[8],
+                                                 caller_s0,
                                                  frame_base,
                                                  saved_regs,
                                                  ctor_instance])
