@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.2] - 2026-10-13
+
+### Fixed
+- **SRVM environment scoping fix (`push_env` / `pop_env`)**: Corrected `push_env`
+  and `pop_env` sub-opcode handling in the RISC-V VM interpreter
+  (`src/srvm/srvm_vm.sage`) to track environment nesting depth without replacing
+  or discarding the global variable dictionary (`heap`), and decoupled environment
+  frame unwinding from `call_stack`. Global variables assigned inside `for`
+  loop bodies now survive loop exit as expected.
+
 ## [1.2.2] - 2026-10-11
 
 ### Fixed
