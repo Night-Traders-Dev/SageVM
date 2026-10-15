@@ -6,7 +6,8 @@ print "math.pi > 3.14: " + str(math.pi > 3.14)
 print "math.e > 2.71: " + str(math.e > 2.71)
 
 print "--- Math Functions ---"
-# BUG: Native math functions (math.abs, math.sqrt, math.sin, math.cos) return nil under SVM when invoked via the module dictionary bridge
+  # These resolve through the module dictionary now: the AOT runtime builds
+  # real native modules, and the call_method host bridge can reach them.
 print "math.abs(-42): " + str(math.abs(-42))
 print "math.abs(0): " + str(math.abs(0))
 print "math.sqrt(100): " + str(math.sqrt(100))

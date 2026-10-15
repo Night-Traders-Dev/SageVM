@@ -1,2 +1,2 @@
-math.sin(0): nil
-math.cos(0): nil
+math.sin(0): 0
+math.cos(0): 1

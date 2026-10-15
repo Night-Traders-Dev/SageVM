@@ -1873,7 +1873,15 @@ class MetalVM:
             var method = nil
             # Performance: Cache type(obj) to avoid redundant C strdup heap string allocations
             let obj_type = type(obj)
-            if obj_type == "dict":
+            ## A module handed to the guest by OP_IMPORT is a plain dict, and so is
+            ## the `__host_mod__` wrapper in globals. Those only ever hold module
+            ## members, never `__methods__` / `__class__`, so entering the class
+            ## branch for them found nothing and fell out to "Cannot call
+            ## non-function value" -- the host bridge further down, which already
+            ## handles a dict holding a function, was unreachable because these
+            ## are an if/elif chain. Only take the class branch when one of those
+            ## tables is really there; everything else reaches the host bridge.
+            if obj_type == "dict" and (dict_has(obj, "__methods__") or dict_has(obj, "__class__")):
                 let methods = obj["__methods__"]
                 if methods != nil:
                     let m = methods[name]
@@ -1922,8 +1930,13 @@ class MetalVM:
                         let arg_name = get_arg_name(j + 1)
                         self.scopes[len(self.scopes)-1][arg_name] = arg_val
                         j = j + 1
-            elif obj_type == "module" or (obj_type == "dict" and dict_has(obj, "__type__") and obj["__type__"] == "module"):
+            elif obj_type == "module" or (obj_type == "dict" and dict_has(obj, "__host_mod__")) or (obj_type == "dict" and dict_has(obj, "__type__") and obj["__type__"] == "module"):
                 # Host module method/attribute access
+                ## globals["math"] and friends are a wrapper carrying the real
+                ## module under __host_mod__. The member the guest asked for is a
+                ## key of the inner module, not of the wrapper, so look through it.
+                if not dict_has(obj, name) and dict_has(obj, "__host_mod__"):
+                    obj = obj["__host_mod__"]
                 if dict_has(obj, name):
                     let val = obj[name]
                     if self.safe_mode:
