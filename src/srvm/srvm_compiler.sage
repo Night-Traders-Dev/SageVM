@@ -773,21 +773,14 @@ class StackToRiscVTranslator:
                 ## The host emits 0x3b both for `let x = ...` and for every later
                 ## mention of x, and the stack VM treats the first as a bind and
                 ## the rest as reads. Whether this is the first mention is
-                ## knowable here, per chunk, so each gets the value stack
-                ## discipline it needs: a bind consumes the expression it is
-                ## defining and puts it back, a read only pushes. Peeking for
-                ## both left a stale entry under every read; popping for both ate
-                ## the operand the next operator needed.
-                var cand: Int = 0
-                if self.bound_slots == nil: self.bound_slots = {}
-                ## String keys: dict_has and item assignment have to agree on
-                ## the key type, and an Int index makes one silently miss.
-                let slot_key: String = str(idx)
-                if not dict_has(self.bound_slots, slot_key):
-                    self.bound_slots[slot_key] = true
-                    if self.reg_stack != nil and len(self.reg_stack) > 0:
-                        cand = self.pop_reg()
-                self.emit_32(self.encoder.encode_i(OP_LOCAL_DEF, 0, rd, cand, idx * 8))
+                ## The SVM emits 0x3b for every mention of a local, but its
+                ## handler only reads: the slot lives below the operand stack
+                ## and the value is pushed, never popped. Popping here to
+                ## "bind" ate the enclosing expression's value instead --
+                ## `Animal.init(self, name)` lost self because the method
+                ## object was on the register stack and the first parameter
+                ## read consumed it.
+                self.emit_32(self.encoder.encode_i(OP_LOCAL_DEF, 0, rd, 0, idx * 8))
                 push(self.reg_stack, rd)
 
             elif op == OP_SET_LOCAL:

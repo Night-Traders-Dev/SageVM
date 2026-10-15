@@ -1211,9 +1211,19 @@ class SRVM:
                 let name_idx = int(self.state.x[10])
                 let name = self.safe_get_constant(name_idx)
                 if not self.state.running: return
+                self.state.x[28] = 0
                 if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     self.state.x[rd] = nil
-                elif type(obj) == "dict": self.state.x[rd] = obj[name]
+                elif type(obj) == "dict":
+                    let direct = obj[name]
+                    if direct != nil:
+                        self.state.x[rd] = direct
+                    elif dict_has(obj, "__class__") and type(obj["__class__"]) == "dict" and dict_has(obj["__class__"], "__methods__") and type(obj["__class__"]["__methods__"]) == "dict":
+                        self.state.x[rd] = obj["__class__"]["__methods__"][name]
+                    elif dict_has(obj, "__methods__") and type(obj["__methods__"]) == "dict":
+                        self.state.x[rd] = obj["__methods__"][name]
+                    else:
+                        self.state.x[rd] = nil
                 else: self.state.x[rd] = nil
             elif sub_op == OBJ_SET_PROP:
                 let obj = self.state.x[rs2]
@@ -1286,7 +1296,14 @@ class SRVM:
                         self.state.x[28] = 2
                     elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
                         self.state.x[rd] = obj["__methods__"][name]
-                        self.state.x[28] = 1
+                        ## A method reached through the class itself is unbound:
+                        ## `A.init(self, n)` passes self as an ordinary argument. Marking it
+                        ## as a receiver call made the call site count a0 as a parameter, so
+                        ## init saw three arguments and every later read slid down a slot.
+                        if dict_has(obj, "__type__") and obj["__type__"] == "class":
+                            self.state.x[28] = 0
+                        else:
+                            self.state.x[28] = 1
                     elif dict_has(obj, "__class__") and dict_has(obj["__class__"]["__methods__"], name):
                         self.state.x[rd] = obj["__class__"]["__methods__"][name]
                         self.state.x[28] = 1
