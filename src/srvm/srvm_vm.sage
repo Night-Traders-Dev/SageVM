@@ -727,6 +727,22 @@ class SRVM:
                         b_name = func_obj["__builtin__"]
                     if type(b_name) == "string" and startswith(b_name, "__builtin_"):
                         b_name = slice(b_name, 10, len(b_name))
+                        ## A builtin called with too few arguments used to read whatever the
+                        ## previous statement left in a0, so `str()` returned that instead of
+                        ## nothing -- a caller asking for a value that was never supplied got a
+                        ## stale one. Each builtin has its own empty answer, so check the arity
+                        ## before dispatching rather than inventing one rule for all of them.
+                        let nargs = rd
+                        if call_has_receiver:
+                            nargs = rd - 1
+                        let needs_args = {"str": 1, "type": 1, "upper": 1, "lower": 1, "strip": 1, "join": 1, "split": 1, "replace": 2, "startswith": 2, "endswith": 2, "slice": 3, "len": 1, "int": 1, "range": 1, "tonumber": 1, "push": 1, "pop": 1, "dict_keys": 1, "dict_values": 1, "indexof": 2, "count": 2, "abs": 1, "round": 1, "floor": 1, "ceil": 1, "array_len": 1, "reflect_get_methods": 1}
+                        let empty_arg = {"join": "", "replace": "", "startswith": false, "endswith": false, "slice": "", "split": [], "reflect_get_methods": []}
+                        if dict_has(needs_args, b_name) and nargs < needs_args[b_name]:
+                            self.state.x[10] = nil
+                            if dict_has(empty_arg, b_name):
+                                self.state.x[10] = empty_arg[b_name]
+                            self.state.pc = self.state.pc + 4
+                            return
                     if b_name == "str":
                         self.state.x[10] = str(self.state.x[10]) # Result in a0
                     elif b_name == "int":
@@ -741,7 +757,19 @@ class SRVM:
                     elif b_name == "len":
                         self.state.x[10] = len(self.state.x[10])
                     elif b_name == "type":
-                        self.state.x[10] = type(self.state.x[10])
+                        ## A builtin handler is a bare "__builtin_*" string on the
+                        ## stack VM and a {"__builtin__": ...} dict here, so the
+                        ## same `type(type)` reported "string" on one backend and
+                        ## "dict" on the other. The representation is an
+                        ## implementation detail of the call path, so report a
+                        ## handler as a string whichever shape it has.
+                        let tv = self.state.x[10]
+                        if type(tv) == "dict" and dict_has(tv, "__builtin__"):
+                            self.state.x[10] = "string"
+                        elif type(tv) == "string" and startswith(tv, "__builtin_"):
+                            self.state.x[10] = "string"
+                        else:
+                            self.state.x[10] = type(tv)
                     elif b_name == "range":
                         self.state.x[10] = range(self.state.x[10])
                     elif b_name == "clock":
