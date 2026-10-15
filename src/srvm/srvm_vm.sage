@@ -224,6 +224,9 @@ class SRVM:
                     self.state.pc = frame[1]
                     self.state.x[1] = frame[2]
                     if len(frame) > 3: self.state.x[8] = frame[3]
+                    ## init returns whatever its body ends on; a constructor returns
+                    ## the object it just built.
+                    if len(frame) > 6 and frame[6] != nil: self.state.x[10] = frame[6]
                     if len(frame) > 5:
                         ## The snapshot skipped a0, so everything after the gap
                         ## is one position further on than its index.
@@ -667,7 +670,35 @@ class SRVM:
                 ## along in it.
                 let call_has_receiver = self.state.x[28] == 2
                 var target_chunk = -1
+                var ctor_instance = nil
                 if type(func_obj) == "number": target_chunk = int(func_obj)
+                elif type(func_obj) == "dict" and dict_has(func_obj, "__type__") and func_obj["__type__"] == "class":
+                    ## A class in call position is a construction. This had no
+                    ## branch at all, so every `Box(100)` matched nothing, fell
+                    ## through with target_chunk still -1 and returned nil -- which
+                    ## is why the whole object cluster failed from the constructor
+                    ## onward, instance properties included.
+                    ##
+                    ## Build the instance and call init on it exactly the way an
+                    ## instance call already does: receiver in a0, arguments from
+                    ## a1. That means making room by moving the arguments up one
+                    ## slot, high to low so the moves do not overwrite each other.
+                    ctor_instance = {"__type__": "instance", "__class__": func_obj}
+                    var ctor = nil
+                    if dict_has(func_obj, "__methods__"):
+                        ctor = func_obj["__methods__"]["init"]
+                    if ctor == nil or type(ctor) != "dict" or not dict_has(ctor, "chunk_idx"):
+                        ## No init: the instance is still the result.
+                        self.state.x[10] = ctor_instance
+                        self.state.pc = self.state.pc + 4
+                        return
+                    var sk = rd - 1
+                    while sk >= 0:
+                        self.state.x[11 + sk] = self.state.x[10 + sk]
+                        sk = sk - 1
+                    self.state.x[10] = ctor_instance
+                    target_chunk = int(ctor["chunk_idx"])
+
                 elif type(func_obj) == "dict" and dict_has(func_obj, "chunk_idx"): target_chunk = int(func_obj["chunk_idx"])
                 elif type(func_obj) == "function" or type(func_obj) == "native fn":
                     ## A host function reached as a value -- `math.sin` bound off
@@ -1031,7 +1062,8 @@ class SRVM:
                     ## happened to occupy those cells. Spill the arguments now,
                     ## and point s0 at the frame so nested calls nest. argc
                     ## rides in rd; the call site had no way to say so before.
-                    let argc: Int = rd
+                    var argc: Int = rd
+                    if ctor_instance != nil: argc = argc + 1
                     var frame_base: Int = len(self.state.stack)
                     ## Always open a frame, even for a call with no arguments:
                     ## s0 has to point at this frame's slots or the callee's
@@ -1070,7 +1102,8 @@ class SRVM:
                                                  self.state.x[1],
                                                  self.state.x[8],
                                                  frame_base,
-                                                 saved_regs])
+                                                 saved_regs,
+                                                 ctor_instance])
                     self.state.current_chunk_idx = target_chunk
                     self.load_chunk(chunk)
                     self.state.pc = 0
@@ -1260,6 +1293,9 @@ class SRVM:
                     else:
                         self.state.x[rd] = nil
                         self.state.x[28] = 0
+                        ## Nothing matched. Saying so is the difference between a typo and a
+                        ## silent nil, and the stack VM reports it.
+                        print "Error: Method " + name + " not found"
                 else:
                     self.state.x[rd] = nil
                     self.state.x[28] = 0

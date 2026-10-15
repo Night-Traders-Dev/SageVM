@@ -643,8 +643,13 @@ class StackToRiscVTranslator:
                 push(self.reg_stack, rd)
 
             elif op == OP_INHERIT:
-                let parent = self.pop_reg()
+                ## The stack VM pops the class first and the parent second, so
+                ## the first pop is the class being defined. Naming it `parent`
+                ## bound `class C(P)` to P's own class dict instead of a new one
+                ## that extends it, and every method C added afterwards
+                ## overwrote P's -- so a P instance answered with C's method.
                 let child = self.pop_reg()
+                let parent = self.pop_reg()
                 var child_reg = child
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, child, 0))
@@ -658,7 +663,14 @@ class StackToRiscVTranslator:
                 let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
                 let func = self.pop_reg()
-                let klass = self.pop_reg()
+                ## Peek, do not pop. The stack VM reads the class as stack[-1] and
+                ## leaves it there so the next method definition in the same class
+                ## body sees it too. Popping took the class off the register stack,
+                ## so the second method in a body grabbed whatever was underneath --
+                ## the parent -- and defined itself there.
+                var klass = 10
+                if self.reg_stack != nil and len(self.reg_stack) > 0:
+                    klass = self.reg_stack[len(self.reg_stack) - 1]
                 var klass_reg = klass
                 if klass == 10 or klass == 11:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, klass, 0))
