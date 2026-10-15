@@ -1164,26 +1164,31 @@ class MetalVM:
             if self.safe_mode:
                 print "Error: mem_alloc is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return mem_alloc(args[0])
         elif callee == "__builtin_mem_free":
             if self.safe_mode:
                 print "Error: mem_free is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return mem_free(args[0])
         elif callee == "__builtin_mem_read":
             if self.safe_mode:
                 print "Error: mem_read is restricted in safe mode"
                 return nil
+            if len(args) < 3 or args[0] == nil or args[1] == nil or args[2] == nil: return nil
             return mem_read(args[0], args[1], args[2])
         elif callee == "__builtin_mem_write":
             if self.safe_mode:
                 print "Error: mem_write is restricted in safe mode"
                 return nil
+            if len(args) < 4 or args[0] == nil or args[1] == nil or args[2] == nil or args[3] == nil: return nil
             return mem_write(args[0], args[1], args[2], args[3])
         elif callee == "__builtin_mem_size":
             if self.safe_mode:
                 print "Error: mem_size is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return mem_size(args[0])
         elif callee == "__builtin_ffi_open":
             if not self.ffi_enabled:
@@ -1192,6 +1197,7 @@ class MetalVM:
             if self.safe_mode:
                 print "Error: ffi_open is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return ffi_open(args[0])
         elif callee == "__builtin_ffi_close":
             if not self.ffi_enabled:
@@ -1200,6 +1206,7 @@ class MetalVM:
             if self.safe_mode:
                 print "Error: ffi_close is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return ffi_close(args[0])
         elif callee == "__builtin_ffi_call":
             if not self.ffi_enabled:
@@ -1208,7 +1215,7 @@ class MetalVM:
             if self.safe_mode:
                 print "Error: ffi_call is restricted in safe mode"
                 return nil
-            # Note: ffi_call might be a stub in some backends
+            if len(args) < 3 or args[0] == nil: return nil
             try:
                 if argc == 3: return ffi_call(args[0], args[1], args[2])
                 else: return ffi_call(args[0], args[1], args[2], args[3])
@@ -1219,26 +1226,31 @@ class MetalVM:
             if self.safe_mode:
                 print "Error: struct_def is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return struct_def(args[0])
         elif callee == "__builtin_struct_new":
             if self.safe_mode:
                 print "Error: struct_new is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return struct_new(args[0])
         elif callee == "__builtin_struct_get":
             if self.safe_mode:
                 print "Error: struct_get is restricted in safe mode"
                 return nil
+            if len(args) < 3 or args[0] == nil: return nil
             return struct_get(args[0], args[1], args[2])
         elif callee == "__builtin_struct_set":
             if self.safe_mode:
                 print "Error: struct_set is restricted in safe mode"
                 return nil
+            if len(args) < 4 or args[0] == nil: return nil
             return struct_set(args[0], args[1], args[2], args[3])
         elif callee == "__builtin_struct_size":
             if self.safe_mode:
                 print "Error: struct_size is restricted in safe mode"
                 return nil
+            if len(args) == 0 or args[0] == nil: return nil
             return struct_size(args[0])
         elif callee == "__builtin_sys_exec":
             if self.safe_mode or not self.exec_enabled:
