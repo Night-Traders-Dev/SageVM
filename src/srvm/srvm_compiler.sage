@@ -13,6 +13,13 @@ from srvm_core import RVEncoder
 import srvm_profiler
 from srvm_profiler import TypeProfiler, TYPE_INT
 
+## Registers the allocator is allowed to hand out. Everything else belongs to
+## the machine: x0 zero, x1 return address, x2 stack pointer, x5 property and
+## index staging, x8 frame base, x10/x11 VM scratch, x12 the third slice and
+## replace argument, x18-x21 call-site receiver and argument staging, x28 the
+## method-bind flag, x29 the short-circuit merge register.
+let ALLOC_REGS = [13, 14, 15, 16, 17, 22, 23, 24, 25, 26, 27, 3, 4, 9, 30, 31]
+
 class StackToRiscVTranslator:
     proc init(self, constants):
         self.encoder = RVEncoder()
@@ -21,6 +28,7 @@ class StackToRiscVTranslator:
         self.next_reg = 11 # Start from a1 (x11), reserving x10 for VMSYS args
         self.spill_slots = [] # Track spilled registers
         self.stage_saves = [] # (reg, slot) parked around staging
+        self.freed_this_op = [] # registers popped by the opcode being emitted
         self.spill_offset = 0 # Next available spill slot
         self.output_bytes = []
         self.label_map = {} # SVM IP -> SRVM PC
@@ -61,7 +69,14 @@ class StackToRiscVTranslator:
     proc pop_reg(self):
         if self.reg_stack == nil or len(self.reg_stack) == 0:
             return 13
-        return pop(self.reg_stack)
+        let r = pop(self.reg_stack)
+        ## Still in use by the opcode being emitted: several of them copy an
+        ## operand somewhere *after* popping it, and handing the register back
+        ## out mid-opcode overwrites that operand. `OP_INHERIT` copies the
+        ## parent after taking a scratch register, and got handed the parent's
+        ## own register, so `class P(G)` inherited from itself.
+        push(self.freed_this_op, r)
+        return r
 
     ## Staging a comparison or a call writes a0/a1 -- and the method block writes
     ## s2, s3.. -- over whatever the VM uses those registers for. A value already
@@ -99,17 +114,51 @@ class StackToRiscVTranslator:
         self.stage_saves = []
 
 
+    ## A register is unavailable if a value is still waiting on it: live on the
+    ## operand stack, or parked by stage_protect for a reload that has not
+    ## happened yet. Handing out either loses the value silently.
+    proc reg_busy(self, r):
+        var q = 0
+        if self.reg_stack != nil:
+            while q < len(self.reg_stack):
+                if self.reg_stack[q] == r: return true
+                q = q + 1
+        if self.stage_saves != nil:
+            q = 0
+            while q < len(self.stage_saves):
+                if self.stage_saves[q][0] == r: return true
+                q = q + 1
+        q = 0
+        if self.freed_this_op != nil:
+            while q < len(self.freed_this_op):
+                if self.freed_this_op[q] == r: return true
+                q = q + 1
+        return false
+
+    ## Registers the allocator may use. x0-x2 are fixed (zero/return/stack),
+    ## x5-x12 are the VM's own scratch (property and index staging, comparison
+    ## operands, the slice and replace argument), x18-x21 are the call-site
+    ## receiver and argument staging, x28 is the method-bind flag, x29 holds a
+    ## short-circuit merge value. What is left is free.
     proc alloc_reg(self):
+        ## Recycle first. The old counter only ever went up, so a long
+        ## expression ran out after fifteen values and "spilled" a live one
+        ## into a slot nothing ever read back -- the partial result of
+        ## `"a" + str(x) + "b" + str(x)` came back as just the str() answers.
+        ## Dying values leave their registers free, so reuse keeps the live
+        ## set small enough that this window holds it.
+        var i = 0
+        while i < len(ALLOC_REGS):
+            let r = ALLOC_REGS[i]
+            if not self.reg_busy(r):
+                return r
+            i = i + 1
+        ## Nothing free at all. Keep producing a register so the chunk still
+        ## emits; the staging around each operation keeps the damage local.
         let r = self.next_reg
         self.next_reg = self.next_reg + 1
         if self.next_reg > 27:
-            let spill_reg = 13
-            let slot = self.spill_offset
-            self.spill_offset = self.spill_offset + 1
-            self.emit_32(self.encoder.encode_s(OP_STORE, F3_SD, 2, spill_reg, slot * 8))
-            push(self.spill_slots, slot)
             self.next_reg = 13
-            return spill_reg
         return r
 
     proc translate(self, svm_bytecode):
@@ -187,6 +236,7 @@ class StackToRiscVTranslator:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, self.merge_reg, top, 0))
                 self.reg_stack[len(self.reg_stack) - 1] = self.merge_reg
             
+            self.freed_this_op = []
             self.label_map[str(ip)] = len(self.output_bytes)
             let op = int(svm_bytecode[i])
             if self.debug: print "DEBUG translate op=" + str(op) + " i=" + str(i)
