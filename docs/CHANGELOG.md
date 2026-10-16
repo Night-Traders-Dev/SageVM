@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.2] - 2026-10-16
+
+### Fixed
+- **SRVM Environment Scoping (`push_env` / `pop_env`)**: Fixed global variable wiping in `for` loops within the RISC-V VM (`src/srvm/srvm_vm.sage`). `push_env` and `pop_env` now maintain loop nesting depth without replacing or discarding the global variable dictionary (`heap`), and no longer share or corrupt the function `call_stack`.
+
 ## [1.2.2] - 2026-10-11
 
 ### Fixed
