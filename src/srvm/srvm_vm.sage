@@ -440,10 +440,15 @@ class SRVM:
         ## is what makes the two agree -- `nil & 3` is 0, not a crash.
         ## Equality is deliberately not affected: `nil == 0` is false there, and
         ## that comparison never reaches this function.
+        ##
+        ## The same guard covers any other non-number. `-s` on a string, bool or
+        ## array is meaningless, and the stack VM answers 0 for all of them; only
+        ## nil was being absorbed here, so the rest reached the numeric ALU and
+        ## took the program down on a line as ordinary as `-s`.
         var rs1_num = rs1_raw
         var rs2_num = rs2_raw
-        if rs1_num == nil: rs1_num = 0
-        if rs2_num == nil: rs2_num = 0
+        if type(rs1_num) != "number": rs1_num = 0
+        if type(rs2_num) != "number": rs2_num = 0
 
         if f7 == 0x01: # M-extension
             if f3 == F3_ADD: # MUL
@@ -603,12 +608,18 @@ class SRVM:
                 let val1 = self.state.x[10]
                 let val2 = self.state.x[11]
                 let cmp_type = f7
+                ## Relational comparison only means anything between numbers.
+                ## The host's `<` throws "Operands must be numbers" on a string
+                ## or a mixed pair, so this needs the same guard the stack VM
+                ## applies: anything not number-to-number is simply false,
+                ## rather than taking the whole program down.
+                let numeric = type(val1) == "number" and type(val2) == "number"
                 if cmp_type == CMP_EQ: self.state.x[10] = self.equal_val(val1, val2)
                 elif cmp_type == CMP_NEQ: self.state.x[10] = not self.equal_val(val1, val2)
-                elif cmp_type == CMP_LT: self.state.x[10] = (val1 < val2)
-                elif cmp_type == CMP_GT: self.state.x[10] = (val1 > val2)
-                elif cmp_type == CMP_LE: self.state.x[10] = (val1 <= val2)
-                elif cmp_type == CMP_GE: self.state.x[10] = (val1 >= val2)
+                elif cmp_type == CMP_LT: self.state.x[10] = numeric and (val1 < val2)
+                elif cmp_type == CMP_GT: self.state.x[10] = numeric and (val1 > val2)
+                elif cmp_type == CMP_LE: self.state.x[10] = numeric and (val1 <= val2)
+                elif cmp_type == CMP_GE: self.state.x[10] = numeric and (val1 >= val2)
             elif sub_op == VMO_NIL:
                 self.state.x[rd] = nil
             elif sub_op == VMO_TRUE:
