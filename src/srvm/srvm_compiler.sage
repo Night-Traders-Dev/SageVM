@@ -252,8 +252,12 @@ class StackToRiscVTranslator:
             
             # If this is a catch block start, the VM will have pushed the exception object
             if dict_has(catch_labels, str(ip)):
-                  self.reg_stack = [10] # Exception is in a0 (x10)
-                  self.next_reg = 11
+                  ## The exception arrives in a0 (x10). Keep the allocator
+                  ## running instead of rewinding it: rewinding to 11 re-issued
+                  ## the argument slots and the registers the try body was still
+                  ## holding its locals in, so a local read after the try setup
+                  ## picked up a builtin descriptor left in one of them.
+                  self.reg_stack = [10]
 
             ## A short-circuit expression arrives here from two arms, each
             ## having put its result in its own register. Name the merge
