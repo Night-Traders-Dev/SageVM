@@ -1501,6 +1501,11 @@ class SRVM:
                 else:
                     self.state.x[rd] = nil
                     self.state.x[28] = 0
+                    ## A receiver that is not a dict has no members at all. The
+                    ## stack VM says so; this went silent, which hid the real
+                    ## reason when safe mode had already replaced a restricted
+                    ## module with nil.
+                    print "Error: Method " + name + " not found"
             elif sub_op == OBJ_NEW_FUNC:
                 let chunk_idx = int(self.state.x[10])
                 self.state.x[rd] = {"type": "function", "chunk_idx": chunk_idx}
