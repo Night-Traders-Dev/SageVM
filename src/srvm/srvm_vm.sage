@@ -1147,7 +1147,7 @@ class SRVM:
                     return
 
                 let catch_offset = imm_i
-                push(self.state.try_stack, [self.state.pc + catch_offset, len(self.state.call_stack)])
+                push(self.state.try_stack, [self.state.pc + catch_offset, len(self.state.call_stack), self.state.current_chunk_idx])
             elif sub_op == VMO_END_TRY:
                 if len(self.state.try_stack) > 0:
                     pop(self.state.try_stack)
@@ -1157,6 +1157,14 @@ class SRVM:
                     let handler = pop(self.state.try_stack)
                     let catch_pc = handler[0]
                     let target_call_depth = handler[1]
+                    ## The catch block belongs to the frame that set the handler up,
+                    ## not to whichever frame raised. Raising inside a nested call left
+                    ## the pc pointing into the callee's chunk, so jumping to the catch
+                    ## offset executed the wrong code entirely and the handler never
+                    ## ran. Restore that chunk, then discard the frames it unwound.
+                    if len(handler) > 2:
+                        self.state.current_chunk_idx = handler[2]
+                        self.load_chunk(self.safe_get_chunk(handler[2]))
                     while len(self.state.call_stack) > target_call_depth:
                         pop(self.state.call_stack)
                     self.state.pc = catch_pc
