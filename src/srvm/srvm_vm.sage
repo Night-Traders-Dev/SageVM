@@ -560,7 +560,19 @@ class SRVM:
                             m["cos"] = math.cos
                             m["printm"] = "__builtin_math_printm"
                             self.state.x[rd] = m
-                        elif name == "io": self.state.x[rd] = io
+                        elif name == "io":
+                            ## Members name builtins rather than being handed back as
+                            ## host functions. A raw host function went straight to
+                            ## sys.call, skipping the argument guards, so
+                            ## io.writebytes(nil, xs) reported whatever the host felt
+                            ## like returning instead of false. __host_mod__ stays so
+                            ## members without a builtin still resolve.
+                            let iom = {"__host_mod__": io, "__type__": "module"}
+                            iom["readfile"] = "__builtin_io_readfile"
+                            iom["readbytes"] = "__builtin_io_readbytes"
+                            iom["writefile"] = "__builtin_io_writefile"
+                            iom["writebytes"] = "__builtin_io_writebytes"
+                            self.state.x[rd] = iom
                         elif name == "sys":
                             ## "args" names a builtin rather than holding the
                             ## list, so sys.args() is a call the guest can make.
@@ -1330,7 +1342,7 @@ class SRVM:
                     ## everything downstream went with it. Mirrors setup_builtins.
                     self.state.x[rd] = {"__host_mod__": math, "printm": "__builtin_math_printm"}
                 elif name == "io" and not self.state.safe_mode:
-                    self.state.x[rd] = {"__host_mod__": io}
+                    self.state.x[rd] = {"__host_mod__": io, "__type__": "module", "readfile": "__builtin_io_readfile", "readbytes": "__builtin_io_readbytes", "writefile": "__builtin_io_writefile", "writebytes": "__builtin_io_writebytes"}
                 elif name == "sys" and not self.state.safe_mode:
                     self.state.x[rd] = {"__host_mod__": sys}
                 elif name == "net" and not self.state.safe_mode:
