@@ -1211,6 +1211,25 @@ class SRVM:
                     self.state.x[rd] = {"__host_mod__": "reflect",
                                         "get_methods": "__builtin_reflect_get_methods",
                                         "get_class": "__builtin_reflect_get_class"}
+                elif name == "math":
+                    ## The stack VM predefines the host modules in its globals, so a
+                    ## script reaches math.sin or thread.start without importing
+                    ## anything first. gc/mem/ffi/struct had entries here and the rest
+                    ## did not, so a bare reference to math or io resolved to nil and
+                    ## everything downstream went with it. Mirrors setup_builtins.
+                    self.state.x[rd] = {"__host_mod__": math, "printm": "__builtin_math_printm"}
+                elif name == "io" and not self.state.safe_mode:
+                    self.state.x[rd] = {"__host_mod__": io}
+                elif name == "sys" and not self.state.safe_mode:
+                    self.state.x[rd] = {"__host_mod__": sys}
+                elif name == "net" and not self.state.safe_mode:
+                    self.state.x[rd] = {"__host_mod__": net}
+                elif name == "thread" and not self.state.safe_mode:
+                    self.state.x[rd] = {"__host_mod__": host_thread}
+                elif name == "gpu" and not self.state.safe_mode:
+                    self.state.x[rd] = {"__host_mod__": gpu}
+                elif name == "ml_native" and not self.state.safe_mode:
+                    self.state.x[rd] = {"__host_mod__": ml_native}
                 elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or (type(name) == "string" and startswith(name, "__builtin_")):
                     self.state.x[rd] = {"__builtin__": name}
                 else:
@@ -1233,7 +1252,14 @@ class SRVM:
                 if self.state.safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     self.state.x[rd] = nil
                 elif type(obj) == "dict":
-                    let direct = obj[name]
+                    ## globals["math"] and friends are a wrapper carrying the real
+                    ## module under __host_mod__. The member asked for is a key of
+                    ## the inner module, not of the wrapper, so look through it --
+                    ## otherwise math.pi is nil while math itself resolves.
+                    var target = obj
+                    if not dict_has(obj, name) and dict_has(obj, "__host_mod__"):
+                        target = obj["__host_mod__"]
+                    let direct = target[name]
                     if direct != nil:
                         self.state.x[rd] = direct
                     elif dict_has(obj, "__class__") and type(obj["__class__"]) == "dict" and dict_has(obj["__class__"], "__methods__") and type(obj["__class__"]["__methods__"]) == "dict":
@@ -1309,7 +1335,25 @@ class SRVM:
                     self.state.x[rd] = nil
                     self.state.x[28] = 0
                 elif type(obj) == "dict":
-                    if dict_has(obj, name):
+                    ## A host module reached through its global wrapper: the member
+                    ## is a key of the module under __host_mod__, not of the wrapper,
+                    ## so look through it. x28 = 2 tells VMO_CALL the receiver is a
+                    ## carrier to drop rather than pass as an argument, which is what
+                    ## makes math.sqrt(16) call sqrt with a single argument.
+                    if not dict_has(obj, name) and dict_has(obj, "__host_mod__"):
+                        let host = obj["__host_mod__"]
+                        if type(host) == "module" or type(host) == "dict":
+                            if dict_has(host, name):
+                                self.state.x[rd] = host[name]
+                                self.state.x[28] = 2
+                            else:
+                                self.state.x[rd] = nil
+                                self.state.x[28] = 0
+                                print "Error: Method " + name + " not found"
+                        else:
+                            self.state.x[rd] = nil
+                            self.state.x[28] = 0
+                    elif dict_has(obj, name):
                         self.state.x[rd] = obj[name]
                         self.state.x[28] = 2
                     elif dict_has(obj, "__methods__") and dict_has(obj["__methods__"], name):
