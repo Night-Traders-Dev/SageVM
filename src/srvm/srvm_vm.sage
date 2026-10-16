@@ -895,6 +895,78 @@ class SRVM:
                             self.state.x[10] = dict_values(obj)
                     elif b_name == "gc_stats":
                         self.state.x[10] = gc_stats()
+                    elif b_name == "mem_alloc":
+                        if self.state.safe_mode:
+                            print "Error: mem_alloc is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = mem_alloc(self.state.x[10])
+                    elif b_name == "mem_free":
+                        if self.state.safe_mode:
+                            print "Error: mem_free is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = mem_free(self.state.x[10])
+                    elif b_name == "mem_read":
+                        if self.state.safe_mode:
+                            print "Error: mem_read is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = mem_read(self.state.x[10], self.state.x[11], self.state.x[12])
+                    elif b_name == "mem_write":
+                        if self.state.safe_mode:
+                            print "Error: mem_write is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = mem_write(self.state.x[10], self.state.x[11], self.state.x[12], self.state.x[13])
+                    elif b_name == "mem_size":
+                        if self.state.safe_mode:
+                            print "Error: mem_size is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = mem_size(self.state.x[10])
+                    elif b_name == "struct_def":
+                        if self.state.safe_mode:
+                            print "Error: struct_def is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = struct_def(self.state.x[10])
+                    elif b_name == "struct_new":
+                        if self.state.safe_mode:
+                            print "Error: struct_new is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = struct_new(self.state.x[10])
+                    elif b_name == "struct_get":
+                        if self.state.safe_mode:
+                            print "Error: struct_get is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = struct_get(self.state.x[10], self.state.x[11], self.state.x[12])
+                    elif b_name == "struct_set":
+                        if self.state.safe_mode:
+                            print "Error: struct_set is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = struct_set(self.state.x[10], self.state.x[11], self.state.x[12], self.state.x[13])
+                    elif b_name == "struct_size":
+                        if self.state.safe_mode:
+                            print "Error: struct_size is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = struct_size(self.state.x[10])
+                    elif b_name == "reflect_get_methods":
+                        if self.state.safe_mode:
+                            print "Error: reflect_get_methods is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = reflect_get_methods(self.state.x[10])
+                    elif b_name == "reflect_get_class":
+                        if self.state.safe_mode:
+                            print "Error: reflect_get_class is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = reflect_get_class(self.state.x[10])
                     elif b_name == "gc_collect":
                         gc_collect()
                         self.state.x[10] = nil

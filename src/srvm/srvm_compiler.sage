@@ -117,6 +117,12 @@ class StackToRiscVTranslator:
     ## from it needs no base register that a call could move.
     proc stage_protect(self, lo, hi):
         self.stage_saves = []
+        self.stage_protect_range(lo, hi)
+
+    ## Park the live registers in [lo, hi] without clearing what is already
+    ## parked, so one operation can guard two disjoint ranges.
+    proc stage_protect_range(self, lo, hi):
+        let base = len(self.stage_saves)
         var r = lo
         while r <= hi:
             var live = false
@@ -127,7 +133,7 @@ class StackToRiscVTranslator:
                         live = true
                     q = q + 1
             if live:
-                let slot = 4096 + len(self.stage_saves)
+                let slot = 4096 + base + len(self.stage_saves) - len(self.stage_saves)
                 self.emit_32(self.encoder.encode_s(OP_STORE, F3_SD, 0, r, slot * 8))
                 push(self.stage_saves, [r, slot])
             r = r + 1
@@ -1006,7 +1012,14 @@ class StackToRiscVTranslator:
                 
                 # Move obj to x18
                 ## s2 carries the receiver and s3.. the arguments; same hazard.
-                self.stage_protect(18, 19 + argc - 1)
+                ## The instance block writes the receiver into a0 and the
+                ## arguments into a1..a(1+argc), and those are allocatable once
+                ## the call takes more than three arguments. A string literal
+                ## held there for an enclosing `+` was overwritten by the call,
+                ## so `print "label: " + str(mem.read(p, 0, nil))` printed only
+                ## the str(). Guard the argument range the way OP_CALL does.
+                self.stage_protect(10, 10 + argc)
+                self.stage_protect_range(18, 19 + argc - 1)
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 18, obj, 0))
                 # Move args to x19..
                 k = 0
