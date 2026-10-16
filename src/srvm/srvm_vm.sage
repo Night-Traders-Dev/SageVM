@@ -845,9 +845,21 @@ class SRVM:
                         else:
                             self.state.x[10] = pop(self.state.x[10])
                     elif b_name == "chr":
-                        self.state.x[10] = chr(self.state.x[10])
+                        ## Mirror the stack VM: nothing to convert is the empty
+                        ## string, not an error.
+                        if self.state.x[10] == nil:
+                            self.state.x[10] = ""
+                        else:
+                            self.state.x[10] = chr(int(self.state.x[10]))
                     elif b_name == "ord":
-                        self.state.x[10] = ord(self.state.x[10])
+                        ## A missing, nil, non-string or empty argument is 0. The
+                        ## host ord() answers nil for those, so ord("") came back
+                        ## nil here and 0 on the stack VM.
+                        let ov = self.state.x[10]
+                        if ov == nil or type(ov) != "string" or len(ov) == 0:
+                            self.state.x[10] = 0
+                        else:
+                            self.state.x[10] = ord(ov)
                     elif b_name == "dict_has":
                         let obj = self.state.x[10]
                         let key = self.state.x[11]
@@ -996,11 +1008,22 @@ class SRVM:
                     elif b_name == "contains":
                         self.state.x[10] = contains(self.state.x[10], self.state.x[11])
                     elif b_name == "join":
-                        self.state.x[10] = join(self.state.x[10], self.state.x[11])
+                        let ja = self.state.x[10]
+                        let jb = self.state.x[11]
+                        if ja == nil or jb == nil:
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = join(ja, jb)
                     elif b_name == "split":
                         self.state.x[10] = split(self.state.x[10], self.state.x[11])
                     elif b_name == "replace":
-                        self.state.x[10] = replace(self.state.x[10], self.state.x[11], self.state.x[12])
+                        let ra = self.state.x[10]
+                        let rb = self.state.x[11]
+                        let rc = self.state.x[12]
+                        if ra == nil or rb == nil or rc == nil:
+                            self.state.x[10] = ""
+                        else:
+                            self.state.x[10] = replace(ra, rb, rc)
                     elif b_name == "upper":
                         self.state.x[10] = upper(self.state.x[10])
                     elif b_name == "lower":
