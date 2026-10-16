@@ -708,7 +708,20 @@ class SRVM:
                 let call_has_receiver = self.state.x[28] == 2
                 var target_chunk = -1
                 var ctor_instance = nil
-                if type(func_obj) == "number": target_chunk = int(func_obj)
+                if type(func_obj) == "number":
+                    ## A number in call position is a chunk index, but only because
+                    ## the compiler writes one there for a direct call. Anything
+                    ## else -- `var x = 10; x()` -- reaches the same line with a
+                    ## value that names no chunk, and used to report a chunk index
+                    ## out of bounds. The stack VM says the callee was not callable,
+                    ## which is what actually went wrong.
+                    let ci = int(func_obj)
+                    if ci < 0 or ci >= len(self.state.chunks):
+                        print "Error: Callee not a function or builtin name"
+                        self.state.x[10] = nil
+                        self.state.pc = self.state.pc + 4
+                        return
+                    target_chunk = ci
                 elif type(func_obj) == "dict" and dict_has(func_obj, "__type__") and func_obj["__type__"] == "class":
                     ## A class in call position is a construction. This had no
                     ## branch at all, so every `Box(100)` matched nothing, fell

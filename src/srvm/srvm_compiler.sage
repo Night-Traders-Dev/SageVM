@@ -982,13 +982,44 @@ class StackToRiscVTranslator:
                 self.stage_protect(10, 10 + argc - 1)
                 if callee_reg != 5:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, callee_reg, 0))
+                ## Arguments are moved into a0..a0+argc-1, but they are not already
+                ## there: they sit in whatever registers the expression left them
+                ## in, and those can be inside the destination range. Walking the
+                ## moves high to low only avoids clobbering when every source is
+                ## below its destination; with eight arguments the sources ran to
+                ## a21 and four of them sat at a4..a7, so writing a14..a17 first
+                ## destroyed the values a10..a13 still had to read. The callee saw
+                ## the last four arguments twice and the first four not at all.
+                ##
+                ## Lift the sources that live inside the destination range into
+                ## registers above it first, copy those from the lifts, and do the
+                ## rest in place. Register 18..25 is above any 8-argument call and
+                ## is parked by the same staging machinery that already guards the
+                ## argument range, so a live value there is put back afterwards.
+                let dlo = 10
+                let dhi = 10 + argc - 1
+                self.stage_protect_range(18, 25)
+                var lifted = []
+                var treg = 18
+                k = argc - 1
+                while k >= 0:
+                    let lsrc = args[argc - 1 - k]
+                    if lsrc >= dlo and lsrc <= dhi and lsrc != 10 + k and lsrc != 5:
+                        self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, treg, lsrc, 0))
+                        push(lifted, [10 + k, treg])
+                        treg = treg + 1
+                    k = k - 1
                 k = argc - 1
                 while k >= 0:
                     let src = args[argc - 1 - k]
                     let dest = 10 + k
-                    if src != dest and src != 5:
+                    if (src < dlo or src > dhi or src == dest) and src != 5:
                         self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, dest, src, 0))
                     k = k - 1
+                var li = 0
+                while li < len(lifted):
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, lifted[li][0], lifted[li][1], 0))
+                    li = li + 1
                 # Call via t0 (x5), which holds the preserved callee.
                 ## x28 carries "this call has a receiver" from the bind; clear it so a
                 ## plain call cannot inherit the previous one.
