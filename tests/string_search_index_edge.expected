@@ -1,0 +1,27 @@
+--- String Length & Indexing ---
+len: 6
+char[0]: S
+char[5]: M
+char[10] == nil: true
+char[-1]: nil
+--- Contains Builtin ---
+contains Sage: true
+contains VM: true
+contains xyz: false
+contains empty: true
+--- StartsWith & EndsWith ---
+startswith Sage: true
+startswith VM: false
+endswith VM: true
+endswith Sage: false
+--- Replace Builtin ---
+replace a with o: bonono
+replace na with XX: baXXXX
+replace empty: banana
+--- Strip, Upper, Lower ---
+strip: 'hello WORLD'
+upper:   HELLO WORLD
+lower:   hello world
+--- Substring Slicing ---
+slice 0..4: Sage
+slice 2..6: geVM
