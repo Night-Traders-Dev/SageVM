@@ -562,7 +562,10 @@ class SRVM:
                             self.state.x[rd] = m
                         elif name == "io": self.state.x[rd] = io
                         elif name == "sys":
-                            let s = {"args": sys.args()}
+                            ## "args" names a builtin rather than holding the
+                            ## list, so sys.args() is a call the guest can make.
+                            ## Binding the value made every sys.args() call fail.
+                            let s = {"args": {"__builtin__": "sys_args"}}
                             s["__type__"] = "module"
                             s["exec"] = {"__builtin__": "sys_exec"}
                             s["system"] = {"__builtin__": "sys_system"}
@@ -783,8 +786,8 @@ class SRVM:
                         let nargs = rd
                         if call_has_receiver:
                             nargs = rd - 1
-                        let needs_args = {"str": 1, "type": 1, "upper": 1, "lower": 1, "strip": 1, "join": 1, "split": 1, "replace": 2, "startswith": 2, "endswith": 2, "slice": 3, "len": 1, "int": 1, "range": 1, "tonumber": 1, "push": 1, "pop": 1, "dict_keys": 1, "dict_values": 1, "indexof": 2, "count": 2, "abs": 1, "round": 1, "floor": 1, "ceil": 1, "array_len": 1, "reflect_get_methods": 1}
-                        let empty_arg = {"join": "", "replace": "", "startswith": false, "endswith": false, "slice": "", "split": [], "reflect_get_methods": []}
+                        let needs_args = {"str": 1, "type": 1, "upper": 1, "lower": 1, "strip": 1, "join": 1, "split": 1, "replace": 2, "startswith": 2, "endswith": 2, "slice": 3, "len": 1, "int": 1, "range": 1, "tonumber": 1, "push": 1, "pop": 1, "dict_keys": 1, "dict_values": 1, "indexof": 2, "count": 2, "abs": 1, "round": 1, "floor": 1, "ceil": 1, "array_len": 1, "reflect_get_methods": 1, "io_readfile": 1, "io_readbytes": 1, "io_writefile": 2, "io_writebytes": 2, "sys_exec": 1, "sys_system": 1, "sys_getenv": 1}
+                        let empty_arg = {"join": "", "replace": "", "startswith": false, "endswith": false, "slice": "", "split": [], "reflect_get_methods": [], "io_writefile": false, "io_writebytes": false, "sys_system": -1}
                         if dict_has(needs_args, b_name) and nargs < needs_args[b_name]:
                             self.state.x[10] = nil
                             if dict_has(empty_arg, b_name):
