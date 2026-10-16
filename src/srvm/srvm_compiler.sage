@@ -29,6 +29,7 @@ class StackToRiscVTranslator:
         self.spill_slots = [] # Track spilled registers
         self.stage_saves = [] # (reg, slot) parked around staging
         self.freed_this_op = [] # registers popped by the opcode being emitted
+        self.push_regs = [] # register holding each operand-stack position
         self.spill_offset = 0 # Next available spill slot
         self.output_bytes = []
         self.label_map = {} # SVM IP -> SRVM PC
@@ -66,6 +67,20 @@ class StackToRiscVTranslator:
         self.output_bytes[pc+3] = (val >> 24) & 0xFF
 
     
+    ## Push an operand and remember which register carries it. The stack VM
+    ## has no separate local storage: a chunk's frame is the bottom of its
+    ## operand stack, so local slot N *is* stack position N, and a `var x = 10`
+    ## emits no bind at all -- the constant is pushed, and the later read of
+    ## slot N picks that very value back up.
+    ## Here the frame is separate, so a slot the call did not fill has to be
+    ## given the value the stack VM would have found there. Recording the
+    ## register per position reproduces that. The recorded registers stay live
+    ## on reg_stack -- nothing ever consumes a local's slot -- so they are not
+    ## recycled out from under a later read.
+    proc push_val(self, r):
+        push(self.push_regs, r)
+        push(self.reg_stack, r)
+
     proc pop_reg(self):
         if self.reg_stack == nil or len(self.reg_stack) == 0:
             return 13
@@ -184,6 +199,8 @@ class StackToRiscVTranslator:
         
         self.output_bytes = []
         self.reg_stack = []
+        self.push_regs = []
+        self.push_regs = []
         ## First mention of each local slot in this chunk. 0x3b is bind or read
         ## depending on whether the slot has appeared before here.
         self.bound_slots = {}
@@ -253,7 +270,7 @@ class StackToRiscVTranslator:
                 if self.debug: print "DEBUG OP_CONSTANT step 4 u_val=" + str(u_val)
                 self.emit_32(u_val)
                 if self.debug: print "DEBUG OP_CONSTANT step 5"
-                push(self.reg_stack, rd)
+                self.push_val(rd)
                 
             elif op == OP_ADD:
                 let rs2 = self.pop_reg()
@@ -281,7 +298,7 @@ class StackToRiscVTranslator:
                     # Emit generic/fallback ADD
                     self.emit_32(self.encoder.encode_r(OP_REG, F3_ADD, 0, rd, rs1, rs2))
                 
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_SUB:
                 let rs2 = self.pop_reg()
@@ -299,7 +316,7 @@ class StackToRiscVTranslator:
                 if rs1 == 5 or rs1 == 10 or rs1 == 11:
                     rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_ADD, 0x20, rd, rs1, rs2))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_MUL:
                 let rs2 = self.pop_reg()
@@ -317,7 +334,7 @@ class StackToRiscVTranslator:
                 if rs1 == 5 or rs1 == 10 or rs1 == 11:
                     rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_ADD, 0x01, rd, rs1, rs2))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_DIV:
                 let rs2 = self.pop_reg()
@@ -335,7 +352,7 @@ class StackToRiscVTranslator:
                 if rs1 == 5 or rs1 == 10 or rs1 == 11:
                     rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_XOR, 0x01, rd, rs1, rs2))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_MOD:
                 let rs2 = self.pop_reg()
@@ -353,7 +370,7 @@ class StackToRiscVTranslator:
                 if rs1 == 5 or rs1 == 10 or rs1 == 11:
                     rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_OR, 0x01, rd, rs1, rs2))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_BIT_AND:
                 let rs2 = self.pop_reg()
@@ -371,7 +388,7 @@ class StackToRiscVTranslator:
                 if rs1 == 5 or rs1 == 10 or rs1 == 11:
                     rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_AND, 0, rd, rs1, rs2))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_BIT_OR:
                 let rs2 = self.pop_reg()
@@ -389,7 +406,7 @@ class StackToRiscVTranslator:
                 if rs1 == 5 or rs1 == 10 or rs1 == 11:
                     rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_OR, 0, rd, rs1, rs2))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_BIT_XOR:
                 let rs2 = self.pop_reg()
@@ -407,13 +424,13 @@ class StackToRiscVTranslator:
                 if rs1 == 5 or rs1 == 10 or rs1 == 11:
                     rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_XOR, 0, rd, rs1, rs2))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_BIT_NOT:
                 let rs1 = self.pop_reg()
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_XORI, rd, rs1, -1))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_SHIFT_LEFT:
                 let rs2 = self.pop_reg()
@@ -431,7 +448,7 @@ class StackToRiscVTranslator:
                 if rs1 == 5 or rs1 == 10 or rs1 == 11:
                     rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_SLL, 0, rd, rs1, rs2))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_SHIFT_RIGHT:
                 let rs2 = self.pop_reg()
@@ -449,7 +466,7 @@ class StackToRiscVTranslator:
                 if rs1 == 5 or rs1 == 10 or rs1 == 11:
                     rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_REG, F3_SRL, 0, rd, rs1, rs2))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_EQUAL:
                 let rs2 = self.pop_reg()
@@ -461,7 +478,7 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
                 # VMO_CMP_BINARY with funct7=CMP_EQ
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_EQ, 0, VMO_CMP_BINARY, 0))
-                push(self.reg_stack, 10)
+                self.push_val(10)
                 self.stage_restore()
 
             elif op == OP_NOT_EQUAL:
@@ -471,7 +488,7 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_NEQ, 0, VMO_CMP_BINARY, 0))
-                push(self.reg_stack, 10)
+                self.push_val(10)
                 self.stage_restore()
 
             elif op == OP_LESS:
@@ -481,7 +498,7 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_LT, 0, VMO_CMP_BINARY, 0))
-                push(self.reg_stack, 10)
+                self.push_val(10)
                 self.stage_restore()
 
             elif op == OP_GREATER:
@@ -491,7 +508,7 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_GT, 0, VMO_CMP_BINARY, 0))
-                push(self.reg_stack, 10)
+                self.push_val(10)
                 self.stage_restore()
 
             elif op == OP_GREATER_EQUAL:
@@ -501,7 +518,7 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_GE, 0, VMO_CMP_BINARY, 0))
-                push(self.reg_stack, 10)
+                self.push_val(10)
                 self.stage_restore()
 
             elif op == OP_LESS_EQUAL:
@@ -511,7 +528,7 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs1, 0))
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, rs2, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, CMP_LE, 0, VMO_CMP_BINARY, 0))
-                push(self.reg_stack, 10)
+                self.push_val(10)
                 self.stage_restore()
 
             elif op == OP_GET_INDEX:
@@ -525,7 +542,7 @@ class StackToRiscVTranslator:
                 if idx != 10:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, idx, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_GET_INDEX, obj_reg))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_SET_INDEX:
                 let val = self.pop_reg()
@@ -555,7 +572,7 @@ class StackToRiscVTranslator:
                 let obj = self.pop_reg()
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_ARRAY_LEN, obj))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_ARRAY:
                 let size = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -578,7 +595,7 @@ class StackToRiscVTranslator:
                     k = k + 1
                 if arr_reg != rd:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, arr_reg, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_DICT:
                 let entry_count = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -604,7 +621,7 @@ class StackToRiscVTranslator:
                     k = k + 1
                 if dict_reg != rd:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, dict_reg, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_TUPLE:
                 let size = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -627,7 +644,7 @@ class StackToRiscVTranslator:
                     k = k + 1
                 if tuple_reg != rd:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, tuple_reg, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_JUMP:
                 let target_ip = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -655,7 +672,7 @@ class StackToRiscVTranslator:
                     obj_reg = 5
                 self.emit_load_imm(10, name_idx)
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_GET_PROP, obj_reg))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_SET_PROPERTY:
                 let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -682,7 +699,7 @@ class StackToRiscVTranslator:
                     let rs = self.reg_stack[len(self.reg_stack)-1-distance]
                     let rd = self.alloc_reg()
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, rs, 0))
-                    push(self.reg_stack, rd)
+                    self.push_val(rd)
 
             elif op == OP_CLASS:
                 let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -690,7 +707,7 @@ class StackToRiscVTranslator:
                 let rd = self.alloc_reg()
                 self.emit_load_imm(10, name_idx)
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_NEW_CLASS, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_INHERIT:
                 ## The stack VM pops the class first and the parent second, so
@@ -707,7 +724,7 @@ class StackToRiscVTranslator:
                 if parent != 10:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, parent, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_INHERIT, child_reg))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_METHOD:
                 let name_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -742,17 +759,17 @@ class StackToRiscVTranslator:
             elif op == OP_NIL:
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_NIL, 0)) 
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_TRUE:
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_TRUE, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_FALSE:
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_FALSE, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_NOT:
                 let rs = self.pop_reg()
@@ -760,7 +777,7 @@ class StackToRiscVTranslator:
                 if rs != 10:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_NOT, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_TRUTHY:
                 let rs = self.pop_reg()
@@ -768,7 +785,7 @@ class StackToRiscVTranslator:
                 if rs != 10:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, rs, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_TRUTHY, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_GET_GLOBAL:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -776,7 +793,7 @@ class StackToRiscVTranslator:
                 let rd = self.alloc_reg()
                 self.emit_load_imm(10, idx)
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_GET_GLOBAL, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_SET_GLOBAL:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -807,31 +824,31 @@ class StackToRiscVTranslator:
                 let rd = self.alloc_reg()
                 self.emit_load_imm(10, idx)
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, rd, VMO_IMPORT, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_GET_LOCAL:
-                ## 0x3b is not a read. The host emits it for `let y = 7` and for
-                ## every later use of y, and the stack VM treats it as bind-on-
-                ## first-use: the value is on the stack and lands in the slot, or
-                ## the slot is already bound and its value is what the expression
-                ## means. A plain load read an unwritten slot and yielded nil,
-                ## which is why a callee's locals were 0 and why nested calls
-                ## returned an argument instead of a result.
+                ## The stack VM's handler is push(stack[base + idx]) -- it never
+                ## consumes an operand. A `var x = 10` works there because the
+                ## slot and the operand stack are the same storage: the constant
+                ## was just pushed, so reading slot idx hands it straight back,
+                ## and the slot keeps it for later reads.
+                ##
+                ## Here the frame and the operand stack are separate, so the
+                ## bind has to be made explicit. Pass the value the slot should
+                ## take, but *peek* it: the VM copies the operand into the slot
+                ## only when the slot is unbound (a `var`), and ignores it when
+                ## the slot already holds a parameter the call spilled. Peeking
+                ## keeps the operand on the stack either way, which is what the
+                ## stack VM does -- popping it cost an enclosing expression the
+                ## operand it needed, which is why `A.init(self, n)` lost self.
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
                 let rd = self.alloc_reg()
-                ## The host emits 0x3b both for `let x = ...` and for every later
-                ## mention of x, and the stack VM treats the first as a bind and
-                ## the rest as reads. Whether this is the first mention is
-                ## The SVM emits 0x3b for every mention of a local, but its
-                ## handler only reads: the slot lives below the operand stack
-                ## and the value is pushed, never popped. Popping here to
-                ## "bind" ate the enclosing expression's value instead --
-                ## `Animal.init(self, name)` lost self because the method
-                ## object was on the register stack and the first parameter
-                ## read consumed it.
-                self.emit_32(self.encoder.encode_i(OP_LOCAL_DEF, 0, rd, 0, idx * 8))
-                push(self.reg_stack, rd)
+                var cand: Int = 0
+                if idx < len(self.push_regs):
+                    cand = self.push_regs[idx]
+                self.emit_32(self.encoder.encode_i(OP_LOCAL_DEF, 0, rd, cand, idx * 8))
+                self.push_val(rd)
 
             elif op == OP_SET_LOCAL:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
@@ -908,7 +925,7 @@ class StackToRiscVTranslator:
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 0, chunk_idx))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, rd, OBJ_NEW_FUNC, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == OP_CALL:
                 let argc = int(svm_bytecode[i])
@@ -941,7 +958,7 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, argc, VMO_CALL, 5))
                 let rd = self.alloc_reg()
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 10, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
                 self.stage_restore()
 
             elif op == OP_CALL_METHOD:
@@ -1002,7 +1019,7 @@ class StackToRiscVTranslator:
                 # Get return value: rd = x10
                 let rd_ret = self.alloc_reg()
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd_ret, 10, 0))
-                push(self.reg_stack, rd_ret)
+                self.push_val(rd_ret)
                 self.stage_restore()
 
             elif op == OP_PRINT:
@@ -1029,8 +1046,8 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, 0, 1, 0))
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd1, 10, 0))
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd2, 11, 0))
-                push(self.reg_stack, rd1)
-                push(self.reg_stack, rd2)
+                self.push_val(rd1)
+                self.push_val(rd2)
 
             elif op == 70: # OP_GPU_CMD_END_RP (enable_interrupts)
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, 0, 2, 0))
@@ -1050,7 +1067,7 @@ class StackToRiscVTranslator:
                 if addr != 10:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, addr, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_GPU_OPS, 0, rd, 4, 0))
-                push(self.reg_stack, rd)
+                self.push_val(rd)
 
             elif op == 84: # OP_GPU_UPDATE_UNIFORM (poke64)
                 let val = self.pop_reg()
