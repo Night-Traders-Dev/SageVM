@@ -141,3 +141,8 @@
 **Vulnerability:** The reflection builtin `dict_has` (`__builtin_dict_has`) in both `src/svm/sgvm_vm.sage` and `src/srvm/srvm_vm.sage` checked if property keys started with `__` in `safe_mode`, but failed to evaluate whether the dictionary object itself was a protected host module or bridge (`is_protected(obj)`). This allowed sandboxed guest programs to probe for the presence of host functions or internal attributes on protected module dictionaries.
 **Learning:** Reflection builtins must enforce both target object protection checks (`is_protected`) and key-prefix filters (`__`) under `safe_mode` to prevent guest scripts from discovering internal host structure details.
 **Prevention:** Always incorporate `is_protected(obj)` checks inside reflection and container query builtins (`dict_has`, `dict_keys`, `dict_values`).
+
+## 2026-10-16 - Sandbox Probing via Unhardened contains Builtin on Protected Objects
+**Vulnerability:** The `contains` builtin (`__builtin_contains`) in both `src/svm/sgvm_vm.sage` and `src/srvm/srvm_vm.sage` lacked `safe_mode` restrictions when called on protected module objects or internal `__`-prefixed key strings, allowing guest code in `safe_mode` to probe for the presence of internal VM attributes or protected objects.
+**Learning:** Container membership checks (`contains`) must enforce the same sandbox boundaries (`is_protected` and `__`-prefix key filters) as key presence builtins (`dict_has`) to avoid asymmetric security gaps across collection utility builtins.
+**Prevention:** Consistently apply `is_protected` and key-prefix filters across all reflection and container lookup builtins in every VM execution backend.
