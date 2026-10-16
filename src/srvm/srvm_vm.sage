@@ -956,14 +956,19 @@ class SRVM:
                         else:
                             self.state.x[10] = struct_size(self.state.x[10])
                     elif b_name == "reflect_get_methods":
-                        if self.state.safe_mode:
-                            print "Error: reflect_get_methods is restricted in safe mode"
-                            self.state.x[10] = nil
+                        ## Match the stack VM: nothing to reflect is an empty
+                        ## list, not an error, and a protected object reflects
+                        ## as empty rather than exposing its members.
+                        if self.state.x[10] == nil:
+                            self.state.x[10] = []
+                        elif self.state.safe_mode and self.is_protected(self.state.x[10]):
+                            self.state.x[10] = []
                         else:
                             self.state.x[10] = reflect_get_methods(self.state.x[10])
                     elif b_name == "reflect_get_class":
-                        if self.state.safe_mode:
-                            print "Error: reflect_get_class is restricted in safe mode"
+                        if self.state.x[10] == nil:
+                            self.state.x[10] = nil
+                        elif self.state.safe_mode and self.is_protected(self.state.x[10]):
                             self.state.x[10] = nil
                         else:
                             self.state.x[10] = reflect_get_class(self.state.x[10])
@@ -1310,7 +1315,7 @@ class SRVM:
                     self.state.x[rd] = {"__host_mod__": gpu}
                 elif name == "ml_native" and not self.state.safe_mode:
                     self.state.x[rd] = {"__host_mod__": ml_native}
-                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or (type(name) == "string" and startswith(name, "__builtin_")):
+                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or name == "reflect_get_methods" or name == "reflect_get_class" or (type(name) == "string" and startswith(name, "__builtin_")):
                     self.state.x[rd] = {"__builtin__": name}
                 else:
                     self.state.x[rd] = nil
