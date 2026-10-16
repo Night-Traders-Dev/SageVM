@@ -1,0 +1,19 @@
+--- Array Iteration ---
+10
+20
+30
+--- Nested Array Iteration ---
+1
+2
+3
+4
+--- String Character Iteration ---
+a
+b
+c
+--- Empty Array Iteration ---
+empty array done
+--- Empty String Iteration ---
+empty string done
+--- Nil Iteration Safety ---
+nil iteration done
