@@ -27,6 +27,10 @@ class SageVMState:
             
         self.pc = 0
         self.running = true
+        ## Sticky across chunks. `running` only ends the chunk that is running,
+        ## and the runner starts the next top-level chunk with a fresh run(), so
+        ## sys.exit() inside one chunk still let the statements after it run.
+        self.halted = false
         
         # Memory segments
         self.bytecode = []
@@ -155,7 +159,8 @@ class SRVM:
             push(self.state.chunks, bytecode)
         
         self.state.pc = 0
-        self.state.running = true
+        if not self.state.halted:
+            self.state.running = true
         
         if self.state.jit_enabled:
             self.state.jit_engine.enabled = true
@@ -582,7 +587,7 @@ class SRVM:
                             s["exec"] = {"__builtin__": "sys_exec"}
                             s["system"] = {"__builtin__": "sys_system"}
                             s["getenv"] = {"__builtin__": "sys_getenv"}
-                            s["exit"] = sys.exit
+                            s["exit"] = {"__builtin__": "sys_exit"}
                             self.state.x[rd] = s
                         elif name == "net": self.state.x[rd] = net
                         elif name == "gpu":
@@ -1065,7 +1070,10 @@ class SRVM:
                             print "Error: sys.system is restricted"
                             self.state.x[10] = -1
                         else:
-                            self.state.x[10] = sys.system(self.state.x[10])
+                            ## sys.system runs the command the same way sys.exec
+                            ## does -- it is the same host call. Calling a separate
+                            ## sys.system here returned nothing at all.
+                            self.state.x[10] = sys.exec(self.state.x[10])
                     elif b_name == "sys_getenv" or b_name == "__builtin_sys_getenv":
                         if self.state.safe_mode:
                             print "Error: sys.getenv is restricted in safe mode"
@@ -1082,6 +1090,7 @@ class SRVM:
                             self.state.x[10] = nil
                         else:
                             self.state.running = false
+                            self.state.halted = true
                             self.state.x[10] = nil
                     elif b_name == "sys_args" or b_name == "__builtin_sys_args":
                         if self.state.safe_mode:

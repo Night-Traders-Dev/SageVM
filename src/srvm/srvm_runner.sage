@@ -87,6 +87,8 @@ class SRVMRunner:
         # Execute all chunks (sequential top-level execution starting from func_count)
         chunk_idx = func_count
         while chunk_idx < num_chunks:
+            if self.vm.state.halted:
+                break
             self.vm.run(self.vm.state.chunks[chunk_idx], chunk_idx)
             chunk_idx = chunk_idx + 1
         return true
