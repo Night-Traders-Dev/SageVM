@@ -88,6 +88,7 @@ let VMO_TRUE       = 0x0F
 let VMO_FALSE      = 0x10
 let VMO_NOT        = 0x11
 let VMO_TRUTHY     = 0x12
+let VMO_SLICE       = 0x13   # slice(a0, a1, a2) -> a0, for obj[a:b]
 
 # Comparison types for VMO_CMP_BINARY (stored in funct7 field)
 let CMP_EQ  = 0   # Equal (==)

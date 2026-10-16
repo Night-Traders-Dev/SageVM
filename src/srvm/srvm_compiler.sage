@@ -1,7 +1,7 @@
-from sgvm_core import OP_CONSTANT, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_LOAD_FUNCTION, OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT, OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY, OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM, OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_GET_LOCAL, OP_SET_LOCAL
+from sgvm_core import OP_CONSTANT, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_LOAD_FUNCTION, OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT, OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY, OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM, OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_GET_LOCAL, OP_SET_LOCAL, OP_SLICE
 from srvm_core import OP_ARRAY_LEN, OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_LOCAL_DEF, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS
 from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
-from srvm_core import VMO_ARRAY_LEN, VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
+from srvm_core import VMO_ARRAY_LEN, VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, VMO_SLICE, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
 from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT, OBJ_METHOD_BIND
 from srvm_core import OBJ_DICT_PUT, OBJ_GET_PROP, OBJ_SET_PROP, OBJ_NEW_FUNC, OBJ_ARRAY_NEW, OBJ_DICT_NEW, OBJ_TUPLE_NEW, OBJ_GET_INDEX, OBJ_SET_INDEX, SRVMUtils, RVEncoder
 # Sage SVM to SRVM (RISC-V) Translator
@@ -24,6 +24,7 @@ class StackToRiscVTranslator:
     proc init(self, constants):
         self.encoder = RVEncoder()
         self.profiler = TypeProfiler(constants)
+        self.constants = constants
         self.reg_stack = []
         self.next_reg = 11 # Start from a1 (x11), reserving x10 for VMSYS args
         self.spill_slots = [] # Track spilled registers
@@ -67,6 +68,17 @@ class StackToRiscVTranslator:
         self.output_bytes[pc+3] = (val >> 24) & 0xFF
 
     
+    ## Index of a string in the constant pool, or -1. Needed to name a builtin
+    ## the VM dispatches by string rather than by opcode.
+    proc const_index_of(self, name):
+        var i = 0
+        while i < len(self.constants):
+            let c = self.constants[i]
+            if type(c) == "dict" and dict_has(c, "str") and c["str"] == name:
+                return i
+            i = i + 1
+        return -1
+
     ## Push an operand and remember which register carries it. The stack VM
     ## has no separate local storage: a chunk's frame is the bottom of its
     ## operand stack, so local slot N *is* stack position N, and a `var x = 10`
@@ -562,6 +574,26 @@ class StackToRiscVTranslator:
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, 6, 0))
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, 7, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_INDEX, obj_reg))
+                self.stage_restore()
+
+            elif op == OP_SLICE:
+                ## The stack VM pops end, start, obj and pushes slice(obj, start, end).
+                ## The operands are staged in a0/a1/a2, all VM scratch, so park
+                ## whatever is live in them across the slice.
+                let end_idx = self.pop_reg()
+                let start_idx = self.pop_reg()
+                let obj = self.pop_reg()
+                self.stage_protect(10, 12)
+                if obj != 10:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, obj, 0))
+                if start_idx != 11:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, start_idx, 0))
+                if end_idx != 12:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 12, end_idx, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_SLICE, 0))
+                let rd = self.alloc_reg()
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, rd, 10, 0))
+                self.push_val(rd)
                 self.stage_restore()
 
             elif op == OP_ARRAY_LEN:
