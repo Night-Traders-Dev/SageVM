@@ -133,8 +133,10 @@ def run_suite():
         try:
             with open(src_probe, "w") as f:
                 f.write(probe_src)
+            env = os.environ.copy()
+            env["PATH"] = sage_dir + os.pathsep + env.get("PATH", "")
             res = subprocess.run(["./sgvmc", src_probe, probe_bin],
-                                 capture_output=True, text=True, env=os.environ)
+                                 capture_output=True, text=True, env=env)
             produced = os.path.exists(probe_bin) and os.path.getsize(probe_bin) > 0
             if res.returncode == 0 and produced:
                 run = subprocess.run(["./sagevm", "run", probe_bin],
@@ -175,6 +177,7 @@ def run_suite():
                 "src", "src/svm", "src/srvm", "src/jit",
                 os.path.join(repo_root, ".deps", "SageLang", "core", "lib"),
             ])
+            nenv["PATH"] = sage_dir + os.pathsep + nenv.get("PATH", "")
             res = subprocess.run(["sage", "--runtime", "bytecode", npath],
                                  capture_output=True, text=True, env=nenv, cwd=repo_root)
             out = ansi_escape.sub("", res.stdout or "")
