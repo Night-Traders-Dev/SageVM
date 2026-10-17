@@ -160,6 +160,14 @@ class StackToRiscVTranslator:
             self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, lifted[k][0], lifted[k][1], 0))
             k = k + 1
 
+    ## Note that a branch reaches `target` with the operand stack this deep.
+    proc note_branch(self, target, depth):
+        let key = str(target)
+        if not dict_has(self.label_depth, key):
+            self.label_depth[key] = depth
+        elif int(self.label_depth[key]) > depth:
+            self.label_depth[key] = depth
+
     ## Staging a comparison or a call writes a0/a1 -- and the method block writes
     ## s2, s3.. -- over whatever the VM uses those registers for. A value already
     ## sitting there is live: it is an operand of an expression further out, and
@@ -294,6 +302,9 @@ class StackToRiscVTranslator:
         self.spill_slots = []
         self.spill_offset = 0
         self.label_map = {}
+        ## Operand-stack depth each label is entered with, taken from the branches
+        ## that reach it.
+        self.label_depth = {}
         self.jump_patches = []
         
         # Pre-scan for catch labels
@@ -349,6 +360,24 @@ class StackToRiscVTranslator:
             
             self.freed_this_op = []
             self.label_map[str(ip)] = len(self.output_bytes)
+            ## A label is entered by branch, not by falling into it. Rejoin with
+            ## the depth the branches arrive at: the translator has just walked
+            ## whatever fell through to here, and on a loop's exit that is a path
+            ## which only runs when the loop never iterates -- both the
+            ## fall-through pop and the exit pop get counted, and every slot
+            ## after the loop ends up one slot low.
+            if dict_has(self.label_depth, str(ip)):
+                let want = int(self.label_depth[str(ip)])
+                while len(self.reg_stack) > want:
+                    pop(self.reg_stack)
+                ## Pad as well as trim. A loop's exit is entered by the branch
+                ## with the condition still on the stack, and the pop that
+                ## follows it is what consumes the condition -- so arriving one
+                ## shallow made that pop take the loop counter instead and left
+                ## every slot after the loop one low.
+                while len(self.reg_stack) < want:
+                    push(self.reg_stack, 0)
+                    push(self.push_regs, 0)
             let op = int(svm_bytecode[i])
             if self.debug: print "DEBUG translate op=" + str(op) + " i=" + str(i)
             i = i + 1
@@ -1053,6 +1082,7 @@ class StackToRiscVTranslator:
                 let patch_pc = len(self.output_bytes)
                 self.emit_32(self.encoder.encode_b(OP_BRANCH, F3_BEQ, cond, 0, 0)) 
                 push(self.jump_patches, [patch_pc, target_ip])
+                self.note_branch(target_ip, len(self.reg_stack))
 
             elif op == OP_RETURN:
                 ## a0 is the result register: the call site copies it out with
