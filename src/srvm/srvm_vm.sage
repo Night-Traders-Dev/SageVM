@@ -1192,6 +1192,55 @@ class SRVM:
                             self.state.x[10] = nil
                         else:
                             self.state.x[10] = nil
+                    elif b_name == "ffi_open":
+                        if not self.state.ffi_enabled:
+                            print "Error: FFI is disabled"
+                            self.state.x[10] = nil
+                        elif self.state.safe_mode:
+                            print "Error: ffi_open is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif self.state.x[10] == nil:
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = ffi_open(self.state.x[10])
+                    elif b_name == "ffi_close":
+                        if not self.state.ffi_enabled:
+                            print "Error: FFI is disabled"
+                            self.state.x[10] = nil
+                        elif self.state.safe_mode:
+                            print "Error: ffi_close is restricted in safe mode"
+                            self.state.x[10] = nil
+                        elif self.state.x[10] == nil:
+                            self.state.x[10] = nil
+                        else:
+                            self.state.x[10] = ffi_close(self.state.x[10])
+                    elif b_name == "ffi_call":
+                        ## The stack VM guards this with a try, because the host
+                        ## call can fail on a bad symbol or a signature it cannot
+                        ## honour. Report that the same way here rather than
+                        ## letting it escape as a host exception.
+                        if not self.state.ffi_enabled:
+                            print "Error: FFI is disabled"
+                            self.state.x[10] = nil
+                        elif self.state.safe_mode:
+                            print "Error: ffi_call is restricted in safe mode"
+                            self.state.x[10] = nil
+                        else:
+                            let fh = self.state.x[10]
+                            let fsym = self.state.x[11]
+                            let ftypes = self.state.x[12]
+                            let fargs = self.state.x[13]
+                            if fh == nil or fsym == nil:
+                                self.state.x[10] = nil
+                            else:
+                                try:
+                                    if fargs == nil:
+                                        self.state.x[10] = ffi_call(fh, fsym, ftypes)
+                                    else:
+                                        self.state.x[10] = ffi_call(fh, fsym, ftypes, fargs)
+                                catch e:
+                                    print "Error: ffi_call failed: " + str(e)
+                                    self.state.x[10] = nil
                     elif startswith(b_name, "ffi_"):
                         if not self.state.ffi_enabled:
                             print "Error: FFI is disabled"
@@ -1402,7 +1451,7 @@ class SRVM:
                     self.state.x[rd] = {"__host_mod__": gpu}
                 elif name == "ml_native" and not self.state.safe_mode:
                     self.state.x[rd] = {"__host_mod__": ml_native}
-                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or name == "reflect_get_methods" or name == "reflect_get_class" or name == "gpu_get_time" or name == "gpu_poll_events" or name == "gpu_mouse_pos" or (type(name) == "string" and startswith(name, "__builtin_")):
+                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or name == "reflect_get_methods" or name == "reflect_get_class" or name == "gpu_get_time" or name == "gpu_poll_events" or name == "gpu_mouse_pos" or name == "ffi_open" or name == "ffi_close" or name == "ffi_call" or (type(name) == "string" and startswith(name, "__builtin_")):
                     self.state.x[rd] = {"__builtin__": name}
                 else:
                     self.state.x[rd] = nil
