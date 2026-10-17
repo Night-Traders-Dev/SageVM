@@ -21,3 +21,8 @@ print "replace: " + str(f_replace())
 print "startswith: " + str(f_startswith())
 print "slice: " + str(f_slice())
 print "reflect len: " + str(len(f_reflect()))
+
+let f_endswith = "__builtin_endswith"
+let f_contains = "__builtin_contains"
+print "endswith: " + str(f_endswith(nil, nil))
+print "contains: " + str(f_contains(nil, nil))

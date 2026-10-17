@@ -9,3 +9,5 @@ replace:
 startswith: false
 slice: 
 reflect len: 0
+endswith: false
+contains: false
