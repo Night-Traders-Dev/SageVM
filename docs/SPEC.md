@@ -58,6 +58,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
 - **Boundary Checks**: No out-of-bounds access to memory, object arenas, or VM-internal collections. Both SVM and SRVM interpreters implement explicit bounds checks for constant pool and chunk indexing to prevent host-level runtime errors or silent state corruption. Execution state is accelerated by caching `current_local_base` for local variable access.
   - **SVM**: Operand stack depth is limited to 65,536 entries (`max_stack_depth`), with the overflow verification optimized to execute only on control flow, call, and exception handler boundaries (`OP_LOOP_BACK`, `OP_CALL`, `OP_CALL_METHOD`, and `OP_SETUP_TRY`) to minimize linear execution overhead. Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
   - **SRVM**: The fixed stack area is initialized with 1,000 slots. Recursive call depth and exception handler nesting are limited to 1,024 frames. Max array size is 1,000,000 entries.
+- **Local Variable Resolution & Frame Register Snapshotting (SRVM)**: SRVM resolves local variable references using major opcode `OP_LOCAL_DEF` (`0x5c` / `0b1011100`) against an explicit `UNBOUND` (`{"__sgvm_unbound__": true}`) frame slot marker to distinguish unwritten local slots from values explicitly set to `nil`. In addition, call frames snapshot and preserve the 32 general-purpose registers across function call boundaries (excluding `a0`/`x10` return register), preventing inner frames from corrupting caller live temporary registers, and open explicit frames for zero-argument calls so frame pointer `s0` (`x8`) resolves locals correctly.
 - **Generator Semantics (SVM)**: The SVM execution pipeline fully supports native generator functions via `OP_YIELD`, `OP_CREATE_GENERATOR`, and `OP_GENERATOR_NEXT` / `next()`. These opcodes enable state preservation, execution suspension, and resumption natively in the primary `MetalVM` interpreter.
 - **Path Sanitization**: The compiler (`sgvmc`) validates all input and output file paths using a strict whitelist-based `is_safe_path` helper (blocking command injection, flag injection, and shell metacharacters).
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions. Under `safe_mode`, both SVM and SRVM interpreters enforce strict protection for `__builtin__`-tagged dictionary objects and restrict invocation of garbage collection controls (`gc_enable`, `gc_disable`, `__builtin_gc_enable`, `__builtin_gc_disable`). SVM's `OP_METHOD` and `OP_INHERIT` handlers enforce `safe_mode` restrictions against internal `__` method definitions and inheriting/modifying protected objects. SRVM enforces `safe_mode` and `ffi_enabled` checks on `mem_*`, `ffi_*`, and `struct_*` builtins in `VMO_CALL`. In SVM, guest access to host system capabilities is further hardened by blacklisting the `struct` module in `OP_IMPORT` in addition to `io`, `net`, `sys`, `thread`, `gpu`, `ml_native`, `mem`, and `ffi`.
@@ -84,7 +85,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-10-02**
+**Last Conformance Sync: 2026-10-12**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
