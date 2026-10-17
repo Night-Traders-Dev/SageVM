@@ -43,6 +43,7 @@ This document outlines the current status, supported features, and outstanding w
 - [ ] **OP_ARRAY_LEN on nil**: Resolve conformance gap where `OP_ARRAY_LEN` returns `0` on `nil` due to host inheritance instead of `nil` / error (see `tests/array_len_edge.sage`).
 - [ ] **Guest sys.exit halting**: Ensure guest-side `sys.exit` completely halts execution flow across all multi-chunk VM runner configurations.
 - [ ] **Safe-mode Exception Printing**: Align safe-mode exception printing and trace output format between SVM and host execution.
+- [ ] **SRVM Nested Loop Register Allocation**: A `for` loop nested inside another `for` loop in SRVM exhausts the temporary register pool (up to `x27`) and falls into `alloc_reg`'s spill path, recycling registers starting from `x13` and overwriting live outer loop iterables and counters.
 
 ## 🔴 Outstanding (High Difficulty)
 

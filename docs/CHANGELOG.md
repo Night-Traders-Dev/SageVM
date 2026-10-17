@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.2] - 2026-10-16
+
+### Fixed
+- **SRVM environment scoping and global state preservation**: Resolved an issue in `push_env` and `pop_env` (`src/srvm/srvm_vm.sage`) where entering a `for` loop saved and wiped the global variable dictionary (`heap`) on the `call_stack` and replaced it with an empty dictionary. `push_env` and `pop_env` now maintain only loop environment nesting depth to bound depth limits, keeping global variable bindings intact across loop boundaries and decoupling scope tracking from function `call_stack`.
+- Added test coverage in `tests/for_loop_iteration.sage` verifying global variable persistence and accumulation across `for` loop iterations.
+
 ## [1.2.2] - 2026-10-11
 
 ### Fixed

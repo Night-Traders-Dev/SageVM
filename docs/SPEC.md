@@ -59,6 +59,7 @@ Before and during execution, production SGVM bytecode MUST pass verification and
   - **SVM**: Operand stack depth is limited to 65,536 entries (`max_stack_depth`), with the overflow verification optimized to execute only on control flow, call, and exception handler boundaries (`OP_LOOP_BACK`, `OP_CALL`, `OP_CALL_METHOD`, and `OP_SETUP_TRY`) to minimize linear execution overhead. Exception handler nesting is limited to 1,024 levels (`max_handler_depth`).
   - **SRVM**: The fixed stack area is initialized with 1,000 slots. Recursive call depth and exception handler nesting are limited to 1,024 frames. Max array size is 1,000,000 entries.
 - **Generator Semantics (SVM)**: The SVM execution pipeline fully supports native generator functions via `OP_YIELD`, `OP_CREATE_GENERATOR`, and `OP_GENERATOR_NEXT` / `next()`. These opcodes enable state preservation, execution suspension, and resumption natively in the primary `MetalVM` interpreter.
+- **Environment Scoping Semantics (SRVM)**: `push_env` and `pop_env` in SRVM (`src/srvm/srvm_vm.sage`) bound environment nesting depth without saving or swapping `heap` (the global variable dictionary) on `call_stack`, ensuring global variables persist across `for` loop body iterations and decoupling environment scopes from function call frames.
 - **Path Sanitization**: The compiler (`sgvmc`) validates all input and output file paths using a strict whitelist-based `is_safe_path` helper (blocking command injection, flag injection, and shell metacharacters).
 - **Capability Access**: The bytecode does not attempt to use restricted syscalls without proper permissions. Under `safe_mode`, both SVM and SRVM interpreters enforce strict protection for `__builtin__`-tagged dictionary objects and restrict invocation of garbage collection controls (`gc_enable`, `gc_disable`, `__builtin_gc_enable`, `__builtin_gc_disable`). SVM's `OP_METHOD` and `OP_INHERIT` handlers enforce `safe_mode` restrictions against internal `__` method definitions and inheriting/modifying protected objects. SRVM enforces `safe_mode` and `ffi_enabled` checks on `mem_*`, `ffi_*`, and `struct_*` builtins in `VMO_CALL`. In SVM, guest access to host system capabilities is further hardened by blacklisting the `struct` module in `OP_IMPORT` in addition to `io`, `net`, `sys`, `thread`, `gpu`, `ml_native`, `mem`, and `ffi`.
 - **Command Execution Hardening**: The CLI `--no-exec` restriction flag is fully connected down to VM runner and VM configurations as `exec_enabled`. When `exec_enabled` is configured to `false`, the dynamic host execution builtins (`__builtin_sys_exec` and `__builtin_sys_system`) are fully blocked to prevent command and flag execution vulnerabilities.
@@ -84,7 +85,7 @@ SGVM features a reference-tracked object system with a built-in Mark-and-Sweep g
 
 ## 9. Opcode Conformance
 
-**Last Conformance Sync: 2026-10-02**
+**Last Conformance Sync: 2026-10-16**
 
 ### 9.1 SageVM Extensions
 The following opcodes are SageVM-specific extensions or legacy mappings:
