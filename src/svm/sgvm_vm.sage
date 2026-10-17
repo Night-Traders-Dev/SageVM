@@ -1041,6 +1041,7 @@ class MetalVM:
             return dict_has(args[0], key)
         elif callee == "__builtin_dict_keys":
             if len(args) == 0 or args[0] == nil or type(args[0]) != "dict": return []
+            if self.safe_mode and self.is_protected(args[0]): return []
             let keys = dict_keys(args[0])
             if self.safe_mode:
                 let safe_keys = []
@@ -1055,6 +1056,7 @@ class MetalVM:
         elif callee == "__builtin_dict_values":
             if len(args) == 0 or args[0] == nil or type(args[0]) != "dict": return []
             let obj = args[0]
+            if self.safe_mode and self.is_protected(obj): return []
             if self.safe_mode:
                 let safe_vals = []
                 let keys = dict_keys(obj)
