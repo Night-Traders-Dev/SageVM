@@ -305,6 +305,8 @@ class StackToRiscVTranslator:
         ## Operand-stack depth each label is entered with, taken from the branches
         ## that reach it.
         self.label_depth = {}
+        ## Operand stack at each try's setup, which its handler unwinds to.
+        self.try_snapshots = {}
         self.jump_patches = []
         
         # Pre-scan for catch labels
@@ -335,12 +337,28 @@ class StackToRiscVTranslator:
             
             # If this is a catch block start, the VM will have pushed the exception object
             if dict_has(catch_labels, str(ip)):
-                  ## The exception arrives in a0 (x10). Keep the allocator
-                  ## running instead of rewinding it: rewinding to 11 re-issued
+                  ## The exception arrives in a0 (x10) on top of whatever the
+                  ## operand stack held where the try was set up -- raising
+                  ## unwinds to that point, it does not empty the stack. Restoring
+                  ## just [10] left every local declared after the catch starting
+                  ## from the bottom again, so it was handed a slot one of the
+                  ## try's own locals already had: after a catch, a second loop's
+                  ## counter shared the first loop's and never advanced.
+                  ##
+                  ## Keep the allocator running too: rewinding it to 11 re-issued
                   ## the argument slots and the registers the try body was still
-                  ## holding its locals in, so a local read after the try setup
-                  ## picked up a builtin descriptor left in one of them.
-                  self.reg_stack = [10]
+                  ## holding its locals in.
+                  self.reg_stack = []
+                  self.push_regs = []
+                  if dict_has(self.try_snapshots, str(ip)):
+                      let snap = self.try_snapshots[str(ip)]
+                      var si = 0
+                      while si < len(snap):
+                          push(self.reg_stack, snap[si])
+                          push(self.push_regs, snap[si])
+                          si = si + 1
+                  push(self.reg_stack, 10)
+                  push(self.push_regs, 10)
 
             ## A short-circuit expression arrives here from two arms, each
             ## having put its result in its own register. Name the merge
@@ -1025,6 +1043,13 @@ class StackToRiscVTranslator:
             elif op == OP_SETUP_TRY:
                 let catch_ip = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
+                ## Remember the operand stack the handler unwinds to.
+                var snap = []
+                var sni = 0
+                while sni < len(self.reg_stack):
+                    push(snap, self.reg_stack[sni])
+                    sni = sni + 1
+                self.try_snapshots[str(catch_ip)] = snap
                 let patch_pc = len(self.output_bytes)
                 self.emit_32(self.encoder.encode_i(OP_VMSYS, F3_VM_OPS, 0, VMO_SETUP_TRY, 0)) 
                 push(self.jump_patches, [patch_pc, catch_ip])
