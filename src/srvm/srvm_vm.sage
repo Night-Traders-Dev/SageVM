@@ -2,7 +2,7 @@ from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_
 from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
 from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, VMO_SLICE, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
 from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT, OBJ_METHOD_BIND
-from srvm_core import OBJ_DICT_PUT, OBJ_GET_PROP, OBJ_SET_PROP, OBJ_NEW_FUNC, OBJ_ARRAY_NEW, OBJ_DICT_NEW, OBJ_TUPLE_NEW, OBJ_GET_INDEX, OBJ_SET_INDEX, SRVMUtils
+from srvm_core import OBJ_DICT_PUT, OBJ_GET_PROP, OBJ_SET_PROP, OBJ_NEW_FUNC, OBJ_ARRAY_NEW, OBJ_DICT_NEW, OBJ_TUPLE_NEW, OBJ_GET_INDEX, OBJ_SET_INDEX, OBJ_DEFINE_GLOBAL, SRVMUtils
 # Sage RISC-V Virtual Machine (SRVM)
 # Core Interpreter Implementation (RV64I)
 
@@ -839,7 +839,22 @@ class SRVM:
                         ## is exact for the magnitudes a script can write.
                         self.state.x[10] = self.int_value(self.state.x[10])
                     elif b_name == "slice":
-                        self.state.x[10] = slice(self.state.x[10], self.state.x[11], self.state.x[12])
+                        ## Match the stack VM's defaults: slicing nothing is the
+                        ## empty string rather than nil, and an absent bound
+                        ## means the start of the string or its length. Called
+                        ## straight through, slice(nil, 0, 2) came back nil here
+                        ## and "" there.
+                        let so = self.state.x[10]
+                        if so == nil:
+                            self.state.x[10] = ""
+                        else:
+                            var s1 = 0
+                            if self.state.x[11] != nil:
+                                s1 = self.state.x[11]
+                            var s2 = len(so)
+                            if self.state.x[12] != nil:
+                                s2 = self.state.x[12]
+                            self.state.x[10] = slice(so, s1, s2)
                     elif b_name == "len":
                         self.state.x[10] = len(self.state.x[10])
                     elif b_name == "type":
@@ -1391,6 +1406,19 @@ class SRVM:
                     self.state.x[rd] = {"__builtin__": name}
                 else:
                     self.state.x[rd] = nil
+            elif sub_op == OBJ_DEFINE_GLOBAL:
+                let didx = int(self.state.x[10])
+                let dval = self.state.x[11]
+                let dname = self.safe_get_constant(didx)
+                if not self.state.running: return
+                if self.state.safe_mode and type(dname) == "string" and startswith(dname, "__") and not startswith(dname, "__arg"):
+                    ## Nothing to define is nothing to complain about. This is
+                    ## how a class the safe-mode check already refused does not
+                    ## also produce a second message for its own name.
+                    if dval != nil:
+                        print "Error: Definition of internal global '" + dname + "' is restricted in safe mode"
+                else:
+                    self.state.heap[dname] = dval
             elif sub_op == OBJ_SET_GLOBAL:
                 let idx = int(self.state.x[10]) # a0
                 let val = self.state.x[11] # a1

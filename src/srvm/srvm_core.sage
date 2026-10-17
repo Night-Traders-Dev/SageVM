@@ -119,6 +119,10 @@ let OBJ_SLICE      = 0x0D
 ## anything -- security_indexing.sage never got as far as the assignment
 ## it was written to check.
 let OBJ_DICT_PUT   = 0x0E
+## Defining a global and assigning to one are different operations: the stack VM
+## reports a refused definition differently from a refused assignment, and only
+## complains about a definition when there is a value to define.
+let OBJ_DEFINE_GLOBAL = 0x0F
 
 # GPU Ops (funct7)
 let GPU_POLL_EVENTS         = 0x00
