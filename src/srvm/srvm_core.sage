@@ -89,6 +89,13 @@ let VMO_FALSE      = 0x10
 let VMO_NOT        = 0x11
 let VMO_TRUTHY     = 0x12
 let VMO_SLICE       = 0x13   # slice(a0, a1, a2) -> a0, for obj[a:b]
+## Generators. A generator function is defined but not run; calling one produces
+## a suspended object, `next` switches execution into it and the generator's
+## `yield` switches back to whoever asked. The same three instructions the stack
+## VM has, and the same meaning.
+let VMO_CREATE_GENERATOR = 0x14   # a0 = name index, a1 = chunk index
+let VMO_YIELD             = 0x15   # a0 = value, back to the caller of next()
+let VMO_GENERATOR_NEXT    = 0x16   # a0 = generator, run it to its next yield
 
 # Comparison types for VMO_CMP_BINARY (stored in funct7 field)
 let CMP_EQ  = 0   # Equal (==)

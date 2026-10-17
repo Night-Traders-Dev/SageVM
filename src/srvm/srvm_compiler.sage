@@ -1,4 +1,4 @@
-from sgvm_core import OP_CONSTANT, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_LOAD_FUNCTION, OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT, OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY, OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM, OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_GET_LOCAL, OP_SET_LOCAL, OP_SLICE
+from sgvm_core import OP_CONSTANT, OP_GET_GLOBAL, OP_DEFINE_GLOBAL, OP_SET_GLOBAL, OP_DEFINE_FUNCTION, OP_GET_PROPERTY, OP_SET_PROPERTY, OP_LOAD_FUNCTION, OP_JUMP, OP_JUMP_IF_FALSE, OP_ARRAY, OP_TUPLE, OP_DICT, OP_EXEC_AST_STMT, OP_BREAK, OP_CONTINUE, OP_LOOP_BACK, OP_IMPORT, OP_CLASS, OP_METHOD, OP_SETUP_TRY, OP_CALL_METHOD, OP_CALL, OP_DUP, OP_MATH_PRINTM, OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT, OP_GET_LOCAL, OP_SET_LOCAL, OP_SLICE, OP_YIELD, OP_CREATE_GENERATOR, OP_GENERATOR_NEXT
 from srvm_core import OP_ARRAY_LEN, OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_LOCAL_DEF, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS
 from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
 from srvm_core import VMO_ARRAY_LEN, VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, VMO_SLICE, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
@@ -285,7 +285,10 @@ class StackToRiscVTranslator:
                     let target = (int(svm_bytecode[j]) << 8) | int(svm_bytecode[j+1])
                     catch_labels[str(target)] = true
                 j = j + 2
-            elif op == OP_CALL or op == OP_DUP:
+            elif op == OP_CREATE_GENERATOR:
+                ## name index and chunk index, one two-byte operand each.
+                j = j + 4
+            elif op == OP_CALL or op == OP_DUP or op == OP_YIELD or op == OP_GENERATOR_NEXT:
                 j = j + 1
         
         var i = 0
@@ -968,6 +971,27 @@ class StackToRiscVTranslator:
                 if exc_obj != 10:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, exc_obj, 0))
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_RAISE, 0))
+
+            elif op == OP_CREATE_GENERATOR:
+                let gname_idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                let gchunk = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
+                i = i + 2
+                self.emit_load_imm(10, gname_idx)
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, gchunk, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 11, VMO_CREATE_GENERATOR, 0))
+
+            elif op == OP_YIELD:
+                let yv = self.pop_reg()
+                if yv != 10:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, yv, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 10, VMO_YIELD, 0))
+
+            elif op == OP_GENERATOR_NEXT:
+                let gv = self.pop_reg()
+                if gv != 10:
+                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 10, gv, 0))
+                self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 10, VMO_GENERATOR_NEXT, 0))
 
             elif op == OP_PUSH_ENV:
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_VM_OPS, 0, 0, VMO_PUSH_ENV, 0))

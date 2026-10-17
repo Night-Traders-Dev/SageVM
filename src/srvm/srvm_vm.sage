@@ -1,6 +1,6 @@
 from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS, OP_LOCAL_DEF
 from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
-from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, VMO_SLICE, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
+from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, VMO_SLICE, VMO_CREATE_GENERATOR, VMO_YIELD, VMO_GENERATOR_NEXT, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
 from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT, OBJ_METHOD_BIND
 from srvm_core import OBJ_DICT_PUT, OBJ_GET_PROP, OBJ_SET_PROP, OBJ_NEW_FUNC, OBJ_ARRAY_NEW, OBJ_DICT_NEW, OBJ_TUPLE_NEW, OBJ_GET_INDEX, OBJ_SET_INDEX, OBJ_DEFINE_GLOBAL, SRVMUtils
 # Sage RISC-V Virtual Machine (SRVM)
@@ -31,6 +31,10 @@ class SageVMState:
         ## and the runner starts the next top-level chunk with a fresh run(), so
         ## sys.exit() inside one chunk still let the statements after it run.
         self.halted = false
+        ## The generator currently executing, if any, and the execution context
+        ## of each `next()` that switched into one.
+        self.active_generator = nil
+        self.gen_caller_stack = []
         
         # Memory segments
         self.bytecode = []
@@ -146,6 +150,33 @@ class SRVM:
             push(self.state.words, int(chunk[base]) | (int(chunk[base+1]) << 8) | (int(chunk[base+2]) << 16) | (int(chunk[base+3]) << 24))
             w = w + 1
 
+    ## Switch execution into a generator, parking the caller so the instruction
+    ## after this one reads the value the generator yields into a0. Returns
+    ## false when the generator has already finished, in which case a0 is nil.
+    proc enter_generator(self, gen, resume_pc):
+        if type(gen) != "dict" or not dict_has(gen, "__type__") or gen["__type__"] != "generator":
+            return false
+        if gen["completed"]:
+            self.state.x[10] = nil
+            return false
+        let gchunk = int(gen["__chunk__"])
+        if gchunk < 0 or gchunk >= len(self.state.chunks):
+            print "Error: Chunk index out of bounds: " + str(gchunk)
+            self.state.running = false
+            self.state.x[10] = nil
+            return false
+        push(self.state.gen_caller_stack, [resume_pc,
+                                           self.state.current_chunk_idx,
+                                           self.state.x[8],
+                                           len(self.state.call_stack),
+                                           self.state.active_generator])
+        self.state.active_generator = gen
+        self.state.current_chunk_idx = gchunk
+        self.load_chunk(self.safe_get_chunk(gchunk))
+        self.state.pc = int(gen["__pc__"])
+        self.state.x[8] = int(gen["__frame__"])
+        return true
+
     proc run(self, bytecode, chunk_index: Int = 0):
         # The entry chunk is whichever one the runner handed us, which is not
         # index 0: the runner walks the top-level chunks after the function
@@ -222,6 +253,22 @@ class SRVM:
             
             # Special case for return: JALR x0, 0(x1)
             if rd == 0 and rs1 == 1 and imm_i == 0:
+                if self.state.active_generator != nil:
+                    ## The generator ran off the end. Record that, hand the value
+                    ## back to the next() that started it and resume there; the
+                    ## call frame belongs to whoever called next(), not to us.
+                    let gen = self.state.active_generator
+                    gen["completed"] = true
+                    if len(self.state.gen_caller_stack) > 0:
+                        let caller = pop(self.state.gen_caller_stack)
+                        self.state.pc = caller[0]
+                        self.state.current_chunk_idx = caller[1]
+                        self.load_chunk(self.state.chunks[caller[1]])
+                        self.state.x[8] = caller[2]
+                        while len(self.state.call_stack) > caller[3]:
+                            pop(self.state.call_stack)
+                        self.state.active_generator = caller[4]
+                    return
                 if len(self.state.call_stack) > 0:
                     let frame = pop(self.state.call_stack)
                     self.state.current_chunk_idx = frame[0]
@@ -667,6 +714,44 @@ class SRVM:
                 ## to every sub-op's miss and left whatever a0 happened to hold,
                 ## which is why an array slice came back nil.
                 self.state.x[10] = slice(self.state.x[10], self.state.x[11], self.state.x[12])
+            elif sub_op == VMO_CREATE_GENERATOR:
+                ## Defines the function, does not run it: the name binds to a
+                ## generator_fn holding the chunk, and calling that produces the
+                ## suspended object.
+                let gname_idx = int(self.state.x[10])
+                let gchunk = int(self.state.x[11])
+                let gname = self.safe_get_constant(gname_idx)
+                if not self.state.running: return
+                if self.state.safe_mode and type(gname) == "string" and startswith(gname, "__") and not startswith(gname, "__arg"):
+                    print "Error: Definition of internal generator '" + gname + "' is restricted in safe mode"
+                else:
+                    self.state.heap[gname] = {"__type__": "generator_fn", "__chunk__": gchunk, "__name__": gname}
+            elif sub_op == VMO_GENERATOR_NEXT:
+                if self.enter_generator(self.state.x[10], self.state.pc + 4):
+                    return
+                self.state.pc = self.state.pc + 4
+                return
+            elif sub_op == VMO_YIELD:
+                ## Hand control back to whoever called next(). The generator
+                ## keeps its pc and frame so the next next() resumes here.
+                if self.state.active_generator != nil:
+                    let gen = self.state.active_generator
+                    gen["__pc__"] = self.state.pc + 4
+                    gen["__chunk__"] = self.state.current_chunk_idx
+                    gen["__frame__"] = self.state.x[8]
+                    gen["__call_depth__"] = len(self.state.call_stack)
+                    if len(self.state.gen_caller_stack) > 0:
+                        let caller = pop(self.state.gen_caller_stack)
+                        self.state.pc = caller[0]
+                        self.state.current_chunk_idx = caller[1]
+                        self.load_chunk(self.safe_get_chunk(caller[1]))
+                        self.state.x[8] = caller[2]
+                        while len(self.state.call_stack) > caller[3]:
+                            pop(self.state.call_stack)
+                        self.state.active_generator = caller[4]
+                    return
+                self.state.pc = self.state.pc + 4
+                return
             elif sub_op == VMO_NOT:
                 self.state.x[rd] = not self.is_truthy(self.state.x[10])
             elif sub_op == VMO_TRUTHY:
@@ -754,6 +839,28 @@ class SRVM:
                     self.state.x[10] = ctor_instance
                     target_chunk = int(ctor["chunk_idx"])
 
+                elif type(func_obj) == "dict" and dict_has(func_obj, "__type__") and func_obj["__type__"] == "generator_fn":
+                    ## Calling a generator function does not run its body: it
+                    ## produces the object `next` will later step. It needs its
+                    ## own frame, because the generator reads its parameters out
+                    ## of the frame exactly as an ordinary call would.
+                    var gslots: Int = rd
+                    if gslots < 1: gslots = 1
+                    let gbase: Int = len(self.state.stack)
+                    while len(self.state.stack) < gbase + gslots * 8:
+                        push(self.state.stack, srvm_core.UNBOUND)
+                    var gk = 0
+                    while gk < rd:
+                        self.state.stack[gbase + gk * 8] = self.state.x[10 + gk]
+                        gk = gk + 1
+                    self.state.x[10] = {"__type__": "generator",
+                                         "__chunk__": func_obj["__chunk__"],
+                                         "__pc__": 0,
+                                         "__frame__": gbase,
+                                         "__call_depth__": len(self.state.call_stack),
+                                         "completed": false}
+                    self.state.pc = self.state.pc + 4
+                    return
                 elif type(func_obj) == "dict" and dict_has(func_obj, "chunk_idx"): target_chunk = int(func_obj["chunk_idx"])
                 elif type(func_obj) == "function" or type(func_obj) == "native fn":
                     ## A host function reached as a value -- `math.sin` bound off
@@ -1179,6 +1286,15 @@ class SRVM:
                                 self.state.x[10] = io.writebytes(path, content)
                             else:
                                 self.state.x[10] = false
+                    elif b_name == "next":
+                        ## Stepping a generator is not a value-returning call:
+                        ## it switches execution into the generator and comes
+                        ## back when it yields, so it must not fall through to
+                        ## the pc advance at the end of this chain.
+                        if self.enter_generator(self.state.x[10], self.state.pc + 4):
+                            return
+                        self.state.pc = self.state.pc + 4
+                        return
                     elif b_name == "gpu_get_time":
                         ## Same answers the stack VM reports for the stub module.
                         self.state.x[10] = 0.0
@@ -1451,7 +1567,7 @@ class SRVM:
                     self.state.x[rd] = {"__host_mod__": gpu}
                 elif name == "ml_native" and not self.state.safe_mode:
                     self.state.x[rd] = {"__host_mod__": ml_native}
-                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or name == "reflect_get_methods" or name == "reflect_get_class" or name == "gpu_get_time" or name == "gpu_poll_events" or name == "gpu_mouse_pos" or name == "ffi_open" or name == "ffi_close" or name == "ffi_call" or (type(name) == "string" and startswith(name, "__builtin_")):
+                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or name == "reflect_get_methods" or name == "reflect_get_class" or name == "gpu_get_time" or name == "gpu_poll_events" or name == "gpu_mouse_pos" or name == "ffi_open" or name == "ffi_close" or name == "ffi_call" or name == "next" or (type(name) == "string" and startswith(name, "__builtin_")):
                     self.state.x[rd] = {"__builtin__": name}
                 else:
                     self.state.x[rd] = nil
