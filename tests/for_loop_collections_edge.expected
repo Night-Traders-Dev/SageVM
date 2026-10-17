@@ -1,0 +1,22 @@
+=== For Loop over Array ===
+10
+20
+30
+sum:
+60
+=== For Loop over Nested Array ===
+1
+2
+3
+4
+=== For Loop over Empty Array ===
+empty array loop done
+=== For Loop over String ===
+S
+a
+g
+e
+=== For Loop over Empty String ===
+empty string loop done
+=== For Loop over Nil ===
+nil loop done

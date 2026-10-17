@@ -1,0 +1,27 @@
+=== String Indexing & Length ===
+6
+S
+e
+M
+nil
+nil
+=== String Search Functions ===
+true
+false
+false
+true
+false
+true
+false
+=== String Transformation Builtins ===
+SAGEVM
+sagevm
+hello world
+SageLang
+Sage
+=== Boundary & Nil Cases ===
+0
+nil
+true
+true
+true
