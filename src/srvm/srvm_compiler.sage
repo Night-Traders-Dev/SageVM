@@ -612,6 +612,14 @@ class StackToRiscVTranslator:
                 let val = self.pop_reg()
                 let idx = self.pop_reg()
                 let obj = self.pop_reg()
+                ## The stack VM pops three and puts the assigned value back:
+                ## `stack[stack_len-1] = val` after dropping two. That is what
+                ## makes `b[1] = b[2] = 88` work -- the inner store leaves the
+                ## value for the outer one to assign. Dropping it here instead
+                ## took an entry off the operand stack that the next store still
+                ## needed, so the second b[1] = ... read b, 1 and b's own index
+                ## off the wrong slots and stored the array into b[1].
+                self.push_val(val)
                 var obj_reg = obj
                 if obj == 10 or obj == 11 or obj == 6 or obj == 7:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 5, obj, 0))
@@ -771,6 +779,11 @@ class StackToRiscVTranslator:
                     self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 11, val, 0))
                 self.emit_load_imm(10, name_idx)
                 self.emit_32(self.encoder.encode_r(OP_VMSYS, F3_OBJ_OPS, 0, 0, OBJ_SET_PROP, obj_reg))
+                ## Same shape as SET_INDEX: the stack VM drops the object and
+                ## leaves the assigned value on the stack, which is what lets
+                ## `obj.a = obj.b = v` chain. Dropping it here cost the second
+                ## store an operand and it assigned through the wrong slot.
+                self.push_val(val)
 
             elif op == OP_POP:
                 if len(self.reg_stack) > 0:
