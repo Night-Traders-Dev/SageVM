@@ -591,11 +591,16 @@ class SRVM:
                             self.state.x[rd] = s
                         elif name == "net": self.state.x[rd] = net
                         elif name == "gpu":
+                            ## Name the builtins rather than binding the host
+                            ## functions. A raw host function came back nil here --
+                            ## the gpu module is a stub in this scope -- so
+                            ## `gpu.poll_events != nil` was false and every call
+                            ## through it came back nothing.
                             let g = {}
                             g["__type__"] = "module"
-                            g["poll_events"] = gpu.poll_events
-                            g["get_time"] = gpu.get_time
-                            g["mouse_pos"] = gpu.mouse_pos
+                            g["poll_events"] = "__builtin_gpu_poll_events"
+                            g["get_time"] = "__builtin_gpu_get_time"
+                            g["mouse_pos"] = "__builtin_gpu_mouse_pos"
                             self.state.x[rd] = g
                         elif name == "ml_native": self.state.x[rd] = ml_native
                         elif name == "thread": self.state.x[rd] = host_thread
@@ -1159,6 +1164,13 @@ class SRVM:
                                 self.state.x[10] = io.writebytes(path, content)
                             else:
                                 self.state.x[10] = false
+                    elif b_name == "gpu_get_time":
+                        ## Same answers the stack VM reports for the stub module.
+                        self.state.x[10] = 0.0
+                    elif b_name == "gpu_poll_events":
+                        self.state.x[10] = nil
+                    elif b_name == "gpu_mouse_pos":
+                        self.state.x[10] = {"x": 0, "y": 0}
                     elif startswith(b_name, "io_"):
                         if self.state.safe_mode:
                             print "Error: " + b_name + " is restricted in safe mode"
@@ -1375,7 +1387,7 @@ class SRVM:
                     self.state.x[rd] = {"__host_mod__": gpu}
                 elif name == "ml_native" and not self.state.safe_mode:
                     self.state.x[rd] = {"__host_mod__": ml_native}
-                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or name == "reflect_get_methods" or name == "reflect_get_class" or (type(name) == "string" and startswith(name, "__builtin_")):
+                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or name == "reflect_get_methods" or name == "reflect_get_class" or name == "gpu_get_time" or name == "gpu_poll_events" or name == "gpu_mouse_pos" or (type(name) == "string" and startswith(name, "__builtin_")):
                     self.state.x[rd] = {"__builtin__": name}
                 else:
                     self.state.x[rd] = nil
