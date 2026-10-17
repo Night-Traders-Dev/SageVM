@@ -395,11 +395,10 @@ class SRVM:
         if base >= 0 and base < self.state.max_stack_size:
             while len(self.state.stack) <= base:
                 push(self.state.stack, srvm_core.UNBOUND)
-            ## Overwrite. The stack VM's slots and its operand stack are the same
-            ## storage, so a later push to a position simply replaces what was
-            ## there: the operands of `a + 10` sit in the slot `x` will live in
-            ## and the sum replaces them. Binding only once left the slot holding
-            ## whichever intermediate arrived first.
+            ## Overwrite, the way the stack VM's shared storage does: the operands
+            ## of `a + 10` sit in the slot `x` is declared in and the sum replaces
+            ## them. Binding only once left the slot holding whichever
+            ## intermediate arrived first.
             self.state.stack[base] = self.state.x[rd]
         self.state.pc = self.state.pc + 4
 

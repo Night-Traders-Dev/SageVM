@@ -318,6 +318,7 @@ class StackToRiscVTranslator:
                 j = j + 1
         
         var i = 0
+        var i = 0
         while i < len(svm_bytecode):
             let ip = i
             
@@ -979,7 +980,17 @@ class StackToRiscVTranslator:
             elif op == OP_SET_LOCAL:
                 let idx = (int(svm_bytecode[i]) << 8) | int(svm_bytecode[i+1])
                 i = i + 2
-                let rs = self.pop_reg()
+                ## Peek, do not pop -- the same correction OP_SET_GLOBAL already
+                ## carries. The stack VM reads stack[stack_len-1] and leaves it
+                ## there for the pop() the bytecode always follows. Popping here
+                ## too took the translator's operand stack one short, and since a
+                ## local slot is addressed by operand position, every slot after
+                ## the first assignment in a function was off by one: in a loop,
+                ## the string literal of a print ended up bound over the loop
+                ## counter and it compared equal to nothing.
+                var rs = 0
+                if len(self.reg_stack) > 0:
+                    rs = self.reg_stack[len(self.reg_stack) - 1]
                 self.emit_32(self.encoder.encode_s(OP_STORE, F3_SD, 8, rs, idx * 8))
                 
             elif op == OP_SETUP_TRY:
