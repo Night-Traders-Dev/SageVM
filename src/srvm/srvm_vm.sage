@@ -738,23 +738,48 @@ class SRVM:
                             gc_disable()
                             self.state.x[10] = nil
                     elif b_name == "startswith":
-                        self.state.x[10] = startswith(self.state.x[10], self.state.x[11])
+                        let s0 = self.state.x[10]
+                        let s1 = self.state.x[11]
+                        if s0 == nil or s1 == nil: self.state.x[10] = false
+                        else: self.state.x[10] = startswith(s0, s1)
                     elif b_name == "endswith":
-                        self.state.x[10] = endswith(self.state.x[10], self.state.x[11])
+                        let s0 = self.state.x[10]
+                        let s1 = self.state.x[11]
+                        if s0 == nil or s1 == nil: self.state.x[10] = false
+                        else: self.state.x[10] = endswith(s0, s1)
                     elif b_name == "contains":
-                        self.state.x[10] = contains(self.state.x[10], self.state.x[11])
+                        let s0 = self.state.x[10]
+                        let s1 = self.state.x[11]
+                        if s0 == nil or s1 == nil: self.state.x[10] = false
+                        else: self.state.x[10] = contains(s0, s1)
                     elif b_name == "join":
-                        self.state.x[10] = join(self.state.x[10], self.state.x[11])
+                        let s0 = self.state.x[10]
+                        let s1 = self.state.x[11]
+                        if s0 == nil or s1 == nil: self.state.x[10] = nil
+                        else: self.state.x[10] = join(s0, s1)
                     elif b_name == "split":
-                        self.state.x[10] = split(self.state.x[10], self.state.x[11])
+                        let s0 = self.state.x[10]
+                        let s1 = self.state.x[11]
+                        if s0 == nil or s1 == nil: self.state.x[10] = []
+                        else: self.state.x[10] = split(s0, s1)
                     elif b_name == "replace":
-                        self.state.x[10] = replace(self.state.x[10], self.state.x[11], self.state.x[12])
+                        let s0 = self.state.x[10]
+                        let s1 = self.state.x[11]
+                        let s2 = self.state.x[12]
+                        if s0 == nil or s1 == nil or s2 == nil: self.state.x[10] = ""
+                        else: self.state.x[10] = replace(s0, s1, s2)
                     elif b_name == "upper":
-                        self.state.x[10] = upper(self.state.x[10])
+                        let s0 = self.state.x[10]
+                        if s0 == nil: self.state.x[10] = nil
+                        else: self.state.x[10] = upper(s0)
                     elif b_name == "lower":
-                        self.state.x[10] = lower(self.state.x[10])
+                        let s0 = self.state.x[10]
+                        if s0 == nil: self.state.x[10] = nil
+                        else: self.state.x[10] = lower(s0)
                     elif b_name == "strip":
-                        self.state.x[10] = strip(self.state.x[10])
+                        let s0 = self.state.x[10]
+                        if s0 == nil: self.state.x[10] = nil
+                        else: self.state.x[10] = strip(s0)
                     elif b_name == "print":
                         ## Native print, not print(str(...)). Under the SageVM
                         ## compiler str() renders a list as "<array>" where the
