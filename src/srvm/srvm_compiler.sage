@@ -105,6 +105,41 @@ class StackToRiscVTranslator:
         push(self.freed_this_op, r)
         return r
 
+    ## Copy srcs[k] into register dbase+k. A plain high-to-low walk only avoids
+    ## clobbering when every source sits below its destination: the sources are
+    ## whatever registers the caller's expression left the values in, and those
+    ## can lie inside the destination range. Writing one of them first then
+    ## destroys the value a later copy still has to read -- with four arguments
+    ## to a module call, sources a22 and a23 land in a19..a22 and a21 ended up
+    ## holding a23's value.
+    ##
+    ## Lift the sources that fall inside the destination range into registers
+    ## above it, copy from those, and do the rest in place. The caller parks
+    ## everything this can touch, so a live value in a lift register is put back.
+    proc emit_moves_to(self, srcs, dbase, tbase):
+        let n = len(srcs)
+        let dhi = dbase + n - 1
+        var lifted = []
+        var treg = tbase
+        var k = 0
+        while k < n:
+            let src = srcs[k]
+            if src >= dbase and src <= dhi and src != dbase + k and src != 5:
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, treg, src, 0))
+                push(lifted, [dbase + k, treg])
+                treg = treg + 1
+            k = k + 1
+        k = 0
+        while k < n:
+            let src = srcs[k]
+            if (src < dbase or src > dhi or src == dbase + k) and src != 5:
+                self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, dbase + k, src, 0))
+            k = k + 1
+        k = 0
+        while k < len(lifted):
+            self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, lifted[k][0], lifted[k][1], 0))
+            k = k + 1
+
     ## Staging a comparison or a call writes a0/a1 -- and the method block writes
     ## s2, s3.. -- over whatever the VM uses those registers for. A value already
     ## sitting there is live: it is an operand of an expression further out, and
@@ -122,7 +157,6 @@ class StackToRiscVTranslator:
     ## Park the live registers in [lo, hi] without clearing what is already
     ## parked, so one operation can guard two disjoint ranges.
     proc stage_protect_range(self, lo, hi):
-        let base = len(self.stage_saves)
         var r = lo
         while r <= hi:
             var live = false
@@ -133,7 +167,15 @@ class StackToRiscVTranslator:
                         live = true
                     q = q + 1
             if live:
-                let slot = 4096 + base + len(self.stage_saves) - len(self.stage_saves)
+                ## One slot per parked register. This was written as
+                ## 4096 + base + len(stage_saves) - len(stage_saves), which
+                ## collapses to 4096 + base -- the same slot for every register
+                ## parked by a single call, so the last one saved overwrote the
+                ## others and the restore handed them all the same value. That is
+                ## why a string held for an enclosing `+` came back as the builtin
+                ## descriptor parked after it, and `print "label: " + str(...)`
+                ## printed the descriptor instead of the label.
+                let slot = 4096 + len(self.stage_saves)
                 self.emit_32(self.encoder.encode_s(OP_STORE, F3_SD, 0, r, slot * 8))
                 push(self.stage_saves, [r, slot])
             r = r + 1
@@ -1000,30 +1042,13 @@ class StackToRiscVTranslator:
                 ## rest in place. Register 18..25 is above any 8-argument call and
                 ## is parked by the same staging machinery that already guards the
                 ## argument range, so a live value there is put back afterwards.
-                let dlo = 10
-                let dhi = 10 + argc - 1
-                self.stage_protect_range(18, 25)
-                var lifted = []
-                var treg = 18
-                k = argc - 1
-                while k >= 0:
-                    let lsrc = args[argc - 1 - k]
-                    if lsrc >= dlo and lsrc <= dhi and lsrc != 10 + k and lsrc != 5:
-                        self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, treg, lsrc, 0))
-                        push(lifted, [10 + k, treg])
-                        treg = treg + 1
-                    k = k - 1
-                k = argc - 1
-                while k >= 0:
-                    let src = args[argc - 1 - k]
-                    let dest = 10 + k
-                    if (src < dlo or src > dhi or src == dest) and src != 5:
-                        self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, dest, src, 0))
-                    k = k - 1
-                var li = 0
-                while li < len(lifted):
-                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, lifted[li][0], lifted[li][1], 0))
-                    li = li + 1
+                self.stage_protect_range(18, 27)
+                var srcs = []
+                k = 0
+                while k < argc:
+                    push(srcs, args[argc - 1 - k])
+                    k = k + 1
+                self.emit_moves_to(srcs, 10, 10 + argc)
                 # Call via t0 (x5), which holds the preserved callee.
                 ## x28 carries "this call has a receiver" from the bind; clear it so a
                 ## plain call cannot inherit the previous one.
@@ -1053,16 +1078,15 @@ class StackToRiscVTranslator:
                 ## held there for an enclosing `+` was overwritten by the call,
                 ## so `print "label: " + str(mem.read(p, 0, nil))` printed only
                 ## the str(). Guard the argument range the way OP_CALL does.
-                self.stage_protect(10, 10 + argc)
-                self.stage_protect_range(18, 19 + argc - 1)
+                self.stage_protect(10, 27)
                 self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, 18, obj, 0))
                 # Move args to x19..
+                var msrcs = []
                 k = 0
                 while k < argc:
-                    let src = args[argc - 1 - k]
-                    let dest = 19 + k
-                    self.emit_32(self.encoder.encode_i(OP_IMM, F3_ADDI, dest, src, 0))
+                    push(msrcs, args[argc - 1 - k])
                     k = k + 1
+                self.emit_moves_to(msrcs, 19, 19 + argc)
                 
                 # Load name_idx to x10
                 self.emit_load_imm(10, name_idx)
