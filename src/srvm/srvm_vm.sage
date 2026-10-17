@@ -1,4 +1,4 @@
-from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS, OP_LOCAL_DEF
+from srvm_core import OP_LUI, OP_AUIPC, OP_JAL, OP_JALR, OP_BRANCH, OP_LOAD, OP_STORE, OP_IMM, OP_REG, OP_LDC, OP_VMSYS, OP_LOCAL_DEF, OP_LOCAL_BIND
 from srvm_core import F3_ADDI, F3_SLTI, F3_SLTIU, F3_XORI, F3_ORI, F3_ANDI, F3_SLLI, F3_SRLI, F3_ADD, F3_SLL, F3_SLT, F3_SLTU, F3_XOR, F3_SRL, F3_OR, F3_AND, F3_VM_OPS, F3_GPU_OPS, F3_OBJ_OPS, F3_LD, F3_SD, F3_BEQ, F3_BNE
 from srvm_core import VMO_NOP, VMO_HALT, VMO_PUSH_ENV, VMO_POP_ENV, VMO_CALL, VMO_SETUP_TRY, VMO_END_TRY, VMO_RAISE, VMO_IMPORT, VMO_PRINT, VMO_ARRAY_LEN, VMO_PRINTM, VMO_EXEC_AST, VMO_CMP_BINARY, VMO_NIL, VMO_TRUE, VMO_FALSE, VMO_NOT, VMO_TRUTHY, VMO_SLICE, VMO_CREATE_GENERATOR, VMO_YIELD, VMO_GENERATOR_NEXT, CMP_EQ, CMP_NEQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE
 from srvm_core import OBJ_GET_GLOBAL, OBJ_SET_GLOBAL, OBJ_NEW_CLASS, OBJ_INHERIT, OBJ_METHOD_BIND
@@ -35,6 +35,11 @@ class SageVMState:
         ## of each `next()` that switched into one.
         self.active_generator = nil
         self.gen_caller_stack = []
+        ## Argument count of each open frame, keyed by its base. The stack VM
+        ## numbers local slots from the frame base, with the parameters first, so
+        ## the slot a value belongs in depends on how many the call passed --
+        ## which is why the operand position alone does not identify it.
+        self.frame_arity = {}
         
         # Memory segments
         self.bytecode = []
@@ -311,6 +316,8 @@ class SRVM:
             self.handle_ldc(rd, raw)
         elif op == OP_LOCAL_DEF:
             self.handle_local_def(rd, rs1, imm_i)
+        elif op == OP_LOCAL_BIND:
+            self.handle_local_bind(rd, imm_i)
         elif op == OP_LOAD:
             self.handle_load(rd, rs1, imm_i)
         elif op == OP_STORE:
@@ -376,6 +383,25 @@ class SRVM:
             step = step / 2
         if n < 0: return 0 - t
         return t
+
+    ## Bind operand position `pos` of this frame into its local slot. The slot
+    ## is parameters + pos, because the caller pushed the arguments first.
+    proc handle_local_bind(self, rd, pos):
+        let fbase = self.state.x[8]
+        var arity = 0
+        if dict_has(self.state.frame_arity, str(fbase)):
+            arity = int(self.state.frame_arity[str(fbase)])
+        let base = fbase + (arity + pos) * 8
+        if base >= 0 and base < self.state.max_stack_size:
+            while len(self.state.stack) <= base:
+                push(self.state.stack, srvm_core.UNBOUND)
+            ## Overwrite. The stack VM's slots and its operand stack are the same
+            ## storage, so a later push to a position simply replaces what was
+            ## there: the operands of `a + 10` sit in the slot `x` will live in
+            ## and the sum replaces them. Binding only once left the slot holding
+            ## whichever intermediate arrived first.
+            self.state.stack[base] = self.state.x[rd]
+        self.state.pc = self.state.pc + 4
 
     proc handle_local_def(self, rd, rs1, imm_i):
         let base = self.state.x[8] + imm_i
@@ -1425,6 +1451,10 @@ class SRVM:
                             self.state.stack[frame_base + k * 8] = self.state.x[10 + k]
                             k = k + 1
                         self.state.x[8] = frame_base
+                        ## Keyed by string: a dict here drops an integer key
+                        ## silently, which left every frame looking like it had
+                        ## no arguments and put every local one slot out.
+                        self.state.frame_arity[str(frame_base)] = argc
                     ## The frame carries the caller's s0 and its stack depth as well. A nested
                     ## call overwrites both, and without restoring them the caller
                     ## resumes reading its parameters out of the callee's frame --

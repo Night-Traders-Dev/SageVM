@@ -13,6 +13,12 @@ let OP_IMM     = 0b0010011 # 0x13
 let OP_REG     = 0b0110011 # 0x33
 let OP_LDC     = 0b1011011 # Custom-2 Opcode for Load Constant (U-type)
 let OP_LOCAL_DEF = 0b1011100 # Custom: read a local, binding it on first use
+## Bind a local slot from the value just produced. The stack VM has no such
+## instruction because its slots and its operand stack are the same storage; a
+## value pushed at operand position k simply lands in slot k, so a `var` needs
+## no opcode at all. Here the frame and the operand stack are separate, so the
+## binding has to be stated.
+let OP_LOCAL_BIND = 0b1011101
 let OP_VMSYS   = 0b1110011 # 0x73 (Standard SYSTEM opcode repurposed)
 
 # Funct3 for OP_BRANCH

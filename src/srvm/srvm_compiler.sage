@@ -92,6 +92,26 @@ class StackToRiscVTranslator:
     proc push_val(self, r):
         push(self.push_regs, r)
         push(self.reg_stack, r)
+        ## The stack VM's slots and its operand stack are the same storage, so a
+        ## value pushed at position k is already in slot k and a `var x = v`
+        ## needs no opcode: pushing v is the declaration. Here the frame and the
+        ## operand stack are separate, so the binding has to be stated.
+        ##
+        ## Say it at every push. The slot a push belongs in is parameters + its
+        ## operand position -- the parameters are on the operand stack ahead of
+        ## it, which is why the position alone did not identify the slot -- and
+        ## a value that turns out to be an intermediate rather than a local just
+        ## fills a slot nothing reads.
+        ##
+        ## Only in chunks that use locals: otherwise this is one instruction per
+        ## value for nothing.
+        ## Position is the depth, not a running count: the stack VM's binary
+        ## operators pop two and push one, so a result reoccupies the position
+        ## its left operand held. `a + 10` therefore leaves its sum in the slot
+        ## `a` had just been read into -- which is the slot `x` is declared in.
+        ## Counting pushes instead put every result one slot too far on.
+        if self.uses_locals:
+            self.emit_32(self.encoder.encode_i(OP_LOCAL_BIND, 0, r, 0, len(self.reg_stack) - 1))
 
     proc pop_reg(self):
         if self.reg_stack == nil or len(self.reg_stack) == 0:
@@ -259,6 +279,12 @@ class StackToRiscVTranslator:
         
         self.output_bytes = []
         self.reg_stack = []
+        self.uses_locals = false
+        var lp = 0
+        while lp < len(svm_bytecode):
+            if int(svm_bytecode[lp]) == OP_GET_LOCAL or int(svm_bytecode[lp]) == OP_SET_LOCAL:
+                self.uses_locals = true
+            lp = lp + 1
         self.push_regs = []
         self.push_regs = []
         ## First mention of each local slot in this chunk. 0x3b is bind or read
