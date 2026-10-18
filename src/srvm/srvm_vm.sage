@@ -638,7 +638,15 @@ class SRVM:
                         ## is exact for the magnitudes a script can write.
                         self.state.x[10] = self.int_value(self.state.x[10])
                     elif b_name == "slice":
-                        self.state.x[10] = slice(self.state.x[10], self.state.x[11], self.state.x[12])
+                        let s0 = self.state.x[10]
+                        if s0 == nil:
+                            self.state.x[10] = nil
+                        else:
+                            var s1 = 0
+                            if self.state.x[11] != nil: s1 = self.int_value(self.state.x[11])
+                            var s2 = len(s0)
+                            if self.state.x[12] != nil: s2 = self.int_value(self.state.x[12])
+                            self.state.x[10] = slice(s0, s1, s2)
                     elif b_name == "len":
                         self.state.x[10] = len(self.state.x[10])
                     elif b_name == "type":
@@ -670,9 +678,12 @@ class SRVM:
                         else:
                             self.state.x[10] = pop(self.state.x[10])
                     elif b_name == "chr":
-                        self.state.x[10] = chr(self.state.x[10])
+                        if self.state.x[10] == nil: self.state.x[10] = ""
+                        else: self.state.x[10] = chr(self.int_value(self.state.x[10]))
                     elif b_name == "ord":
-                        self.state.x[10] = ord(self.state.x[10])
+                        let o_arg = self.state.x[10]
+                        if o_arg == nil or type(o_arg) != "string" or len(o_arg) == 0: self.state.x[10] = 0
+                        else: self.state.x[10] = ord(o_arg)
                     elif b_name == "dict_has":
                         let obj = self.state.x[10]
                         let key = self.state.x[11]
@@ -738,23 +749,55 @@ class SRVM:
                             gc_disable()
                             self.state.x[10] = nil
                     elif b_name == "startswith":
-                        self.state.x[10] = startswith(self.state.x[10], self.state.x[11])
+                        let arg0 = self.state.x[10]
+                        let arg1 = self.state.x[11]
+                        if arg0 == nil or arg1 == nil: self.state.x[10] = false
+                        else: self.state.x[10] = startswith(str(arg0), str(arg1))
                     elif b_name == "endswith":
-                        self.state.x[10] = endswith(self.state.x[10], self.state.x[11])
+                        let arg0 = self.state.x[10]
+                        let arg1 = self.state.x[11]
+                        if arg0 == nil or arg1 == nil: self.state.x[10] = false
+                        else: self.state.x[10] = endswith(str(arg0), str(arg1))
                     elif b_name == "contains":
-                        self.state.x[10] = contains(self.state.x[10], self.state.x[11])
+                        let arg0 = self.state.x[10]
+                        let arg1 = self.state.x[11]
+                        if arg0 == nil or arg1 == nil: self.state.x[10] = false
+                        elif self.state.safe_mode and (self.is_protected(arg0) or self.is_protected(arg1) or (type(arg0) == "dict" and type(arg1) == "string" and startswith(arg1, "__") and not startswith(arg1, "__arg"))):
+                            self.state.x[10] = false
+                        else: self.state.x[10] = contains(arg0, arg1)
                     elif b_name == "join":
-                        self.state.x[10] = join(self.state.x[10], self.state.x[11])
+                        let arg0 = self.state.x[10]
+                        let arg1 = self.state.x[11]
+                        if arg0 == nil or arg1 == nil: self.state.x[10] = ""
+                        else: self.state.x[10] = join(arg0, str(arg1))
                     elif b_name == "split":
-                        self.state.x[10] = split(self.state.x[10], self.state.x[11])
+                        let arg0 = self.state.x[10]
+                        if arg0 == nil: self.state.x[10] = []
+                        else:
+                            var delim = " "
+                            if self.state.x[11] != nil: delim = str(self.state.x[11])
+                            self.state.x[10] = split(str(arg0), delim)
                     elif b_name == "replace":
-                        self.state.x[10] = replace(self.state.x[10], self.state.x[11], self.state.x[12])
+                        let arg0 = self.state.x[10]
+                        if arg0 == nil: self.state.x[10] = ""
+                        else:
+                            var old_s = ""
+                            if self.state.x[11] != nil: old_s = str(self.state.x[11])
+                            var new_s = ""
+                            if self.state.x[12] != nil: new_s = str(self.state.x[12])
+                            self.state.x[10] = replace(str(arg0), old_s, new_s)
                     elif b_name == "upper":
-                        self.state.x[10] = upper(self.state.x[10])
+                        let arg0 = self.state.x[10]
+                        if arg0 == nil: self.state.x[10] = ""
+                        else: self.state.x[10] = upper(str(arg0))
                     elif b_name == "lower":
-                        self.state.x[10] = lower(self.state.x[10])
+                        let arg0 = self.state.x[10]
+                        if arg0 == nil: self.state.x[10] = ""
+                        else: self.state.x[10] = lower(str(arg0))
                     elif b_name == "strip":
-                        self.state.x[10] = strip(self.state.x[10])
+                        let arg0 = self.state.x[10]
+                        if arg0 == nil: self.state.x[10] = ""
+                        else: self.state.x[10] = strip(str(arg0))
                     elif b_name == "print":
                         ## Native print, not print(str(...)). Under the SageVM
                         ## compiler str() renders a list as "<array>" where the
