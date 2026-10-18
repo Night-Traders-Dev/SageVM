@@ -40,12 +40,12 @@ test:
 		echo "#endif" >> .deps/SageLang/core/include/curl/curl.h; \
 	fi
 	@if [ ! -f .deps/SageLang/core/sage ]; then \
-		$(MAKE) -C .deps/SageLang/core SAGE_NO_NET=1 SAGE_NO_GPU=1 SAGE_NO_GUI=1 CFLAGS_EXTRA="-DSAGE_NO_NET -DSAGE_NO_GPU -DSAGE_NO_GUI" LDFLAGS="-lm -lpthread -ldl" -j$$(nproc); \
+		$(MAKE) -C .deps/SageLang/core SAGE_NO_NET=1 SAGE_NO_GPU=1 SAGE_NO_GUI=1 CFLAGS_EXTRA="-DSAGE_NO_NET -DSAGE_NO_GPU -DSAGE_NO_GUI" LDFLAGS="-lm -lpthread -ldl -lcrypto" -j$$(nproc); \
 	fi
 	@SAGE_PATH="src:src/svm:src/srvm:src/jit:.deps/SageLang/core/lib" CFLAGS_EXTRA="-Wno-overlength-strings" .deps/SageLang/core/sage --compile sagevm.sage -o sagevm
 	@ln -sf sagevm sgvm
 	@ln -sf sagevm sgvmc
-	@python3 tests/run_tests.py
+	@PATH="$(PWD)/.deps/SageLang/core:$(PATH)" python3 tests/run_tests.py
 
 test-srvm:
 	@$(MAKE) all
