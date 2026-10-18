@@ -1,0 +1,20 @@
+--- Chained String Operations ---
+hello_world_sagevm
+HELLO_WORLD_SAGEVM
+HELLO WORLD SAGEVM
+--- Split and Join Operations ---
+[HELLO, WORLD, SAGEVM]
+3
+HELLO - WORLD - SAGEVM
+hello - world - sagevm
+--- Character Conversions ---
+A
+65
+z
+122
+--- Empty String Boundary Cases ---
+
+
+
+
+[]
