@@ -28,6 +28,7 @@ def run_suite():
     # Locate sage binary relative to the script
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sage_dir = os.path.join(repo_root, ".deps", "SageLang", "core")
+    os.environ["PATH"] = sage_dir + os.pathsep + os.environ.get("PATH", "")
 
     print("==================================================")
     print(f"  SageVM Coverage Test Suite ({target_label})  ")
@@ -171,6 +172,7 @@ def run_suite():
                 continue
             npath = os.path.join(native_dir, nf)
             nenv = os.environ.copy()
+            nenv["PATH"] = sage_dir + os.pathsep + nenv.get("PATH", "")
             nenv["SAGE_PATH"] = os.pathsep.join([
                 "src", "src/svm", "src/srvm", "src/jit",
                 os.path.join(repo_root, ".deps", "SageLang", "core", "lib"),
