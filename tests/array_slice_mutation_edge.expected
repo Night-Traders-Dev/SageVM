@@ -1,0 +1,19 @@
+--- 1D Array Slice Copy Independence ---
+[20, 30, 40]
+3
+[10, 20, 999, 40, 50]
+[20, 30, 40]
+[10, 20, 999, 40, 50]
+[888, 30, 40]
+--- 2D Matrix Slicing ---
+[[1, 2, 3], [4, 5, 6]]
+2
+777
+--- Boundary and Empty Array Slicing ---
+[]
+0
+[]
+0
+--- Slice Builtin vs Slice Syntax ---
+[10, 20]
+[10, 20]
