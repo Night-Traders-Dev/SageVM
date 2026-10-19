@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.2] - 2026-10-19
+
+### Fixed
+- **SRVM Environment Scoping & Globals Preservation**: Modified `VMO_PUSH_ENV` and `VMO_POP_ENV` in `src/srvm/srvm_vm.sage` to track loop nesting depth without swapping or resetting the global variables dictionary (`heap`). This resolves a issue where entering any `for` loop wiped global variables and discarded assignments made in the loop body.
+- **SRVM Environment and Call Stack Decoupling**: Decoupled loop environment scoping from function call frames (`call_stack`), preventing loop scope exits from popping function call stack frames.
+
 ## [1.2.2] - 2026-10-11
 
 ### Fixed

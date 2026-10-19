@@ -61,8 +61,9 @@ The SRVM implementation in `src/srvm/srvm_vm.sage`. It maps guest execution to a
 - **Handler Depth**: 1,024 levels.
 - **Max Array Size**: 1,000,000 entries.
 - **Optimized Builtins**: Provides native implementations for string and collection utilities.
-- **Performance Optimizations**:
+- **Performance & Scoping Optimizations**:
   - **Lean Interpreter**: Removed legacy JIT hot-path detection stubs and string concatenations from the fetch-decode loop, yielding ~60% speedup in arithmetic-heavy code.
+  - **Environment Scoping & Call Stack Decoupling**: `VMO_PUSH_ENV` and `VMO_POP_ENV` track loop block nesting depth without clearing or swapping the global variable dictionary (`heap`), preserving global variables across loop iterations. Furthermore, environment scoping is decoupled from function call frames (`call_stack`), preventing loop scope exit from corrupting function call stack state.
 
 (Refer to `SPEC.md` for the complete opcode table.)
 
