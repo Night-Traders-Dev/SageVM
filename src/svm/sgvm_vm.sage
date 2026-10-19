@@ -243,14 +243,21 @@ class MetalVM:
         let const_len = len(constants)
         var scopes_len = len(scopes)
 
-        # Performance: Inline cache with O(1) epoch invalidation for global lookup and assignment
+        # Performance: Pre-allocated global lookup cache arrays (65,536 entries for 16-bit constant indices)
         var global_cache_dict = []
         var global_cache_epoch_array = []
+        var global_cache_name_array = []
         var global_cache_epoch = 1
         var ci = 0
         while ci < const_len:
             push(global_cache_dict, nil)
             push(global_cache_epoch_array, 0)
+            push(global_cache_name_array, constants[ci])
+            ci = ci + 1
+        while ci < 65536:
+            push(global_cache_dict, nil)
+            push(global_cache_epoch_array, 0)
+            push(global_cache_name_array, nil)
             ci = ci + 1
 
         host_thread.lock(g_gil)
@@ -297,15 +304,10 @@ class MetalVM:
             elif op == OP_GET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if idx >= const_len:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
-
                 if global_cache_epoch_array[idx] == global_cache_epoch:
-                    # Performance: Defer constants[idx] lookup and string checks behind safe_mode guard
+                    # Performance: Defer string checks behind safe_mode guard
                     if safe_mode:
-                        let name = constants[idx]
+                        let name = global_cache_name_array[idx]
                         if type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                             if stack_len < physical_stack_len:
                                 stack[stack_len] = nil
@@ -314,7 +316,7 @@ class MetalVM:
                                 physical_stack_len = physical_stack_len + 1
                             stack_len = stack_len + 1
                             continue
-                    let val = global_cache_dict[idx][constants[idx]]
+                    let val = global_cache_dict[idx][global_cache_name_array[idx]]
                     if stack_len < physical_stack_len:
                         stack[stack_len] = val
                     else:
@@ -322,6 +324,11 @@ class MetalVM:
                         physical_stack_len = physical_stack_len + 1
                     stack_len = stack_len + 1
                     continue
+
+                if idx >= const_len:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
 
                 let name = constants[idx]
 
@@ -382,6 +389,7 @@ class MetalVM:
                 if resolved_dict != nil:
                     global_cache_dict[idx] = resolved_dict
                     global_cache_epoch_array[idx] = global_cache_epoch
+                    global_cache_name_array[idx] = name
                 if stack_len < physical_stack_len:
                     stack[stack_len] = val
                 else:
@@ -391,20 +399,20 @@ class MetalVM:
             elif op == OP_SET_GLOBAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
-                if idx >= const_len:
-                    print "Error: Constant pool index out of bounds: " + str(idx)
-                    halted = true
-                    break
-
                 if global_cache_epoch_array[idx] == global_cache_epoch:
                     if safe_mode:
-                        let name = constants[idx]
+                        let name = global_cache_name_array[idx]
                         if type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                             print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
                             stack[stack_len-1] = nil
                             continue
-                    global_cache_dict[idx][constants[idx]] = stack[stack_len-1]
+                    global_cache_dict[idx][global_cache_name_array[idx]] = stack[stack_len-1]
                     continue
+
+                if idx >= const_len:
+                    print "Error: Constant pool index out of bounds: " + str(idx)
+                    halted = true
+                    break
 
                 let name = constants[idx]
 
@@ -465,6 +473,7 @@ class MetalVM:
                 if resolved_dict != nil:
                     global_cache_dict[idx] = resolved_dict
                     global_cache_epoch_array[idx] = global_cache_epoch
+                    global_cache_name_array[idx] = name
             elif op == OP_SET_LOCAL:
                 let idx = (code_bytes[ip] << 8) | code_bytes[ip+1]
                 ip = ip + 2
