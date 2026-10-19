@@ -5,6 +5,9 @@ import re
 
 def run_suite():
     os.environ["TEST_ENV_VAR"] = "SageVM-Testing"
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sage_dir = os.path.join(repo_root, ".deps", "SageLang", "core")
+    os.environ["PATH"] = sage_dir + os.pathsep + os.environ.get("PATH", "")
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     test_dir = "tests"
     if not os.path.exists(test_dir):

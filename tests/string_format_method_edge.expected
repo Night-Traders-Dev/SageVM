@@ -1,0 +1,14 @@
+--- Chained String Transformations ---
+Hello SageVM World
+HELLO SAGEVM WORLD
+hello sagevm world
+HELLO SAGEVM ENGINE
+--- Character Code Conversions ---
+65
+A
+Z
+97
+--- Empty String & Collection Boundaries ---
+1
+0
+sage

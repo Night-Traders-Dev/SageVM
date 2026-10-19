@@ -1,0 +1,14 @@
+--- Function Array Dispatch ---
+15
+5
+50
+--- Function Dict Dispatch ---
+28
+12
+--- Function Reassignment in Dict ---
+160
+--- Higher-Order Collection Execution ---
+Error: Callee not a function or builtin name
+nil
+nil
+nil
