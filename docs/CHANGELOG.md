@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.2] - 2026-10-20
+
+### Fixed
+- **SRVM Environment Scoping (`VMO_PUSH_ENV` / `VMO_POP_ENV`)**: Corrected
+  environment scope push/pop handling in `src/srvm/srvm_vm.sage` so loop bodies
+  no longer overwrite or clear the global variable dictionary (`heap`) or share
+  state with function frames on `call_stack`. `VMO_PUSH_ENV` and `VMO_POP_ENV`
+  now track scope nesting depth (`env_depth`) directly, preserving global
+  variable state across loop iterations and function calls.
+
 ## [1.2.2] - 2026-10-11
 
 ### Fixed
