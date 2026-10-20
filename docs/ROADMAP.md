@@ -35,6 +35,7 @@ This document outlines the current status, supported features, and outstanding w
 
 ## 🔴 Outstanding (Future Release Features)
 
+- [ ] **SRVM Nested Loop Register Allocation**: Resolve register pool spill/overwrite in nested loops where inner loop register allocations conflict with active outer loop iterables/counters.
 - [ ] **Regex & JSON Native Modules**: Restore `re` and `json` guest module bridging in `src/svm/sgvm_vm.sage`.
 - [ ] **SRVM GPU Implementation**: Implement register-based GPU opcodes in `src/srvm/srvm_vm.sage`.
 - [ ] **SRVM Register Opcode Gaps**: Implement remaining register-based extensions (`VMO_CMP_BINARY`, `OBJ_SLICE`).
