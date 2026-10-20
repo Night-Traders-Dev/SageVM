@@ -1,0 +1,19 @@
+--- Loop iteration over dict keys ---
+Sum of values: 60
+--- Loop iteration over dict values ---
+Vals count: 3
+Vals sum: 60
+--- Dict mutation inside loop ---
+d2['x']: 10
+d2['y']: 20
+d2['z']: 30
+--- Empty dictionary iteration ---
+Empty keys len: 0
+Empty vals len: 0
+--- Non-string key containment and lookup ---
+dict_has 100: false
+d3[100]: nil
+dict_has true: false
+d3[true]: nil
+dict_has missing: false
+d3['missing'] == nil: true
