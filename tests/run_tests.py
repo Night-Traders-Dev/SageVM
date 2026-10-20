@@ -29,6 +29,8 @@ def run_suite():
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sage_dir = os.path.join(repo_root, ".deps", "SageLang", "core")
 
+    os.environ["PATH"] = sage_dir + os.pathsep + os.environ.get("PATH", "")
+
     print("==================================================")
     print(f"  SageVM Coverage Test Suite ({target_label})  ")
     print("==================================================")

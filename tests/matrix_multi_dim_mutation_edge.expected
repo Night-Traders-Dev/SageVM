@@ -1,0 +1,18 @@
+--- 2D Matrix Creation and Access ---
+m2d[0][0]: 1
+m2d[1][1]: 5
+m2d[2][2]: 9
+--- Matrix Nested Element Mutation ---
+Mutated m2d[0][0]: 100
+Mutated m2d[1][1]: 500
+Mutated m2d[2][2]: 900
+--- Row Sums via Nested Loops ---
+Row 0 sum: 105
+Row 1 sum: 510
+Row 2 sum: 915
+--- 3D Tensor Access and Mutation ---
+cube[0][1][0]: 3
+Mutated cube[0][1][0]: 333
+--- Out-Of-Bounds Matrix Access ---
+m2d[5] == nil: true
+m2d[0][10] == nil: true
