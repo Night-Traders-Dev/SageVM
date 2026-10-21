@@ -857,41 +857,42 @@ class MetalVM:
                     let obj = stack[stack_len-1]
                     if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                         stack[stack_len-1] = nil
-                    elif type(obj) == "dict":
-                        # Performance: direct key lookup fast-path bypassing dict_has
+                    else:
+                        # Performance: Direct key lookup fast-path bypassing type(obj) heap descriptor allocations
                         let val = obj[name]
                         if val != nil:
                             stack[stack_len-1] = val
-                        elif dict_has(obj, name):
-                            stack[stack_len-1] = nil
-                        else:
-                            # Performance: Bypass dict_has function calls for class, method, and module property lookups
-                            var found_prop = false
-                            let cls = obj["__class__"]
-                            if cls != nil:
-                                let cls_methods = cls["__methods__"]
-                                if cls_methods != nil:
-                                    let m = cls_methods[name]
-                                    if m != nil:
-                                        stack[stack_len-1] = m
-                                        found_prop = true
-                            if not found_prop:
-                                let methods = obj["__methods__"]
-                                if methods != nil:
-                                    let m = methods[name]
-                                    if m != nil:
-                                        stack[stack_len-1] = m
-                                        found_prop = true
-                            if not found_prop:
-                                if obj["__type__"] == "module":
-                                    let gval = global_scope[name]
-                                    if gval != nil:
-                                        stack[stack_len-1] = gval
-                                        found_prop = true
-                            if not found_prop:
+                        elif type(obj) == "dict":
+                            if dict_has(obj, name):
                                 stack[stack_len-1] = nil
-                    else:
-                        stack[stack_len-1] = obj[name]
+                            else:
+                                # Performance: Bypass dict_has function calls for class, method, and module property lookups
+                                var found_prop = false
+                                let cls = obj["__class__"]
+                                if cls != nil:
+                                    let cls_methods = cls["__methods__"]
+                                    if cls_methods != nil:
+                                        let m = cls_methods[name]
+                                        if m != nil:
+                                            stack[stack_len-1] = m
+                                            found_prop = true
+                                if not found_prop:
+                                    let methods = obj["__methods__"]
+                                    if methods != nil:
+                                        let m = methods[name]
+                                        if m != nil:
+                                            stack[stack_len-1] = m
+                                            found_prop = true
+                                if not found_prop:
+                                    if obj["__type__"] == "module":
+                                        let gval = global_scope[name]
+                                        if gval != nil:
+                                            stack[stack_len-1] = gval
+                                            found_prop = true
+                                if not found_prop:
+                                    stack[stack_len-1] = nil
+                        else:
+                            stack[stack_len-1] = nil
                 else:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
