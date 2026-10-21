@@ -61,6 +61,7 @@ def run_suite():
             continue
 
         compile_cmd = ["./sgvmc", svm_path, bin_path]
+        env["PATH"] = sage_dir + os.pathsep + env.get("PATH", "")
         if use_riscv:
             compile_cmd.append("--riscv")
 

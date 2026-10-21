@@ -1,0 +1,12 @@
+--- Chained String Transformation Builtins ---
+hello, sagevm world!
+--- Replace + Split + Join Pipeline ---
+[apple, orange, cherry]
+apple | orange | cherry
+--- Character Code Conversions ---
+97
+a
+--- Empty String Boundary Pipeline ---
+
+
+[]

@@ -1,0 +1,14 @@
+--- Function References in Array ---
+15
+5
+50
+--- Function References in Dictionary ---
+24
+16
+80
+--- Reassignment of Function Handles in Collections ---
+5
+--- Higher-Order Function Collection Dispatch ---
+42
+--- Missing Function Reference in Dict ---
+nil
