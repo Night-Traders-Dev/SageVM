@@ -141,3 +141,8 @@
 **Vulnerability:** The reflection builtin `dict_has` (`__builtin_dict_has`) in both `src/svm/sgvm_vm.sage` and `src/srvm/srvm_vm.sage` checked if property keys started with `__` in `safe_mode`, but failed to evaluate whether the dictionary object itself was a protected host module or bridge (`is_protected(obj)`). This allowed sandboxed guest programs to probe for the presence of host functions or internal attributes on protected module dictionaries.
 **Learning:** Reflection builtins must enforce both target object protection checks (`is_protected`) and key-prefix filters (`__`) under `safe_mode` to prevent guest scripts from discovering internal host structure details.
 **Prevention:** Always incorporate `is_protected(obj)` checks inside reflection and container query builtins (`dict_has`, `dict_keys`, `dict_values`).
+
+## 2026-10-21 - Sandbox Probing via Unhardened contains Builtin
+**Vulnerability:** The container membership builtin `contains` (`__builtin_contains`) in both `src/svm/sgvm_vm.sage` and `src/srvm/srvm_vm.sage` lacked `safe_mode` restrictions. Sandboxed guest programs could query `contains(protected_obj, key)` or `contains(obj, "__secret")` to probe for the presence of protected host module attributes or internal private properties starting with `__`.
+**Learning:** Sequence and collection membership builtins (like `contains`) function as reflection mechanisms when evaluated against dictionaries or module wrappers. Security checks (`is_protected` and `__`-prefix blacklists) must be enforced across all container querying builtins under `safe_mode`.
+**Prevention:** Always enforce `is_protected(container)` checks and internal key prefix filters (`__` prefix) inside `contains` builtin dispatch handlers when running in `safe_mode`.

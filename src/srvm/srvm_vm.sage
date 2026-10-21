@@ -742,7 +742,14 @@ class SRVM:
                     elif b_name == "endswith":
                         self.state.x[10] = endswith(self.state.x[10], self.state.x[11])
                     elif b_name == "contains":
-                        self.state.x[10] = contains(self.state.x[10], self.state.x[11])
+                        let container = self.state.x[10]
+                        let item = self.state.x[11]
+                        if container == nil or item == nil:
+                            self.state.x[10] = false
+                        elif self.state.safe_mode and (self.is_protected(container) or (type(item) == "string" and startswith(item, "__") and not startswith(item, "__arg"))):
+                            self.state.x[10] = false
+                        else:
+                            self.state.x[10] = contains(container, item)
                     elif b_name == "join":
                         self.state.x[10] = join(self.state.x[10], self.state.x[11])
                     elif b_name == "split":
