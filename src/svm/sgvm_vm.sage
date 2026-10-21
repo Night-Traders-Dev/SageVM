@@ -1121,7 +1121,14 @@ class MetalVM:
             return endswith(args[0], args[1])
         elif callee == "__builtin_contains":
             if len(args) < 2 or args[0] == nil or args[1] == nil: return false
-            return contains(args[0], args[1])
+            let container = args[0]
+            let item = args[1]
+            if self.safe_mode:
+                if self.is_protected(container):
+                    return false
+                if type(item) == "string" and startswith(item, "__") and not startswith(item, "__arg"):
+                    return false
+            return contains(container, item)
         elif callee == "__builtin_slice":
             if len(args) == 0 or args[0] == nil: return ""
             var s0 = args[0]
