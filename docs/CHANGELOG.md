@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.2] - 2026-10-21
+
+### Fixed
+- **SRVM Environment Scoping (`VMO_PUSH_ENV` / `VMO_POP_ENV`)**: Resolved global
+  variable destruction and call stack corruption during loop execution in the SRVM
+  interpreter (`src/srvm/srvm_vm.sage`). `VMO_PUSH_ENV` and `VMO_POP_ENV` now track
+  scope nesting depth for resource limits without replacing the global heap
+  dictionary (`self.heap`) or pushing onto `self.call_stack`, preserving global
+  assignments across loop iterations.
+
 ## [1.2.2] - 2026-10-11
 
 ### Fixed
