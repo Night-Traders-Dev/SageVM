@@ -1,0 +1,27 @@
+--- Short-Circuit Result Value ---
+false
+true
+false
+true
+true
+false
+--- Truthiness, Not Identity ---
+true
+true
+true
+true
+--- Result Survives The Continuation ---
+false
+true
+true
+true
+--- Nested Short-Circuit ---
+true
+false
+false
+true
+--- Inside Control Flow ---
+else taken
+then taken
+1
+2
