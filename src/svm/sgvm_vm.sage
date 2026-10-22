@@ -1063,8 +1063,10 @@ class MetalVM:
                     let key = keys[i]
                     if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
                         let val = obj[key]
-                        if not (type(val) == "string" and (val == "module" or startswith(val, "__host_"))):
-                            push(safe_vals, val)
+                        if val != nil:
+                            let vtype = type(val)
+                            if not (vtype == "function" or vtype == "native fn" or vtype == "module" or self.is_protected(val) or (vtype == "string" and (val == "module" or startswith(val, "__host_")))):
+                                push(safe_vals, val)
                     i = i + 1
                 return safe_vals
             return dict_values(obj)

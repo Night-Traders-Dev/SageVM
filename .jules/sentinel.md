@@ -141,3 +141,8 @@
 **Vulnerability:** The reflection builtin `dict_has` (`__builtin_dict_has`) in both `src/svm/sgvm_vm.sage` and `src/srvm/srvm_vm.sage` checked if property keys started with `__` in `safe_mode`, but failed to evaluate whether the dictionary object itself was a protected host module or bridge (`is_protected(obj)`). This allowed sandboxed guest programs to probe for the presence of host functions or internal attributes on protected module dictionaries.
 **Learning:** Reflection builtins must enforce both target object protection checks (`is_protected`) and key-prefix filters (`__`) under `safe_mode` to prevent guest scripts from discovering internal host structure details.
 **Prevention:** Always incorporate `is_protected(obj)` checks inside reflection and container query builtins (`dict_has`, `dict_keys`, `dict_values`).
+
+## 2026-10-22 - Sandbox Information Leak via Host Function Handle Reflection in dict_values
+**Vulnerability:** In `MetalVM.call_builtin` (`src/svm/sgvm_vm.sage`), calling `dict_values` (`__builtin_dict_values`) on protected dictionaries or host module objects under `safe_mode` returned list values containing `nil` entries and native host function handles (`"function"`, `"native fn"`), leaking unreadable/restricted host properties.
+**Learning:** Container value reflection builtins (`dict_values`) must filter out `nil` values and host native function handles (`"function"`, `"native fn"`, `"module"`, `is_protected`) under `safe_mode` to prevent leaking unreadable/restricted host properties or handles to guest programs.
+**Prevention:** Always enforce non-nil checks and host object/function type filters inside container reflection builtins when running under sandboxed execution modes.
