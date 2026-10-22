@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.2] - 2026-10-22
+
+### Security
+- **Hardened Container Membership Checks (`contains` / `__builtin_contains`)**: Enforced `is_protected` object checks on container and item targets and filtered `__`-prefixed property strings under `safe_mode` in both Stack VM (`src/svm/sgvm_vm.sage`) and RISC-V VM (`src/srvm/srvm_vm.sage`) interpreters to prevent sandbox metadata leakage.
+
+### Tests
+- **Expanded Test Suite Coverage**: Added edge coverage test suites `string_replace_edge.sage`, `dict_nested_mutation_edge.sage`, `array_pop_push_boundary_edge.sage`, and security regression test `security_contains_leak.sage` with matching `.expected` files.
+
+### Added / UI
+- **Architecture Diagram Accessibility & Keyboard Navigation**: Enhanced the Architecture module graph component (`docs/site/src/sections/Architecture.tsx`) with landmark regions (`role="region"`, `aria-label`), WebGL canvas accessibility markers, focus-visible ring styling, explicit ARIA labels, and keyboard Escape panel closing.
+
 ## [1.2.2] - 2026-10-11
 
 ### Fixed

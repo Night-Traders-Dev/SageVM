@@ -141,7 +141,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-22**
+**Last Conformance Sync: 2026-10-22**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists. The authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63). This shifts the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions (e.g., local `OP_GPU_POLL_EVENTS` mapped to 59 collides with authoritative `BC_OP_GET_LOCAL` at 59, and local `OP_YIELD` mapped to 90 collides with authoritative `OP_GPU_CMD_PUSH_CONST` at 90).
 
@@ -324,7 +324,7 @@ SGVM exposes several host-level functions directly in the global scope for perfo
 | `dict_values(d)` | Returns an array of values in the dictionary. |
 | `startswith(str, prefix)` | Returns true if the string starts with the prefix. |
 | `endswith(str, suffix)` | Returns true if the string ends with the suffix. |
-| `contains(obj, val)` | Returns true if the array/string contains the value. |
+| `contains(obj, val)` | Returns true if the array/string contains the value (enforces safe_mode object protection). |
 | `join(arr, sep)` | Joins an array of strings with the separator. |
 | `split(str, sep)` | Splits a string into an array by the separator. |
 | `replace(str, old, new)` | Replaces occurrences of `old` with `new` in the string. |
@@ -346,6 +346,7 @@ For high-isolation environments, SGVM provides several security features impleme
 - **Module Restriction & Guards**: Access to sensitive host modules is restricted in `safe_mode`.
   - **Deferred Initialization**: SVM (`MetalVM`) defers the population of sensitive host modules until after `safe_mode` has been configured, preventing race conditions or eager loading bypasses.
   - **Mutation Protection**: Guest code is prevented from mutating host modules or module wrappers via `is_protected(obj)` checks in property and index assignments.
+  - **Container Membership Protection**: Both SVM and SRVM enforce `is_protected` checks on container/item targets and filter `__`-prefixed property strings in `contains` (`__builtin_contains`) under `safe_mode` to prevent metadata leakage.
   - **Builtin Protection**: Both SVM and SRVM enforce strict protection for objects tagged with `__builtin__` in `safe_mode`, ensuring core host-provided utility structures remain immutable.
   - **Sandbox Hardening (struct module)**: Safe mode restrictions are extended to the `struct` module, blocking its guest-side import to mitigate sandbox escape vectors.
   - **Garbage Collector Control Hardening**: Both SVM and SRVM restrict invocation of `gc_enable()` and `gc_disable()` (and `__builtin_gc_enable` / `__builtin_gc_disable`) when running in `safe_mode` to prevent untrusted guest scripts from altering host garbage collection state and causing resource exhaustion or DoS.
