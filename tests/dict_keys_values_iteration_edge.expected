@@ -1,0 +1,21 @@
+--- Empty Dictionary ---
+empty keys len: 0
+empty values len: 0
+empty has 'a': false
+--- Key and Value Retrieval ---
+keys count: 3
+values count: 3
+--- Dict Key Iteration in While Loop ---
+dict value sum: 600
+--- Non-string Key and Nil Value Handling ---
+has str_key: true
+has 42: false
+has nil_val: true
+has missing_key: false
+d_mixed['nil_val'] == nil: true
+--- Nil and Primitive Target Reflection Fallbacks ---
+nil keys len: 0
+nil values len: 0
+nil has 'a': false
+array keys len: 0
+number keys len: 0
