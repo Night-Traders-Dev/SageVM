@@ -25,156 +25,16 @@ The test suite performs the following for each `.sage` file in the `tests/` dire
 
 Note: The `testing/` directory contains historical tests, while `tests/` is used for modern coverage verification. New tests added for exceptions, OOP, dictionaries, arithmetic/comparisons, type conversions, bitwise XOR/NOT, explicit truthiness, sys.args, indexing assignments, GC/reflection, memory management, binary structures, all types coverage, slicing syntax, functions with many arguments, nested collections, higher-order functions, instance properties, modulo edge cases, nested scopes, large constant pools, string concatenation, float arithmetic, GPU time, string repetition, short-circuiting, division by zero, unary operators, return values, global persistence, anonymous/higher-order functions, variable shadowing, and collection equality are located here.
 
-### Coverage Expansion (v0.9.9)
-- `div_zero_safety.sage`: Tests runtime guards for division by zero.
-- `builtin_string_ops.sage`: Tests new string builtins.
-- `builtin_collection_ops.sage`: Tests new collection builtins.
-- `security_host_func.sage`: Tests safe mode prevention of direct host function calls.
-- `chr_ord_ops.sage`: Tests `chr` and `ord` builtins.
-- `split_join_ops.sage`: Tests `split` and `join` builtins.
-
-### Coverage Expansion (2026-07-10)
-- `anon_func.sage`: Tests higher-order functions and variable-bound functions.
-- `shadowing.sage`: Tests variable shadowing (local vs global).
-- `collection_eq.sage`: Tests deep equality for arrays and dictionaries (bug flagged: dictionary equality fails).
-
-### Coverage Expansion (2026-07-16)
-- `generators.sage`: Tests generator creation, `yield` statement execution, and the `next()` builtin. Since the SVM interpreter doesn't support native generator opcodes, this is a documented gap.
-- `security_builtin_protection.sage`: Tests host bridge security isolation by attempting to mutate protected `__builtin__`-tagged structures under `safe_mode`.
-
-### Coverage Expansion (2026-07-15)
-- `dict_property.sage`: Tests property-style access and assignment on dictionaries.
-- `index_oob.sage`: Tests out-of-bounds indexing for arrays and missing keys for dictionaries.
-- `call_error.sage`: Tests calling non-callable objects (bug flagged: doesn't currently raise exception).
-
-### Coverage Expansion (August 2026)
-- `sys_exec_system.sage`: Tests `sys.exec` and `sys.system` execution behavior (bug flagged: `sys.system` incorrectly dispatches to the `sys_exec` builtin handler).
-- `gc_reflect_modules.sage`: Tests predefined `gc` and `reflect` global dictionaries vs explicit imports (bug flagged: `import gc` and `import reflect` shadow and erase the predefined populated dictionaries).
-- `thread_module.sage`: Tests the `thread` module bridging and `thread.mutex` builtin (bug flagged: predefined `thread` dictionary lacks the `mutex` builtin unless `import thread` is explicitly executed).
-
-### Coverage Expansion (2026-07-20)
-- `string_indexing.sage`: Tests bracket character indexing on strings (including out-of-bounds boundary values returning `nil`).
-- `slice_builtin.sage`: Tests the `slice` builtin function on arrays and strings.
-- `io_module.sage`: Tests native `io` module bridging (bug flagged: native functions/modules evaluation type mismatch bug).
-
-### Coverage Expansion (2026-07-16)
-- `import_user_module.sage`: Tests `OP_IMPORT` for non-native modules (returns dummy object).
-- `array_len_edge.sage`: Tests `len()` (OP_ARRAY_LEN) on various types and edge cases.
-- `dup_targeted.sage`: Tests `OP_DUP` behavior in complex assignments and expressions.
-
-### Coverage Expansion (2026-07-08)
-- `halt_op.sage`: Verifies VM termination (bug flagged: `sys.exit` currently doesn't halt guest).
-- `security_indexing.sage`: Verifies `safe_mode` index protections for `__` internal keys.
-- `security_restricted.sage`: Verifies native module access blocks in `safe_mode`.
-
-### Coverage Expansion (August 2026)
-- `exceptions_unwind.sage`: Tests multi-frame exception stack unwinding behavior.
-- `ffi_builtin.sage`: Tests FFI library bridging and documents dynamic FFI library loading behavior where `ffi.open` returns `nil` due to host-level module import constraints.
-
-### Coverage Expansion (August 2026 - Forge Daily)
-- `io_file_ops.sage`: Tests `io.writebytes` and `io.readbytes` on normal writing/reading paths, non-existent files, and invalid/nil inputs (noting the conformance behavior where indexing the raw `BYTES` returned from `io.readbytes` inside SVM yields `nil` due to missing conversion).
-- `gpu_module_ops.sage`: Tests importing the `gpu` module, and invoking its `poll_events` and `mouse_pos` functions.
-- `builtin_contains_edge.sage`: Tests the `contains` builtin on strings and arrays under edge conditions, documenting a suspected SVM interpreter bug where searching for elements in arrays always returns `false`.
-- `slice_builtin_edge.sage`: Tests `slice` builtin edge cases including boundary values, negative/out-of-bounds start/end indices, reverse slice parameters, and nil input handling.
-- `split_join_edge.sage`: Tests `split` and `join` string builtins with empty collections, missing separators, and nil inputs.
-- `ml_native_module.sage`: Tests `ml_native` module bridging, metadata queries, and configuration functions.
-- `net_module_ops.sage`: Tests importing and querying the `net` module structure and properties.
-- `math_printm_op.sage`: Tests `OP_MATH_PRINTM` (`math.printm`) on 2D matrices, 1D arrays, and edge cases (non-array / nil parameters).
-- `dict_keys_values_edge.sage`: Tests `dict_keys`, `dict_values`, and `dict_has` builtins on empty dictionaries, nil inputs, non-dict objects, and populated dictionaries.
-- `string_replace_strip_edge.sage`: Tests `replace`, `strip`, `upper`, and `lower` string builtins with empty strings, non-matching search targets, multiple replacements, and whitespace variations.
-- `push_pop_edge.sage`: Tests array `push` and `pop` builtins on empty arrays, nil element insertion/removal, sequential push/pop operations, and array length tracking.
-- `string_starts_ends_edge.sage`: Tests `startswith` and `endswith` string builtins with empty prefixes/suffixes, case sensitivity, length overflows, and nil arguments.
-- `builtin_tuple_edge.sage`: Tests `OP_TUPLE` and tuple operations including empty tuples, single-element tuples, out-of-bounds indexing, array-vs-tuple equality, and containment checks.
-- `builtin_type_edge.sage`: Tests `type()` builtin behavior across primitive types, collections, functions, and modules, documenting SVM type classification behavior.
-- `type_builtin_edge.sage`: Tests `type()` builtin function across primitive values, collections, functions, host modules, and builtin string handlers (documenting SVM type gaps for tuples, functions/modules, and builtins).
-- `mem_module_ops.sage`: Tests bridged `mem` module functions (`mem.alloc`, `mem.free`, `mem.size`, `mem.read`, `mem.write`) on normal execution, zero/negative sizes, and nil parameters.
-- `struct_module_ops.sage`: Tests `struct` module functions (`struct.def`, `struct.new`, `struct.get`, `struct.set`, `struct.size`) under invalid format parameters, nil inputs, and host bridge constraints.
-- `tuple_ops_edge.sage`: Tests `OP_TUPLE` and tuple operations including empty tuples, single-element tuples, out-of-bounds indexing, array-vs-tuple equality, and containment checks.
-- `builtin_gc_edge.sage`: Tests `gc_collect()`, `gc_stats()`, `gc_enable()`, and `gc_disable()` under normal execution, repeated collections, state toggling, and boundary conditions.
-- `builtin_reflect_edge.sage`: Tests `reflect_get_methods()` and `reflect_get_class()` across primitive values, collections, class instances, and edge cases.
-- `builtin_sys_exit_edge.sage`: Tests `sys.exit()` execution halting under SVM interpreter, ensuring statements following `sys.exit(0)` are terminated and not executed.
-- `bitwise_shift_ops_edge.sage`: Tests `OP_SHIFT_LEFT` (`<<`) and `OP_SHIFT_RIGHT` (`>>`) across standard integers, zero shift amounts, large shift values, nil operands, and float parameters.
-- `builtin_chr_ord_edge.sage`: Tests `chr()` and `ord()` builtins across ASCII boundary values, empty strings, nil, and invalid inputs.
-- `builtin_range_clock_edge.sage`: Tests `range()` with zero, positive, negative ints, invalid types, nil, and validates `clock()` output sanity.
-- `builtin_tonumber_edge.sage`: Tests `tonumber()`, `str()`, and `int()` across numeric, string, collection, and nil types.
-- `bitwise_shifts_edge.sage`: Tests `OP_SHIFT_LEFT` (`<<`) and `OP_SHIFT_RIGHT` (`>>`) across standard integers, zero shift amounts, float parameters, nil operands, and negative shift count behavior.
-- `builtin_upper_lower_edge.sage`: Tests `upper()` and `lower()` string builtins under normal and edge conditions.
-- `builtin_str_int_edge.sage`: Tests `str()` and `int()` type conversion builtins across numbers, booleans, strings, arrays, dicts, and nil.
-- `builtin_dict_ops_edge.sage`: Tests `dict_has()`, `dict_keys()`, and `dict_values()` dictionary builtins under normal and edge conditions.
-- `slice_operator_edge.sage`: Tests slice operator syntax and `slice()` builtin with negative start/end indices, out-of-range negative bounds, and inverted slice index ranges.
-- `class_inheritance_edge.sage`: Tests multi-level class inheritance (`OP_CLASS`, `OP_METHOD`, `OP_INHERIT`), method overriding, inherited method lookups/dispatch/resolution across ancestor classes, superclass value access, constructor chaining (`init` delegation), UI component hierarchies, child instantiation, property access, missing method/property calls on instances, and error output format.
-- `exception_try_edge.sage`: Tests `try-catch` blocks (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`) with clean execution, raising primitive values (`raise 404`, `raise false`, `raise nil`), structured array exceptions with indexed field checks, collection exceptions with length/index checks, `type()` introspection on caught values, nested unwinding, and re-raising array/primitive exceptions across nested blocks.
-- `array_concat_edge.sage`: Tests array concatenation (`+` operator / `OP_ADD`) on normal arrays, empty arrays, nested arrays, array + string coercion, and array + number/nil fallback behavior (documenting suspected VM bug where adding non-array/non-string values to arrays falls through to 0).
-- `comparison_ops_edge.sage`: Tests relational (`<`, `<=`, `>`, `>=`) and equality (`==`, `!=`) comparisons across numeric values, strings, mixed types, `nil`, booleans, and deep collection equality (documenting suspected VM bug where string and cross-type relational comparisons evaluate to false).
-- `nested_exceptions_edge.sage`: Tests nested `try-catch` blocks (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`), catching errors thrown inside catch blocks, handling numeric/boolean error payloads, and returning from within try blocks.
-- `string_concat_types_edge.sage`: Tests string concatenation (`OP_ADD`) across numbers, booleans, nil, arrays, and dictionaries, documenting type coercion behavior.
-
 ### Build Environment & Headless Setup
 - Automated `make test` executes builds using `SAGE_NO_GUI=1` and `-DSAGE_NO_GUI` flags to ensure headless build compatibility without `libglfw.so.3` graphics library dependencies.
 
-### Coverage Expansion (September 2026 - Forge Daily)
-- `array_concat_edge.sage`: Tests array concatenation (`OP_ADD`), empty arrays, nested arrays, array-string coercion, and fallback behavior for non-array additions.
-- `comparison_ops_edge.sage`: Tests relational (`<`, `<=`, `>`, `>=`) and equality (`==`, `!=`) opcodes across numbers, strings, booleans, nil, and collections (noting SVM behavior where non-numeric relational comparisons evaluate to false).
-- `float_ops_edge.sage`: Tests floating-point arithmetic (`OP_ADD`, `OP_SUB`, `OP_MUL`, `OP_DIV`, `OP_MOD`), float comparisons (`OP_GREATER`, `OP_LESS_EQUAL`, `OP_EQUAL`), float type conversions (`int()`, `tonumber()`), and float division by zero (`1.0 / 0.0`).
-- `dict_ops_edge.sage`: Tests dictionary property access (`OP_GET_PROPERTY`, `OP_SET_PROPERTY`), element indexing (`OP_GET_INDEX`, `OP_SET_INDEX`), missing string keys/properties evaluating to `nil`, and nested dictionary reassignments.
-- `function_args_edge.sage`: Tests function calls (`OP_CALL`, `OP_RETURN`) with parameter binding, excess arguments, missing arguments, and conditional early returns.
-- `math_module_edge.sage`: Tests `math` module functions (`math.abs`, `math.sqrt`, `math.sin`, `math.cos`, `math.printm`), constants (`math.pi`, `math.e`), non-array `math.printm` error handling, and invalid/negative/nil parameter inputs.
-- `local_vars_edge.sage`: Tests local variable read/write operations (`OP_GET_LOCAL`, `OP_SET_LOCAL`), parameter bindings (`arg0`, `arg1`, `arg2`), loop variable reassignments, shadowing globals, and accessing uninitialized local slots.
-- `nested_loops_edge.sage`: Tests nested `while` loops, function-scoped loop execution, global loop counters, and zero-iteration inner loops.
-- `loop_try_catch_edge.sage`: Tests `try-catch` exception handling inside loop bodies (`OP_SETUP_TRY`, `OP_END_TRY`, `OP_RAISE`), exceptions in sequential loops, and exceptions thrown and caught within nested loops.
-- `recursion_edge.sage`: Tests recursive function calls (`OP_CALL`, `OP_RETURN`), parameter binding across stack frames, mutual recursion (`is_even` / `is_odd`), accumulator recursion, and base conditions.
-- `global_redefine_edge.sage`: Tests global variable declarations (`OP_DEFINE_GLOBAL`), reassignments (`OP_SET_GLOBAL`), scope cache invalidation, global updates inside functions and loops, conditional reassignments, and global collection mutations.
-- `bitwise_expr_edge.sage`: Tests chained bitwise expressions (`OP_BIT_AND`, `OP_BIT_OR`, `OP_BIT_XOR`, `OP_SHIFT_LEFT`, `OP_SHIFT_RIGHT`), bitwise NOT (`~`) on zero and negative boundary values, and nil operand bitwise operations.
-- `logical_expr_edge.sage`: Tests logical expression chaining (`and`, `or`, `not`), non-boolean truthiness evaluation across primitive and collection types in conditionals, and short-circuit evaluation side-effect skipping.
-- `array_mutation_edge.sage`: Tests array element indexing (`OP_GET_INDEX`, `OP_SET_INDEX`), in-place array index mutations, nested matrix mutations, `push` and `pop` operations, and edge conditions (pop on empty array, out-of-bounds indexing).
-
-
 ### Coverage Expansion (October 2026 - Forge Daily)
-- `class_method_dispatch_edge.sage`: Tests OOP class constructors (`init(self, ...)`), method chaining returning `self`, `self` calling internal methods, multi-parameter method dispatch, dynamic property creation, and accessing/calling non-existent properties/methods on instances.
-- `chained_assignment_edge.sage`: Tests stack manipulation opcodes (`OP_DUP`, `OP_POP`) across chained variable assignments (`var a = var b = var c = 100`), arithmetic expression assignments, chained `nil` assignments, chained array index assignments, chained dictionary key assignments, and chained object property assignments.
-<<<<<<< HEAD
-- `unary_negate_edge.sage`: Tests `OP_NEGATE` (unary `-x` operator) across positive and negative integers, floating point numbers, zero, arithmetic expressions, chained negations (`--x`, `---x`), `nil` (evaluates to `0` in SVM), booleans, strings, and array operands.
-- `string_repeat_edge.sage`: Tests string repetition (`OP_MUL` string * int and int * string) with positive counts, zero, negative multipliers, float multipliers, empty strings, chained expressions, and `nil` operands.
+- `short_circuit_merge.sage`: Tests short-circuit logical evaluation result values, truthiness, nested logical joins, and control flow conditions.
+- `for_loop_dict_iteration_edge.sage`: Tests dictionary key/value iteration in loops, value mutations, empty dictionaries, and non-string key indexing behavior.
+- `matrix_multi_dim_mutation_edge.sage`: Tests 2D/3D matrix creation, nested index element mutation (`m[i][j]`), row/column sum traversals, and out-of-bounds index handling.
 
 ### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **160 passed, 0 failed, 1 skipped**
-=======
-<<<<<<< HEAD
-- `dict_key_types_edge.sage`: Tests dictionary indexing (`OP_GET_INDEX`, `OP_SET_INDEX`) with non-string keys (integers, floats, booleans, nil), string conversion via `str()`, dictionary reflection builtins (`dict_has`, `dict_keys`, `dict_values`), and missing key evaluation behavior.
-- `nested_block_return_edge.sage`: Tests early function returns (`OP_RETURN`) from deep nested block scopes (`OP_PUSH_ENV`), nested conditionals, nested loops, and `try-catch` blocks inside functions while verifying environment scope stack balance.
-- `string_escapes_edge.sage`: Tests string escape sequences (`\n`, `\t`, `\\`, `\"`), string indexing and length on multi-line strings, character conversions (`ord`, `chr`), splitting/joining on newline delimiters, and `strip` functionality.
-
-### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **163 passed, 0 failed, 1 skipped**
-=======
-<<<<<<< HEAD
-- `string_replace_edge.sage`: Tests `replace()` string builtin across deletion, empty target strings, multiple pattern occurrences, escape characters (`\n`), whole string replacements, and nil arguments.
-- `dict_nested_mutation_edge.sage`: Tests nested dictionary creation, deep property/index mutation (`d["a"]["b"]` and `d.a.b`), keys with spaces and symbols (`special["first name"]`), missing nested key access, and dictionary mutations in loops.
-- `array_pop_push_boundary_edge.sage`: Tests array stack operations (`push()` and `pop()`), popping on empty arrays returning `nil`, pushing heterogeneous types (arrays, strings, nil, ints), and interleaved push/pop in loops with `len()` tracking.
-
-### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **160 passed, 0 failed, 1 skipped**
-=======
-<<<<<<< HEAD
-- `string_escapes_edge.sage`: Tests string escape sequences (`\n`, `\t`, `\r`, `\\`, `\"`), string utilities with escape characters (`split()`, `join()`, `strip()`, `len()`), ASCII conversion functions (`ord()`, `chr()`), and formatted multi-line string outputs.
-- `func_scope_chain_edge.sage`: Tests nested function definitions, non-lexical closure scope resolution (unbound outer local variables resolving to `nil`), global scope fallback, explicit parameter passing to inner functions, and parameter shadowing global variables.
-
-### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **162 passed, 0 failed, 1 skipped**
-=======
-- `exception_unwind_call_edge.sage`: Tests exception unwinding across multi-level nested function call frames, re-raising exceptions across try-catch blocks, and return statements executed inside try blocks.
-- `split_join_types_edge.sage`: Tests `split()` and `join()` builtins with multi-character delimiters, empty string delimiters, mixed-type arrays, empty arrays, single-element arrays, empty delimiters, and nil parameters.
-- `slice_boundary_edge.sage`: Tests `slice()` builtin and slice operator with boundary clamping values, exact full copies, zero-length slices, and empty collections.
-
-### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **163 passed, 0 failed, 1 skipped**
->>>>>>> origin/main
->>>>>>> origin/main
->>>>>>> origin/main
->>>>>>> origin/main
-
-One test is skipped: `generators.sage`, because `sage --emit-vm` does not
-emit VM bytecode for it.
+The modern SVM coverage suite passes cleanly: **179 passed, 0 failed, 1 skipped** (with `generators.sage` skipped as `sage --emit-vm` does not emit VM bytecode for yield statements).
 
 Note when adding tests: the harness compiles each test with the SageLang in
 `.deps/SageLang`, which is an unmanaged clone rather than a pinned submodule.
@@ -183,7 +43,6 @@ with the VM. Check what it is pinned at before debugging a failure.
 
 Security tests are named `security_*.sage`; the harness passes `--safe` to
 those automatically.
-
 
 The full SRVM suite is not green in the current checkout: the register backend still has broad compatibility gaps. See docs/CHANGELOG.md.
 

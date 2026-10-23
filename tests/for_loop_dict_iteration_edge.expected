@@ -1,0 +1,18 @@
+--- Dict Key / Value Iteration ---
+keys count: 3
+vals count: 3
+alpha -> 10
+beta -> 20
+gamma -> 30
+sum: 60
+--- Value Mutation in Dict ---
+alpha after mutation: 100
+delta added: 40
+dict_has delta: true
+--- Empty Dict Iteration ---
+empty keys count: 0
+empty loop executed iterations: 0
+--- Non-String / Primitive Keys ---
+int key 1: nil
+int key 2: nil
+missing key 3: nil
