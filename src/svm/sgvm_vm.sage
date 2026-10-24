@@ -1041,8 +1041,9 @@ class MetalVM:
             return dict_has(args[0], key)
         elif callee == "__builtin_dict_keys":
             if len(args) == 0 or args[0] == nil or type(args[0]) != "dict": return []
-            let keys = dict_keys(args[0])
+            let obj = args[0]
             if self.safe_mode:
+                let keys = dict_keys(obj)
                 let safe_keys = []
                 var i = 0
                 while i < len(keys):
@@ -1051,7 +1052,7 @@ class MetalVM:
                         push(safe_keys, key)
                     i = i + 1
                 return safe_keys
-            return keys
+            return dict_keys(obj)
         elif callee == "__builtin_dict_values":
             if len(args) == 0 or args[0] == nil or type(args[0]) != "dict": return []
             let obj = args[0]
@@ -1063,7 +1064,8 @@ class MetalVM:
                     let key = keys[i]
                     if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
                         let val = obj[key]
-                        if not (type(val) == "string" and (val == "module" or startswith(val, "__host_"))):
+                        let val_type = type(val)
+                        if val != nil and not (val_type == "function" or val_type == "native fn" or val_type == "module" or (val_type == "string" and (val == "module" or startswith(val, "__host_")))):
                             push(safe_vals, val)
                     i = i + 1
                 return safe_vals
