@@ -332,6 +332,7 @@ class SGVMCLI:
         if input_file == "":
             print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
             print "Usage: " + COLOR_BOLD + "sagevm dis" + COLOR_RESET + " <file.sgvm> [--sage | --svm] [--riscv]"
+            print COLOR_YELLOW + "💡 Tip: Provide a compiled binary file to disassemble (e.g. sagevm dis app.sgvm)." + COLOR_RESET
             return
         
         # Auto-detect RISC-V header
@@ -375,6 +376,7 @@ class SGVMCLI:
         if input_file == "":
             print COLOR_RED + "❌ Error: No input file specified." + COLOR_RESET
             print "Usage: " + COLOR_BOLD + "sagevm hex" + COLOR_RESET + " <file.sgvm|sgrv> [--riscv]"
+            print COLOR_YELLOW + "💡 Tip: Provide a compiled binary file to inspect (e.g. sagevm hex app.sgvm)." + COLOR_RESET
             return
         
         # Auto-detect RISC-V header
