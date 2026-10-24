@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.2] - 2026-10-13
+
+### Fixed
+- **SRVM environment scoping and global variable preservation**: Corrected
+  `VMO_PUSH_ENV` / `VMO_POP_ENV` environment scoping in `src/srvm/srvm_vm.sage`.
+  `push_env` / `pop_env` no longer replace or swap the global variables dictionary
+  `heap` with an empty dictionary upon entering loop blocks, ensuring global variable
+  assignments and accumulators survive loop iterations across SRVM execution.
+  Decoupled environment scope stack depth tracking from `call_stack`.
+- **SRVM test suite pass rate**: RISC-V backend passes 114 of 177 tests (SVM 177/177).
+
 ## [1.2.2] - 2026-10-11
 
 ### Fixed
