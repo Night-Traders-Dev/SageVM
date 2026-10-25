@@ -101,3 +101,7 @@
 ## 2026-09-13 - [Accessible Playground Interactive Controls & Keyboard Navigation]
 **Learning:** Interactive VM playgrounds featuring custom action buttons, range sliders, file upload inputs, and collapsible status panels require explicit ARIA properties (`role="tablist"`, `role="tab"`, `aria-selected`, `aria-label`, `aria-expanded`), keyboard event handlers (`Enter`/`Space`), and focus-visible ring styles (`focus-visible:ring-2 focus-visible:ring-sage-mid focus-visible:outline-none`) to ensure seamless accessibility for keyboard and screen-reader users.
 **Action:** Always enrich playground control headers, range inputs, file upload labels, and action buttons with semantic ARIA roles, focus-visible indicators, and keydown listeners.
+
+## 2026-10-25 - [Navigation ARIA Landmarks & Focus Ring Controls]
+**Learning:** Fixed header navigation bars require explicit `role="navigation"` and `aria-label="Main Navigation"` landmarks along with focus-visible ring styles (`focus-visible:ring-2 focus-visible:ring-sage-mid focus-visible:outline-none`) and explicit `type="button"` attributes on interactive scroll buttons to provide seamless screen-reader and keyboard accessibility.
+**Action:** Equip top-level fixed navigation components with semantic navigation landmarks, focus-visible outline indicators, and explicit ARIA labels on all internal scroll and external repository links.
