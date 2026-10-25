@@ -1,0 +1,25 @@
+--- String Indexing and Length ---
+11
+S
+
+6
+nil
+--- String Contains & Searches ---
+true
+false
+true
+false
+true
+false
+--- String Slicing and Transformation ---
+SageVM
+2026
+SAGEVM
+sagevm
+sagevm
+a:b:c
+--- Ord and Chr conversions ---
+65
+122
+A
+z
