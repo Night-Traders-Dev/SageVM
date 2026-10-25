@@ -1,0 +1,18 @@
+--- For loop over nested array ---
+10
+20
+30
+40
+--- For loop over string ---
+S
+a
+g
+e
+V
+M
+--- For loop over empty array ---
+empty array done
+--- For loop over empty string ---
+empty string done
+--- For loop over nil ---
+nil done
