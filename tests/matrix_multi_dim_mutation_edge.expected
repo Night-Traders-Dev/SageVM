@@ -1,0 +1,17 @@
+--- 2D Matrix Creation and Element Mutation ---
+matrix[1][1] initial: 5
+matrix[1][1] mutated: 99
+--- Row Sums ---
+row 0 sum: 6
+row 1 sum: 109
+row 2 sum: 24
+--- Column Sums ---
+col 0 sum: 12
+col 1 sum: 109
+col 2 sum: 18
+--- 3D Tensor Element Access & Mutation ---
+tensor[1][0][1] initial: 60
+tensor[1][0][1] mutated: 999
+--- Out of Bounds Index Handling ---
+matrix[0][5] oob: nil
+matrix[10] oob: nil
