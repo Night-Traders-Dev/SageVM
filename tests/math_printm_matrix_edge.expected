@@ -1,0 +1,28 @@
+--- 2D Rectangular Matrix ---
+[
+  [1, 2, 3]
+  [4, 5, 6]
+]
+--- 2D Matrix with Mixed Primitive Types ---
+[
+  [row1, true, 3.14]
+  [nil, false, 42]
+]
+--- 1D Flat Array ---
+[
+  10
+  20
+  30
+]
+--- Empty Matrix ---
+[
+]
+--- Matrix with Empty Sub-arrays ---
+[
+  []
+  [1]
+]
+--- Non-array Target Error Path ---
+Error: math.printm() expects an array
+Error: math.printm() expects an array
+Error: math.printm() expects an array

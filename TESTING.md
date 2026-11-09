@@ -43,6 +43,7 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `bitwise_expr_edge.sage`: Tests chained bitwise expressions (`OP_BIT_AND`, `OP_BIT_OR`, `OP_BIT_XOR`, `OP_SHIFT_LEFT`, `OP_SHIFT_RIGHT`), bitwise NOT (`~`) on zero and negative boundary values, and nil operand bitwise operations.
 - `logical_expr_edge.sage`: Tests logical expression chaining (`and`, `or`, `not`), non-boolean truthiness evaluation across primitive and collection types in conditionals, and short-circuit evaluation side-effect skipping.
 - `array_mutation_edge.sage`: Tests array element indexing (`OP_GET_INDEX`, `OP_SET_INDEX`), in-place array index mutations, nested matrix mutations, `push` and `pop` operations, and edge conditions (pop on empty array, out-of-bounds indexing).
+
 ### Coverage Expansion (October 2026 - Forge Daily)
 - `class_method_dispatch_edge.sage`: Tests OOP class constructors (`init(self, ...)`), method chaining returning `self`, `self` calling internal methods, multi-parameter method dispatch, dynamic property creation, and accessing/calling non-existent properties/methods on instances.
 - `chained_assignment_edge.sage`: Tests stack manipulation opcodes (`OP_DUP`, `OP_POP`) across chained variable assignments (`var a = var b = var c = 100`), arithmetic expression assignments, chained `nil` assignments, chained array index assignments, chained dictionary key assignments, and chained object property assignments.
@@ -68,6 +69,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `array_slice_mutation_edge.sage`: Tests array slice operator `[s:e]` and `slice()` builtin on 1D/2D arrays, copy independence on element mutation, 0-length slices, start > end ranges, and empty array slicing.
 - `for_loop_dict_iteration_edge.sage`: Tests dictionary key/value iteration in loops, value mutations, empty dictionaries, and non-string key indexing behavior.
 - `matrix_multi_dim_mutation_edge.sage`: Tests 2D/3D matrix creation, nested index element mutation (`m[i][j]`), row/column sum traversals, and out-of-bounds index handling.
+
+- `math_printm_matrix_edge.sage`: Tests `OP_MATH_PRINTM` (`math.printm`) with 2D rectangular/square matrices, 1D arrays, non-array types, empty matrices, nested arrays with strings/floats/bools, and matrices containing `nil`.
+- `dict_keys_values_iteration_edge.sage`: Tests `dict_keys()`, `dict_values()`, and `dict_has()` reflection builtins across empty dictionaries, non-string key indexing, `nil` values, dictionary mutations, and key/value loop iterations.
 
 ### Verification Status (October 2026)
 The modern SVM coverage suite passes except for the three pre-existing front-end/scoping failures noted below.
