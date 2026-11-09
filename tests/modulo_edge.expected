@@ -1,5 +1,13 @@
+--- Modulo Integers ---
 1
+0
+7
 -1
 1
--1
+--- Modulo Floating Point ---
 1.5
+2.25
+--- Modulo Edge & Invalid Operands ---
+nil
+nil
+nil
