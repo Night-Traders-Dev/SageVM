@@ -243,14 +243,16 @@ class MetalVM:
         let const_len = len(constants)
         var scopes_len = len(scopes)
 
-        # Performance: Inline cache with O(1) epoch invalidation for global lookup and assignment
+        # Performance: Inline cache with O(1) epoch invalidation and pre-populated constant name array for global lookup/assignment
         var global_cache_dict = []
         var global_cache_epoch_array = []
+        var global_cache_name_array = []
         var global_cache_epoch = 1
         var ci = 0
         while ci < const_len:
             push(global_cache_dict, nil)
             push(global_cache_epoch_array, 0)
+            push(global_cache_name_array, constants[ci])
             ci = ci + 1
 
         host_thread.lock(g_gil)
@@ -302,10 +304,11 @@ class MetalVM:
                     halted = true
                     break
 
+                let name = global_cache_name_array[idx]
+
                 if global_cache_epoch_array[idx] == global_cache_epoch:
-                    # Performance: Defer constants[idx] lookup and string checks behind safe_mode guard
+                    # Performance: Defer string checks behind safe_mode guard using pre-cached constant name
                     if safe_mode:
-                        let name = constants[idx]
                         if type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                             if stack_len < physical_stack_len:
                                 stack[stack_len] = nil
@@ -314,7 +317,7 @@ class MetalVM:
                                 physical_stack_len = physical_stack_len + 1
                             stack_len = stack_len + 1
                             continue
-                    let val = global_cache_dict[idx][constants[idx]]
+                    let val = global_cache_dict[idx][name]
                     if stack_len < physical_stack_len:
                         stack[stack_len] = val
                     else:
@@ -322,8 +325,6 @@ class MetalVM:
                         physical_stack_len = physical_stack_len + 1
                     stack_len = stack_len + 1
                     continue
-
-                let name = constants[idx]
 
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     if stack_len < physical_stack_len:
@@ -396,17 +397,16 @@ class MetalVM:
                     halted = true
                     break
 
+                let name = global_cache_name_array[idx]
+
                 if global_cache_epoch_array[idx] == global_cache_epoch:
                     if safe_mode:
-                        let name = constants[idx]
                         if type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                             print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
                             stack[stack_len-1] = nil
                             continue
-                    global_cache_dict[idx][constants[idx]] = stack[stack_len-1]
+                    global_cache_dict[idx][name] = stack[stack_len-1]
                     continue
-
-                let name = constants[idx]
 
                 if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                     print "Error: Assignment to internal global '" + name + "' is restricted in safe mode"
@@ -857,41 +857,43 @@ class MetalVM:
                     let obj = stack[stack_len-1]
                     if safe_mode and type(name) == "string" and startswith(name, "__") and not startswith(name, "__arg"):
                         stack[stack_len-1] = nil
-                    elif type(obj) == "dict":
-                        # Performance: direct key lookup fast-path bypassing dict_has
-                        let val = obj[name]
-                        if val != nil:
-                            stack[stack_len-1] = val
-                        elif dict_has(obj, name):
-                            stack[stack_len-1] = nil
-                        else:
-                            # Performance: Bypass dict_has function calls for class, method, and module property lookups
-                            var found_prop = false
-                            let cls = obj["__class__"]
-                            if cls != nil:
-                                let cls_methods = cls["__methods__"]
-                                if cls_methods != nil:
-                                    let m = cls_methods[name]
-                                    if m != nil:
-                                        stack[stack_len-1] = m
-                                        found_prop = true
-                            if not found_prop:
-                                let methods = obj["__methods__"]
-                                if methods != nil:
-                                    let m = methods[name]
-                                    if m != nil:
-                                        stack[stack_len-1] = m
-                                        found_prop = true
-                            if not found_prop:
-                                if obj["__type__"] == "module":
-                                    let gval = global_scope[name]
-                                    if gval != nil:
-                                        stack[stack_len-1] = gval
-                                        found_prop = true
-                            if not found_prop:
-                                stack[stack_len-1] = nil
                     else:
-                        stack[stack_len-1] = obj[name]
+                        # Performance: direct property subscript lookup fast-path prior to evaluating type(obj) == "dict",
+                        # eliminating type(obj) heap C-string allocations on property hit paths
+                        let direct_val = obj[name]
+                        if direct_val != nil:
+                            stack[stack_len-1] = direct_val
+                        elif type(obj) == "dict":
+                            if dict_has(obj, name):
+                                stack[stack_len-1] = nil
+                            else:
+                                # Performance: Bypass dict_has function calls for class, method, and module property lookups
+                                var found_prop = false
+                                let cls = obj["__class__"]
+                                if cls != nil:
+                                    let cls_methods = cls["__methods__"]
+                                    if cls_methods != nil:
+                                        let m = cls_methods[name]
+                                        if m != nil:
+                                            stack[stack_len-1] = m
+                                            found_prop = true
+                                if not found_prop:
+                                    let methods = obj["__methods__"]
+                                    if methods != nil:
+                                        let m = methods[name]
+                                        if m != nil:
+                                            stack[stack_len-1] = m
+                                            found_prop = true
+                                if not found_prop:
+                                    if obj["__type__"] == "module":
+                                        let gval = global_scope[name]
+                                        if gval != nil:
+                                            stack[stack_len-1] = gval
+                                            found_prop = true
+                                if not found_prop:
+                                    stack[stack_len-1] = nil
+                        else:
+                            stack[stack_len-1] = direct_val
                 else:
                     print "Error: Constant pool index out of bounds: " + str(idx)
                     halted = true
