@@ -72,8 +72,8 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 - **funct3 = 000 (VM Operations)**:
   - `0x00`: NOP
   - `0x01`: HALT
-  - `0x02`: PUSH_ENV
-  - `0x03`: POP_ENV
+  - `0x02`: PUSH_ENV (increments `env_depth` to track block nesting; decoupled from `call_stack` and `heap`)
+  - `0x03`: POP_ENV (decrements `env_depth` to track block nesting; decoupled from `call_stack` and `heap`)
   - `0x04`: CALL
   - `0x05`: SETUP_TRY
   - `0x06`: END_TRY
@@ -141,7 +141,7 @@ SRVM uses `OP_VMSYS` (standard RISC-V SYSTEM opcode repurposed) to access SageVM
 
 ## 5. Bytecode Opcodes
 
-**Last Conformance Sync: 2026-07-22**
+**Last Conformance Sync: 2026-10-25**
 
 > ⚠️ **Opcode Alignment Regression**: As of the latest sync, a critical encoding mismatch persists. The authoritative `bytecode.h` defines `BC_OP_GET_LOCAL` (59), `BC_OP_SET_LOCAL` (60), `BC_OP_YIELD` (61), `BC_OP_CREATE_GENERATOR` (62), and `BC_OP_GENERATOR_NEXT` (63). This shifts the entire GPU instruction block to indices 64-91. SageVM currently maintains a legacy mapping (59-86 for GPU), resulting in a **5-opcode shift** for the Phase 16 block and multiple collisions (e.g., local `OP_GPU_POLL_EVENTS` mapped to 59 collides with authoritative `BC_OP_GET_LOCAL` at 59, and local `OP_YIELD` mapped to 90 collides with authoritative `OP_GPU_CMD_PUSH_CONST` at 90).
 

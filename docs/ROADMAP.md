@@ -50,6 +50,7 @@ This document outlines the current status, supported features, and outstanding w
 - [ ] **Networking**: Full implementation of `socket` and `http` modules.
 - [ ] **Bytecode Verifier**: Pre-execution verification for constant pool integrity and jump target validity.
 - [ ] **SRVM Deep Recursion**: SRVM currently has limited call stack depth for deep recursion (e.g., recursive Fibonacci > 20).
+- [ ] **SRVM Nested Loop Register Allocation**: SRVM register allocator liveness tracking to prevent temporary register spill overwrites across nested loop boundaries.
 
 ## 🟣 Research / Future
 

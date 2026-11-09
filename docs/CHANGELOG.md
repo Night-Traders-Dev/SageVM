@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.2.2] - 2026-10-25
+
+### Fixed
+- **SRVM Environment Scoping (`VMO_PUSH_ENV` / `VMO_POP_ENV`)**: Resolved a bug in
+  `src/srvm/srvm_vm.sage` where loop environment scoping swapped out the global `heap`
+  dictionary and mutated `call_stack`, causing globals to be cleared upon loop entry
+  and pre-loop values to be restored on loop exit. Scoping now decouples from `call_stack`
+  and tracks nesting depth via `env_depth` while preserving the global `heap` dictionary.
+
+### Tests
+- **Loop Accumulator & Global Persistence Coverage**: Added tests in
+  `tests/for_loop_iteration.sage` verifying global variable mutation and accumulator
+  persistence across loop iterations.
+
+### Tools & Diagnostics
+- **Bytecode Inspection & Parity Tools**: Added diagnostic tools in `tools/`
+  (`tools/sgvm_core.sage`, `tools/diff_bytecode.sage`, `tools/parity_check.py`,
+  and `tools/test_disassembler.py`) for bytecode diffing and backend parity testing.
+
 ## [1.2.2] - 2026-10-11
 
 ### Fixed
