@@ -28,6 +28,7 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 ### Build Environment & Headless Setup
 - Automated `make test` executes builds using `SAGE_NO_GUI=1` and `-DSAGE_NO_GUI` flags to ensure headless build compatibility without `libglfw.so.3` graphics library dependencies.
 
+### Coverage Expansion (September 2026 - Forge Daily)
 - `array_concat_edge.sage`: Tests array concatenation (`OP_ADD`), empty arrays, nested arrays, array-string coercion, and fallback behavior for non-array additions.
 - `comparison_ops_edge.sage`: Tests relational (`<`, `<=`, `>`, `>=`) and equality (`==`, `!=`) opcodes across numbers, strings, booleans, nil, and collections (noting SVM behavior where non-numeric relational comparisons evaluate to false).
 - `float_ops_edge.sage`: Tests floating-point arithmetic (`OP_ADD`, `OP_SUB`, `OP_MUL`, `OP_DIV`, `OP_MOD`), float comparisons (`OP_GREATER`, `OP_LESS_EQUAL`, `OP_EQUAL`), float type conversions (`int()`, `tonumber()`), and float division by zero (`1.0 / 0.0`).
@@ -42,6 +43,7 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `bitwise_expr_edge.sage`: Tests chained bitwise expressions (`OP_BIT_AND`, `OP_BIT_OR`, `OP_BIT_XOR`, `OP_SHIFT_LEFT`, `OP_SHIFT_RIGHT`), bitwise NOT (`~`) on zero and negative boundary values, and nil operand bitwise operations.
 - `logical_expr_edge.sage`: Tests logical expression chaining (`and`, `or`, `not`), non-boolean truthiness evaluation across primitive and collection types in conditionals, and short-circuit evaluation side-effect skipping.
 - `array_mutation_edge.sage`: Tests array element indexing (`OP_GET_INDEX`, `OP_SET_INDEX`), in-place array index mutations, nested matrix mutations, `push` and `pop` operations, and edge conditions (pop on empty array, out-of-bounds indexing).
+### Coverage Expansion (October 2026 - Forge Daily)
 - `class_method_dispatch_edge.sage`: Tests OOP class constructors (`init(self, ...)`), method chaining returning `self`, `self` calling internal methods, multi-parameter method dispatch, dynamic property creation, and accessing/calling non-existent properties/methods on instances.
 - `chained_assignment_edge.sage`: Tests stack manipulation opcodes (`OP_DUP`, `OP_POP`) across chained variable assignments (`var a = var b = var c = 100`), arithmetic expression assignments, chained `nil` assignments, chained array index assignments, chained dictionary key assignments, and chained object property assignments.
 - `unary_negate_edge.sage`: Tests `OP_NEGATE` (unary `-x` operator) across positive and negative integers, floating point numbers, zero, arithmetic expressions, chained negations (`--x`, `---x`), `nil` (evaluates to `0` in SVM), booleans, strings, and array operands.
