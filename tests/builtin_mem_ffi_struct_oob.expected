@@ -1,0 +1,28 @@
+Testing __builtin_mem_alloc with no args:
+nil
+Testing __builtin_mem_free with no args:
+nil
+Testing __builtin_mem_read with missing args:
+nil
+nil
+Testing __builtin_mem_write with missing args:
+nil
+nil
+Testing __builtin_mem_size with no args:
+nil
+Testing __builtin_ffi_open with no args:
+nil
+Testing __builtin_ffi_close with no args:
+nil
+Testing __builtin_ffi_call with missing args:
+nil
+Testing __builtin_struct_def with no args:
+nil
+Testing __builtin_struct_new with no args:
+nil
+Testing __builtin_struct_get with missing args:
+nil
+Testing __builtin_struct_set with missing args:
+nil
+Testing __builtin_struct_size with no args:
+nil
