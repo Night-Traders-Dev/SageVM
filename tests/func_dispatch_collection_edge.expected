@@ -1,0 +1,15 @@
+--- Function References in Arrays ---
+funcs[0](10, 5): 15
+funcs[1](10, 5): 5
+funcs[2](10, 5): 50
+--- Function References in Dictionaries ---
+ops['plus'](20, 4): 24
+ops['minus'](20, 4): 16
+ops['times'](20, 4): 80
+--- Function Reassignment in Dictionaries ---
+ops['plus'](20, 4) after reassignment to mul: 80
+--- Higher-Order Collection Pipeline Dispatch ---
+pipeline_apply([add_ten, double_val, square_val], 3): 676
+--- Missing or Non-Function Handle Lookup ---
+ops['missing'] == nil: true
+funcs[10] == nil: true

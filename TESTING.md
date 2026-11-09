@@ -153,6 +153,9 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 
 ### Verification Status (October 2026)
 The modern SVM coverage suite passes except for the three pre-existing front-end/scoping failures noted below.
+- `func_dispatch_collection_edge.sage`: Tests function references stored in arrays and dictionaries, dynamic function dispatch via index/key lookup, function reassignment in collections, higher-order collection pipeline dispatch, and missing function handle lookups.
+- `array_slice_mutation_edge.sage`: Tests array slice operator `[s:e]` and `slice()` builtin on 1D/2D arrays, copy independence on element mutation, 0-length slices, start > end ranges, and empty array slicing.
+
 
 One test is skipped: `generators.sage`, because `sage --emit-vm` does not
 emit VM bytecode for it.
