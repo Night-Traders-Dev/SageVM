@@ -147,8 +147,12 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `bitwise_not_edge.sage`: Tests `OP_BIT_NOT` (`~`) on positive/negative integers, zero, bitwise NOT expressions, double bitwise negation, and `nil` operand handling.
 - `logical_not_edge.sage`: Tests `OP_NOT` (`not`) across boolean values, `nil`, integers, floats, empty/non-empty strings, collections (arrays and dicts), logical expressions, and chained negation (`not not`).
 
+- `short_circuit_merge.sage`: Activates test for short-circuit result value evaluation, boolean and truthiness preservation across logical expression continuations, and nested expression evaluation.
+- `for_loop_collections_edge.sage`: Tests `for` loops across collection types including nested arrays, strings, empty arrays, empty strings, and nil boundary conditions.
+- `string_search_index_edge.sage`: Tests string character indexing, length (`len`), containment (`contains`), prefixes/suffixes (`startswith`/`endswith`), slicing (`slice`), case transformations (`upper`/`lower`), whitespace stripping (`strip`), string replacement (`replace`), and ASCII conversions (`ord`/`chr`).
+
 ### Verification Status (October 2026)
-The modern SVM coverage suite passes cleanly: **179 passed, 0 failed, 1 skipped**
+The modern SVM coverage suite passes except for the three pre-existing front-end/scoping failures noted below.
 
 One test is skipped: `generators.sage`, because `sage --emit-vm` does not
 emit VM bytecode for it.
