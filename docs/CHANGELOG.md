@@ -19,7 +19,7 @@
 ### Tests
 - **Coverage expansion merged**: edge-case tests for loops, matrices, string
   search/indexing, short-circuit merging, dict iteration, and reflection.
-- **Full SVM suite**: 192 passed, 0 failed, 1 skipped.
+- **Full SVM suite**: 193 passed, 0 failed, 1 skipped.
 
 
 ## [1.2.2] - 2026-10-25

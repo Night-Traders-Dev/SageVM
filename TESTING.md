@@ -76,7 +76,7 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `string_format_method_edge.sage`: Tests chained string transformation builtins (`upper`/`lower`/`strip`/`replace`/`split`/`join`), character code conversions (`ord()`/`chr()`), and empty string boundary cases.
 
 ### Verification Status (October 2026)
-The modern SVM coverage suite passes: **192 passed, 0 failed, 1 skipped**.
+The modern SVM coverage suite passes: **193 passed, 0 failed, 1 skipped**.
 
 One test is skipped: `generators.sage`, because `sage --emit-vm` does not
 emit VM bytecode for it.
