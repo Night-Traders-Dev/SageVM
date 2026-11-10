@@ -73,6 +73,8 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `math_printm_matrix_edge.sage`: Tests `OP_MATH_PRINTM` (`math.printm`) with 2D rectangular/square matrices, 1D arrays, non-array types, empty matrices, nested arrays with strings/floats/bools, and matrices containing `nil`.
 - `dict_keys_values_iteration_edge.sage`: Tests `dict_keys()`, `dict_values()`, and `dict_has()` reflection builtins across empty dictionaries, non-string key indexing, `nil` values, dictionary mutations, and key/value loop iterations.
 
+- `string_format_method_edge.sage`: Tests chained string transformation builtins (`upper`/`lower`/`strip`/`replace`/`split`/`join`), character code conversions (`ord()`/`chr()`), and empty string boundary cases.
+
 ### Verification Status (October 2026)
 The modern SVM coverage suite passes: **192 passed, 0 failed, 1 skipped**.
 

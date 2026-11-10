@@ -45,7 +45,11 @@ test:
 	@PATH="$(PWD)/.deps/SageLang/core:$(PATH)" SAGE_PATH="src:src/svm:src/srvm:src/jit:.deps/SageLang/core/lib" CFLAGS_EXTRA="-Wno-overlength-strings" .deps/SageLang/core/sage --compile sagevm.sage -o sagevm
 	@ln -sf sagevm sgvm
 	@ln -sf sagevm sgvmc
+<<<<<<< HEAD
 	@PATH="$(PWD)/.deps/SageLang/core:$(PATH)" python3 tests/run_tests.py
+=======
+	@PATH="$$(pwd)/.deps/SageLang/core:$$PATH" python3 tests/run_tests.py
+>>>>>>> origin/pr/484
 
 test-srvm:
 	@$(MAKE) all
