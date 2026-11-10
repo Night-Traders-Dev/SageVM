@@ -1097,6 +1097,39 @@ class SRVM:
                                 self.state.x[10] = safe_vals
                             else:
                                 self.state.x[10] = dict_values(obj)
+                    elif b_name == "__sage_iter_array__":
+                        let iterable = self.state.x[10]
+                        if iterable == nil:
+                            self.state.x[10] = []
+                        else:
+                            let iterable_type = type(iterable)
+                            if iterable_type == "array":
+                                self.state.x[10] = iterable
+                            elif iterable_type == "dict":
+                                if self.state.safe_mode and self.is_protected(iterable):
+                                    self.state.x[10] = []
+                                else:
+                                    let keys = dict_keys(iterable)
+                                    if not self.state.safe_mode:
+                                        self.state.x[10] = keys
+                                    else:
+                                        let safe_keys = []
+                                        var ki = 0
+                                        while ki < len(keys):
+                                            let key = keys[ki]
+                                            if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                                                push(safe_keys, key)
+                                            ki = ki + 1
+                                        self.state.x[10] = safe_keys
+                            elif iterable_type == "string" or iterable_type == "tuple":
+                                let out = []
+                                var oi = 0
+                                while oi < len(iterable):
+                                    push(out, iterable[oi])
+                                    oi = oi + 1
+                                self.state.x[10] = out
+                            else:
+                                self.state.x[10] = []
                     elif b_name == "reflect_get_methods" or b_name == "__builtin_reflect_get_methods":
                         let obj = self.state.x[10]
                         if obj == nil or (self.state.safe_mode and self.is_protected(obj)):
@@ -1637,7 +1670,7 @@ class SRVM:
                     self.state.x[rd] = {"__host_mod__": gpu}
                 elif name == "ml_native" and not self.state.safe_mode:
                     self.state.x[rd] = {"__host_mod__": ml_native}
-                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or name == "reflect_get_methods" or name == "reflect_get_class" or name == "gpu_get_time" or name == "gpu_poll_events" or name == "gpu_mouse_pos" or name == "ffi_open" or name == "ffi_close" or name == "ffi_call" or name == "next" or (type(name) == "string" and startswith(name, "__builtin_")):
+                elif name == "str" or name == "int" or name == "slice" or name == "len" or name == "type" or name == "range" or name == "clock" or name == "tonumber" or name == "push" or name == "pop" or name == "chr" or name == "ord" or name == "dict_has" or name == "dict_keys" or name == "dict_values" or name == "gc_stats" or name == "gc_collect" or name == "gc_enable" or name == "gc_disable" or name == "startswith" or name == "endswith" or name == "contains" or name == "join" or name == "split" or name == "replace" or name == "upper" or name == "lower" or name == "strip" or name == "print" or name == "sys_getenv" or name == "__builtin_sys_getenv" or name == "sys_exec" or name == "__builtin_sys_exec" or name == "sys_system" or name == "__builtin_sys_system" or name == "sys_exit" or name == "__builtin_sys_exit" or name == "sys_args" or name == "__builtin_sys_args" or name == "io_readfile" or name == "io_readbytes" or name == "io_writefile" or name == "io_writebytes" or name == "reflect_get_methods" or name == "reflect_get_class" or name == "gpu_get_time" or name == "gpu_poll_events" or name == "gpu_mouse_pos" or name == "ffi_open" or name == "ffi_close" or name == "ffi_call" or name == "next" or name == "__sage_iter_array__" or (type(name) == "string" and startswith(name, "__builtin_")):
                     self.state.x[rd] = {"__builtin__": name}
                 else:
                     self.state.x[rd] = nil

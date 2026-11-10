@@ -197,6 +197,7 @@ class MetalVM:
         self.globals["dict_has"] = "__builtin_dict_has"
         self.globals["dict_keys"] = "__builtin_dict_keys"
         self.globals["dict_values"] = "__builtin_dict_values"
+        self.globals["__sage_iter_array__"] = "__builtin_sage_iter_array"
         self.globals["sys_exit"] = "__builtin_sys_exit"
 
     proc is_protected(self, obj):
@@ -1074,6 +1075,32 @@ class MetalVM:
                     i = i + 1
                 return safe_vals
             return dict_values(obj)
+        elif callee == "__builtin_sage_iter_array":
+            if len(args) == 0 or args[0] == nil: return []
+            let iterable = args[0]
+            let iterable_type = type(iterable)
+            if iterable_type == "array":
+                return iterable
+            if iterable_type == "dict":
+                if self.safe_mode and self.is_protected(iterable): return []
+                let keys = dict_keys(iterable)
+                if not self.safe_mode: return keys
+                let safe_keys = []
+                var ki = 0
+                while ki < len(keys):
+                    let key = keys[ki]
+                    if not (type(key) == "string" and startswith(key, "__") and not startswith(key, "__arg")):
+                        push(safe_keys, key)
+                    ki = ki + 1
+                return safe_keys
+            if iterable_type == "string" or iterable_type == "tuple":
+                let out = []
+                var oi = 0
+                while oi < len(iterable):
+                    push(out, iterable[oi])
+                    oi = oi + 1
+                return out
+            return []
         elif callee == "__builtin_str":
             if len(args) == 0: return nil
             return str(args[0])
@@ -1784,7 +1811,7 @@ class MetalVM:
                         while j < argc:
                             let arg_val = args[j]
                             push(self.stack, arg_val)
-                            let arg_name = get_arg_name(j)
+                            let arg_name = get_arg_name(j + 1)
                             self.scopes[len(self.scopes)-1][arg_name] = arg_val
                             j = j + 1
                     elif ctype == "generator_fn":
@@ -1801,7 +1828,7 @@ class MetalVM:
                         while j < argc:
                             let arg_val = args[j]
                             push(gen_obj["__stack__"], arg_val)
-                            let arg_name = get_arg_name(j)
+                            let arg_name = get_arg_name(j + 1)
                             gen_obj["__scopes__"][0][arg_name] = arg_val
                             j = j + 1
                         push(self.stack, gen_obj)
