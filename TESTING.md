@@ -74,7 +74,7 @@ Note: The `testing/` directory contains historical tests, while `tests/` is used
 - `dict_keys_values_iteration_edge.sage`: Tests `dict_keys()`, `dict_values()`, and `dict_has()` reflection builtins across empty dictionaries, non-string key indexing, `nil` values, dictionary mutations, and key/value loop iterations.
 
 ### Verification Status (October 2026)
-The modern SVM coverage suite passes except for the three pre-existing front-end/scoping failures noted below.
+The modern SVM coverage suite passes: **192 passed, 0 failed, 1 skipped**.
 
 One test is skipped: `generators.sage`, because `sage --emit-vm` does not
 emit VM bytecode for it.

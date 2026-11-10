@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **Compiled `for` loops over non-array iterables**: SVM and SRVM now implement
+  the `__sage_iter_array__` helper emitted by `sage --emit-vm`, covering arrays,
+  dicts, tuples, strings, and `nil`.
+- **Nested function and generator argument binding**: the first argument is now
+  bound to `__arg1`, matching the compiler's parameter naming, so nested
+  functions can read outer parameters passed as arguments.
+
+### Security
+- **Protected reflection is empty**: `dict_keys`/`dict_values` return no metadata
+  for protected host modules in safe mode.
+- **Host function filtering**: `dict_values` filters host/native values in safe
+  mode, and `contains` rejects protected objects and internal keys.
+
+### Tests
+- **Coverage expansion merged**: edge-case tests for loops, matrices, string
+  search/indexing, short-circuit merging, dict iteration, and reflection.
+- **Full SVM suite**: 192 passed, 0 failed, 1 skipped.
+
+
 ## [1.2.2] - 2026-10-25
 
 ### Fixed
